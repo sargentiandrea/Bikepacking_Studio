@@ -10,10 +10,9 @@ from PySide6.QtWidgets import (
     QFrame, QLineEdit, QComboBox, QGraphicsDropShadowEffect
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl, Qt, QTimer
-from PySide6.QtGui import QColor
+from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtCore import QUrl, Qt, QTimer, QThread, Signal
-
+from PySide6.QtGui import QColor
 
 from service.config import DB_NAME
 from service.map_manager_service import MapManagerService, DownloadWorker
@@ -276,6 +275,7 @@ class MappaWidget(QWidget):
         
         self.web_view = QWebEngineView(container_mappa)
         self.web_view.setUrl("http://127.0.0.1:8080/map")
+        self.web_view.page().featurePermissionRequested.connect(self._gestisci_permessi_gps)
         layout_container.addWidget(self.web_view)
 
         # Creazione del pannello fluttuante sovrapposto
@@ -285,6 +285,19 @@ class MappaWidget(QWidget):
         self.pannello_pianificazione.btn_chiudi_pannello.clicked.connect(self.toggle_pannello)
 
         main_layout.addWidget(container_mappa)
+
+    def _gestisci_permessi_gps(self, url, feature):
+        permission_feature = getattr(QWebEnginePage.PermissionFeature, 'Geolocation', None)
+        if permission_feature is None and hasattr(QWebEnginePage, 'Geolocation'):
+            permission_feature = QWebEnginePage.Geolocation
+            
+        if feature == permission_feature:
+            granted_policy = getattr(QWebEnginePage.PermissionPolicy, 'PermissionGrantedByUser', None)
+            if granted_policy is None and hasattr(QWebEnginePage, 'PermissionGrantedByUser'):
+                granted_policy = QWebEnginePage.PermissionGrantedByUser
+                
+            self.web_view.page().setFeaturePermission(url, feature, granted_policy)
+            print(f"🛰️ Permesso di geolocalizzazione GPS concesso con successo per: {url.toString()}")
 
     def toggle_pannello(self):
         if self.pannello_pianificazione.isVisible():
