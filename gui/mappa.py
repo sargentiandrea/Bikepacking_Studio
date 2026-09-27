@@ -477,25 +477,3 @@ class WorkerCaricamentoMappa(QThread):
             print(f"Errore database nel worker: {err}")
             
         self.elaborazione_completata.emit(payload)
-
-    def open_map_manager(self):
-        dialog = MapManagerDialog(self)
-        dialog.exec()
-        
-        finestra_principale = self.window()
-        p_id = getattr(finestra_principale, 'current_progetto_id', None)
-        if p_id:
-            from service.config import DB_NAME
-            self.rigenera_mappa(p_id, DB_NAME, force=True)
-
-    def reload_map(self):
-        finestra_principale = self.window()
-        p_id = getattr(finestra_principale, 'current_progetto_id', None)
-        if p_id:
-            from service.config import DB_NAME
-            self.rigenera_mappa(p_id, DB_NAME, force=True)
-        else:
-            import json
-            vuoto = {"type": "FeatureCollection", "features": []}
-            js_code = f"if(window.aggiornaMappaGeoJSON) {{ window.aggiornaMappaGeoJSON({json.dumps(vuoto)}); }}"
-            self.web_view.page().runJavaScript(js_code)
