@@ -84,9 +84,7 @@ STILI_TRASPORTI = {
 def inizializza_database():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    # ... resto del codice ...
     cursor.execute('''
-        
         CREATE TABLE IF NOT EXISTS progetti (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
@@ -168,7 +166,9 @@ def inizializza_database():
             FOREIGN KEY (id_progetto) REFERENCES progetti(id)
         )
     ''')
-    
+    conn.commit()
+    conn.close()
+
 def determina_blocco_da_nome_file(nome_file):
     clean_name = os.path.basename(nome_file).upper().strip()
     if len(clean_name) >= 3 and clean_name[:3].isalpha():
@@ -403,12 +403,11 @@ class BikepackingStudioApp(QMainWindow):
         sidebar.setFixedWidth(85)
         sidebar.setStyleSheet(
             "background-color: #252526; border-right: 1px solid #3e3e42;"
-            "QPushButton { font-size: 20px; padding: 10px; }"  # <-- Ingrandisce le emoji e dà respiro ai click
+            "QPushButton { font-size: 20px; padding: 10px; }"
         )
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(10, 20, 10, 20)
         sidebar_layout.setSpacing(10)
-
 
         # 1. Pulsanti di navigazione ridotti a icone/compatti con Tooltip
         self.btn_dashboard = self.crea_bottone_navigazione("📂")
@@ -454,7 +453,6 @@ class BikepackingStudioApp(QMainWindow):
         self.stacked_widget = QStackedWidget()
 
         # 4. Creazione fisica delle pagine
-        # --- Stacked Widget (Contenitore Pagine) ---
         self.page_blocchi = GestoreBlocchiWidget(self)
         self.page_mappa = self.crea_pagina_mappa()
         self.page_audit = self.crea_pagina_audit()
@@ -468,10 +466,7 @@ class BikepackingStudioApp(QMainWindow):
         )
 
         # 5. Registrazione ordinata delle pagine nello QStackedWidget
-        # Pagina 1: Dashboard (Caricata dal nuovo modulo esterno)
         self.page_dashboard = DashboardPage(self)
-
-        # Colleghi il segnale della dashboard a una funzione di coordinamento pulita
         self.page_dashboard.progetto_selezionato_signal.connect(self.gestisci_cambio_progetto)        
         
         self.stacked_widget.addWidget(self.page_dashboard) # Indice 0
@@ -498,16 +493,23 @@ class BikepackingStudioApp(QMainWindow):
         main_layout.addWidget(sidebar)
         main_layout.addWidget(self.stacked_widget)
 
-    
+    def cambia_pagina(self, indice):
+        self.stacked_widget.setCurrentIndex(indice)
+        if indice == 1:
+            self.page_blocchi.carica_blocchi()
+        elif indice == 2:
+            if hasattr(self, 'page_mappa') and hasattr(self.page_mappa, 'rigenera_mappa'):
+                self.page_mappa.rigenera_mappa(self.current_progetto_id, DB_NAME, force=False)
+
     def gestisci_cambio_progetto(self, id_progetto, nome_percorso):
         """Aggiorna lo stato globale della finestra principale quando la dashboard cambia progetto."""
         self.current_progetto_id = id_progetto
-        # Segnamo che la mappa dovrà essere aggiornata quando l'utente aprirà la pagina dedicata
+        self.current_progetto_nome = nome_percorso
         self.mappa_necessita_aggiornamento = True
             
     def crea_bottone_navigazione(self, testo):
         btn = QPushButton(testo)
-        btn.setFont(QFont("Segoe UI Emoji", 20))  # Font grande per le icone
+        btn.setFont(QFont("Segoe UI Emoji", 20))
         btn.setStyleSheet("""
             QPushButton { 
                 background-color: transparent; 
@@ -529,7 +531,6 @@ class BikepackingStudioApp(QMainWindow):
         return btn
     
     def crea_pagina_mappa(self):
-        # Istanziamo direttamente il widget modulare corretto e pulito dal file gui/mappa.py
         self.page_mappa = MappaWidget(self)
         return self.page_mappa
     
@@ -572,19 +573,72 @@ class BikepackingStudioApp(QMainWindow):
         layout.addWidget(self.table_allarmi)
         return widget
 
+    def crea_pagina_trasporti(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(25, 25, 25, 25)
+        lbl = QLabel("🚢 Logistica e Trasferimenti Intermodali")
+        lbl.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(lbl)
+        return widget
+
+    def crea_pagina_dogane(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(25, 25, 25, 25)
+        lbl = QLabel("🛂 Dogane & Requisiti di Ingresso")
+        lbl.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(lbl)
+        return widget
+
+    def crea_pagina_clima(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(25, 25, 25, 25)
+        lbl = QLabel("🗓️ Catena Stagionale & Clima")
+        lbl.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(lbl)
+        return widget
+
+    def crea_pagina_statistiche(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(25, 25, 25, 25)
+        lbl = QLabel("📊 Totali & Statistiche Avanzate")
+        lbl.setFont(QFont("Arial", 16, QFont.Bold))
+        layout.addWidget(lbl)
+        return widget
+
+    def crea_pagina_placeholder(self, titolo, desc):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(25, 25, 25, 25)
+        lbl_titolo = QLabel(titolo)
+        lbl_titolo.setFont(QFont("Arial", 16, QFont.Bold))
+        lbl_desc = QLabel(desc)
+        lbl_desc.setStyleSheet("color: #aaaaaa;")
+        layout.addWidget(lbl_titolo)
+        layout.addWidget(lbl_desc)
+        layout.addStretch()
+        return widget
+
+    def apri_pagina_clima(self):
+        self.cambia_pagina(6)
+
+    def apri_pagina_statistiche(self):
+        self.cambia_pagina(7)
+
+    def verifica_progetto_attivo(self):
+        return self.current_progetto_id is not None
+
     def carica_lista_percorsi(self):
         """Reindirizza al nuovo modulo DashboardPage."""
-        # Se il programma prova a chiamare il vecchio metodo, 
-        # diciamo al nuovo modulo di eseguire la sua funzione.
         self.page_dashboard.carica_lista_percorsi()
     
     def apri_percorso_selezionato(self, item):
         pid, nome = item.data(Qt.UserRole)
         self.current_progetto_id = pid
         self.current_progetto_nome = nome
-        self.lbl_nome_percorso_attivo.setText(f"Percorso: {nome}")
-        
-        self.stack_archivio.setCurrentIndex(1)
         self.mappa_necessita_aggiornamento = True
         self.esegui_audit_automatico()
         self.aggiorna_tabella_tappe()
@@ -598,12 +652,10 @@ class BikepackingStudioApp(QMainWindow):
         layout = QFormLayout(dialog)
         layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
 
-        # 1. Nome Percorso
         txt_nome = QLineEdit()
         txt_nome.setPlaceholderText("Es. Avventura Gravel sui Monti")
         txt_nome.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
         
-        # 2. Profilo Bici
         combo_bici = QComboBox()
         combo_bici.addItems([
             "Gravel / Bici da Viaggio", 
@@ -613,7 +665,6 @@ class BikepackingStudioApp(QMainWindow):
         ])
         combo_bici.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
 
-        # 3. Preferenze Strada
         combo_strada = QComboBox()
         combo_strada.addItems([
             "Bilanciato (Consigliato)", 
@@ -623,7 +674,6 @@ class BikepackingStudioApp(QMainWindow):
         ])
         combo_strada.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
 
-        # 4. Durata Prevista
         combo_durata = QComboBox()
         combo_durata.addItems([
             "Escursione in Giornata", 
@@ -632,7 +682,6 @@ class BikepackingStudioApp(QMainWindow):
         ])
         combo_durata.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
 
-        # 5. Note / Descrizione opzionale
         txt_desc = QLineEdit()
         txt_desc.setPlaceholderText("Note opzionali...")
         txt_desc.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
@@ -663,11 +712,8 @@ class BikepackingStudioApp(QMainWindow):
                 self.carica_lista_percorsi()
                 self.current_progetto_id = new_id
                 self.current_progetto_nome = nome
-                self.lbl_nome_percorso_attivo.setText(f"Percorso: {nome}")
                 
                 print(f"✨ Creato percorso '{nome}' | Bici: {combo_bici.currentText()} | Strade: {combo_strada.currentText()}")
-                
-                self.stack_archivio.setCurrentIndex(1)
                 self.aggiorna_tabella_tappe()
 
         btn_salva.clicked.connect(salva)
@@ -684,17 +730,16 @@ class BikepackingStudioApp(QMainWindow):
         )
         
         if files:
-            current_widget = self.stack.currentWidget()
-            
+            current_widget = self.stacked_widget.currentWidget()
             if hasattr(current_widget, 'elabora_files_gpx'):
                 current_widget.elabora_files_gpx(files)
-            elif hasattr(self, 'dashboard_page') and self.dashboard_page:
-                self.dashboard_page.elabora_files_gpx(files)    
+            elif hasattr(self, 'page_dashboard') and self.page_dashboard:
+                self.page_dashboard.elabora_files_gpx(files)    
     
     def elabora_files_gpx(self, filepaths):
         """Reindirizza l'elaborazione dei file GPX alla pagina Dashboard modulare."""
-        if hasattr(self, 'dashboard_page') and self.dashboard_page:
-            self.dashboard_page.elabora_files_gpx(filepaths)
+        if hasattr(self, 'page_dashboard') and self.page_dashboard:
+            self.page_dashboard.elabora_files_gpx(filepaths)
     
     def esegui_audit_automatico(self):
         """Esegue il controllo dell'integrità del percorso attivo."""
@@ -746,7 +791,6 @@ class BikepackingStudioApp(QMainWindow):
 
             # Se c'è un'interruzione maggiore di 3 km
             if gap_km > 3.0:
-                # Controlla se il buco è già coperto da un trasferimento navale/ferroviario
                 coperto = any(
                     abs(t[0] - end_lat) < 0.01 and abs(t[1] - end_lon) < 0.01 and
                     abs(t[2] - start_lat) < 0.01 and abs(t[3] - start_lon) < 0.01
@@ -782,7 +826,8 @@ class BikepackingStudioApp(QMainWindow):
         self.esegui_audit_automatico()
         self.mappa_necessita_aggiornamento = True
         self.aggiorna_tabella_tappe()
-        self.aggiorna_tabella_trasferimenti()
+        if hasattr(self, 'aggiorna_tabella_trasferimenti'):
+            self.aggiorna_tabella_trasferimenti()
         if hasattr(self, 'aggiorna_tabella_allarmi'):
             self.aggiorna_tabella_allarmi()
 
@@ -805,8 +850,8 @@ class BikepackingStudioApp(QMainWindow):
         if not self.current_progetto_id:
             return
             
-        if hasattr(self, 'dashboard_page') and self.dashboard_page:
-            self.dashboard_page.aggiorna_tabella_tappe()
+        if hasattr(self, 'page_dashboard') and self.page_dashboard:
+            self.page_dashboard.aggiorna_tabella_tappe()
     
     def aggiorna_blocco_tappa(self, tappa_id, nuovo_blocco):
         blocco_val = nuovo_blocco.strip() if nuovo_blocco.strip() else "Generale"
@@ -880,13 +925,20 @@ class BikepackingStudioApp(QMainWindow):
             
             self.current_progetto_id = None
             self.carica_lista_percorsi()
-            self.stack_archivio.setCurrentIndex(0)
+
+    def mostra_mappa_gap(self, end_lat, end_lon, start_lat, start_lon, t1_nome, t2_nome):
+        QMessageBox.information(
+            self,
+            "Mappa GAP",
+            f"Coordinate GAP tra:\n{t1_nome} -> ({end_lat}, {end_lon})\n{t2_nome} -> ({start_lat}, {start_lon})"
+        )
+
+    def avvia_wizard_trasferimento(self, allarme_id):
+        QMessageBox.information(self, "Logistica Trasferimento", f"Apertura logistica per l'allarme ID {allarme_id}.")
 
     def aggiorna_tabella_allarmi(self):
         if not self.verifica_progetto_attivo():
-            if hasattr(self, 'tabella_allarmi'):
-                self.tabella_allarmi.setRowCount(0)
-            elif hasattr(self, 'table_allarmi'):
+            if hasattr(self, 'table_allarmi'):
                 self.table_allarmi.setRowCount(0)
             return
 
@@ -947,4 +999,15 @@ class BikepackingStudioApp(QMainWindow):
             # 3. PULSANTE: Logistica
             btn_trasferimento = QPushButton("🚢 Logistica/Mezzo")
             btn_trasferimento.setStyleSheet("background-color: #2980b9; color: white; font-weight: bold; font-size: 11px; padding: 4px;")
-            btn_trasferimento.clicked.connect(lambda _, e_lat=end_lat, e_lon=end_lon, s_lat=start_lat, s_lon=start_lon, aid=allarme_id: self.avvia
+            btn_trasferimento.clicked.connect(lambda _, aid=allarme_id: self.avvia_wizard_trasferimento(aid))
+
+            layout_azioni.addWidget(btn_mappa_gap)
+            layout_azioni.addWidget(btn_raccorda)
+            layout_azioni.addWidget(btn_trasferimento)
+            self.table_allarmi.setCellWidget(row_idx, 3, panel_azioni)
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = BikepackingStudioApp()
+    window.show()
+    sys.exit(app.exec())
