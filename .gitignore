@@ -1,0 +1,17 @@
+# --- ESCLUSIONE DATI PESANTI E MAPPE OFFLINE ---
+basemap-styles-master/
+data/maps/
+gpx/
+bin/
+*.db
+*.geojson
+
+# --- FILE TEMPORANEI E CACHE DI PYTHON ---
+__pycache__/
+*/__pycache__/
+service/__pycache__/
+.venv/
+venv/
+.idea/
+.vscode/
+temp_map.html

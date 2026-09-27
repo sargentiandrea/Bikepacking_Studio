@@ -1,0 +1,14 @@
+{
+  "progetto": "Bikepacking Studio",
+  "regole_architetturali_critiche": [
+    "NON modificare mai i collegamenti tra app_desktop.py e gui/mappa.py senza verificare il server locale map_server.py.",
+    "Il rendering della mappa in QWebEngineView dipende interamente dagli endpoint asincroni locali (127.0.0.1:8080).",
+    "Qualsiasi modifica ai dati delle tappe deve passare attraverso gui/dashboard.py prima di aggiornare la vista grafica."
+  ],
+  "moduli_chiave": {
+    "interfaccia_principale": "app_desktop.py",
+    "gestione_dashboard_tappe": "gui/dashboard.py",
+    "motore_mappa_ui": "gui/mappa.py",
+    "server_locale_mappa": "service/map_server.py"
+  }
+}

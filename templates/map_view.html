@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Mappa</title>
+    <script src="/static/maplibre-gl.js"></script>
+    <link href="/static/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #1e1e1e;
+            overflow: hidden;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+                /* Animazione CSS per far pedalare e pulsare l'icona del ciclista */
+        @keyframes pedal { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .bicycle-anim circle { animation: pedal 1.2s linear infinite; transform-origin: 16px 44px; }
+        .bicycle-anim circle:nth-child(2) { transform-origin: 48px 44px; }
+
+    </style>
+</head>
+<body>
+    <!-- Contenitore principale della mappa -->
+    <div id="map"></div>
+        
+    <!-- SCHERMATA FLUTTUANTE DI CARICAMENTO CONSUMER -->
+    <div id="loading-screen" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 30, 30, 0.75); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; font-family: 'Open Sans', sans-serif; color: #e2e8f0; backdrop-filter: blur(4px);">
+        <!-- Icona SVG animata di una bicicletta con ruote che girano -->
+        <svg class="bicycle-anim" width="100" height="100" viewBox="0 0 64 64" style="fill: none; stroke: #0284c7; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;">
+            <circle cx="16" cy="44" r="10" />
+            <circle cx="48" cy="44" r="10" />
+            <polygon points="16,44 28,44 40,24 20,24" />
+            <line x1="48" y1="44" x2="40" y2="24" />
+            <line x1="28" y1="44" x2="36" y2="14" />
+            <line x1="32" y1="14" x2="42" y2="14" />
+            <circle cx="28" cy="44" r="3" style="fill: #e2e8f0;" />
+        </svg>
+        <div style="margin-top: 15px; font-size: 16px; font-weight: 600; letter-spacing: 0.5px;">Elaborazione itinerario transcontinentale...</div>
+    </div>
+
+
+    <script>
+        let map;
+        let mappaPronta = false;
+        let datiInCoda = null;
+
+        async function initMap() {
+            try { 
+                const resMaps = await fetch('/api/maps/list');
+                const mapsData = await resMaps.json();
+                const mapNames = mapsData.maps_found || [];
+
+                const sources = {};
+                let landuseLayers = [];
+                let waterLayers = [];
+                let buildingLayers = [];
+                let boundaryLayers = [];
+                let contourLayers = [];
+                let roadLayers = [];
+                let placeLayers = [];
+                let poiLayers = [];
+                let peakLayers = [];
+
+                mapNames.forEach(mapId => {
+                    sources[mapId] = {
+                        'type': 'vector',
+                        'tiles': [`http://127.0.0.1:3000/${mapId}/{z}/{x}/{y}`],
+                        'minzoom': 0,
+                        'maxzoom': 14
+                    };
+
+                    landuseLayers.push({
+                        'id': `landuse-residential-${mapId}`,
+                        'type': 'fill',
+                        'source': mapId,
+                        'source-layer': 'landuse',
+                        'minzoom': 10.0,
+                        'filter': ['in', 'class', 'residential', 'suburb', 'neighbourhood', 'commercial', 'industrial', 'retail'],
+                        'paint': { 'fill-color': '#edebe6', 'fill-opacity': 0.8 }
+                    }, {
+                        'id': `parks-${mapId}`,
+                        'type': 'fill',
+                        'source': mapId,
+                        'source-layer': 'park',
+                        'minzoom': 3.0,
+                        'paint': { 'fill-color': '#c8facc', 'fill-opacity': 0.9 }
+                    }, {
+                        'id': `landcover-wood-${mapId}`,
+                        'type': 'fill',
+                        'source': mapId,
+                        'source-layer': 'landcover',
+                        'minzoom': 4.0,
+                        'filter': ['in', 'subclass', 'wood', 'forest', 'scrub', 'grass'],
+                        'paint': { 'fill-color': '#b4e0b2', 'fill-opacity': 0.85 }
+                    });
+
+                    waterLayers.push({
+                        'id': `water-${mapId}`,
+                        'type': 'fill',
+                        'source': mapId,
+                        'source-layer': 'water',
+                        'paint': { 'fill-color': '#aad3df' }
+                    }, {
+                        'id': `waterway-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'waterway',
+                        'minzoom': 9.0,
+                        'paint': { 'line-color': '#73c0de', 'line-width': 1.8 }
+                    }, {
+                        'id': `water-name-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'water_name',
+                        'minzoom': 10.0,
+                        'layout': {
+                            'text-field': ['coalesce', ['get', 'name:it'], ['get', 'name']],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 11,
+                            'symbol-placement': 'line'
+                        },
+                        'paint': { 'text-color': '#4682b4', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 }
+                    });
+
+                    buildingLayers.push({
+                        'id': `buildings-${mapId}`,
+                        'type': 'fill',
+                        'source': mapId,
+                        'source-layer': 'building',
+                        'minzoom': 12.0,
+                        'paint': { 'fill-color': '#dcd6d0', 'fill-outline-color': '#c4bcba', 'fill-opacity': 1.0 }
+                    });
+
+                    boundaryLayers.push({
+                        'id': `boundary-state-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'boundary',
+                        'minzoom': 1.0,
+                        'filter': ['==', 'admin_level', 2],
+                        'paint': { 'line-color': '#909090', 'line-width': 1.5 }
+                    }, {
+                        'id': `boundary-region-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'boundary',
+                        'minzoom': 3.0,
+                        'maxzoom': 15,
+                        'filter': ['in', 'admin_level', 4, 5, 6],
+                        'paint': { 'line-color': '#b0b0b0', 'line-width': 1.5, 'line-dasharray': [3, 3] }
+                    });
+
+                    contourLayers.push({
+                        'id': `contours-minor-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'contour',
+                        'minzoom': 11.0,
+                        'paint': { 'line-color': '#dfceb8', 'line-width': 0.6, 'line-opacity': 0.7 }
+                    }, {
+                        'id': `contours-major-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'contour',
+                        'minzoom': 11.0,
+                        'filter': ['==', ['%', ['get', 'ele'], 100], 0],
+                        'paint': { 'line-color': '#c7a375', 'line-width': 1.2, 'line-opacity': 0.9 }
+                    });
+
+                    roadLayers.push({
+                        'id': `roads-minor-casing-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 11.0,
+                        'filter': ['in', 'class', 'minor', 'service', 'residential'],
+                        'paint': { 'line-color': '#bcbcbc', 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 2, 15, 5.5] }
+                    }, {
+                        'id': `roads-minor-fill-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 11.0,
+                        'filter': ['in', 'class', 'minor', 'service', 'residential'],
+                        'paint': { 'line-color': '#ffffff', 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1, 15, 4] }
+                    }, {
+                        'id': `roads-secondary-casing-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 8.0,
+                        'filter': ['in', 'class', 'secondary', 'tertiary'],
+                        'paint': { 'line-color': '#d4b572', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 3, 14, 6.5] }
+                    }, {
+                        'id': `roads-secondary-fill-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 8.0,
+                        'filter': ['in', 'class', 'secondary', 'tertiary'],
+                        'paint': { 'line-color': '#fef1c4', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 14, 5] }
+                    }, {
+                        'id': `roads-primary-casing-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 6.0,
+                        'filter': ['in', 'class', 'primary', 'trunk'],
+                        'paint': { 'line-color': '#c28c46', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3.5, 14, 7.5] }
+                    }, {
+                        'id': `roads-primary-fill-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 6.0,
+                        'filter': ['in', 'class', 'primary', 'trunk'],
+                        'paint': { 'line-color': '#ffe0b2', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2.5, 14, 6] }
+                    }, {
+                        'id': `roads-motorway-casing-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 5.0,
+                        'filter': ['==', 'class', 'motorway'],
+                        'paint': { 'line-color': '#b35942', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 4, 14, 8.5] }
+                    }, {
+                        'id': `roads-motorway-fill-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 5.0,
+                        'filter': ['==', 'class', 'motorway'],
+                        'paint': { 'line-color': '#f29c82', 'line-width': ['interpolate', ['linear'], ['zoom'], 5, 2.5, 14, 7] }
+                    }, {
+                        'id': `cycleways-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 10.0,
+                        'filter': ['any', ['==', 'subclass', 'cycleway'], ['==', 'bicycle', 'designated']],
+                        'paint': { 'line-color': '#0088ff', 'line-width': 2, 'line-dasharray': [4, 2] }
+                    }, {
+                        'id': `tracks-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 11.0,
+                        'filter': ['==', 'class', 'track'],
+                        'paint': { 'line-color': '#96522c', 'line-width': 1.4, 'line-dasharray': [3, 3] }
+                    }, {
+                        'id': `paths-${mapId}`,
+                        'type': 'line',
+                        'source': mapId,
+                        'source-layer': 'transportation',
+                        'minzoom': 12.0,
+                        'filter': ['==', 'class', 'path'],
+                        'paint': { 'line-color': '#d97706', 'line-width': 1.3, 'line-dasharray': [2, 2] }
+                    }, {
+                        'id': `road-labels-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'transportation_name',
+                        'minzoom': 11.0,
+                        'layout': {
+                            'text-field': ['coalesce', ['get', 'name:it'], ['get', 'name']],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 11,
+                            'symbol-placement': 'line'
+                        },
+                        'paint': { 'text-color': '#2c2c2c', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 }
+                    });
+
+                    placeLayers.push({
+                        'id': `place-country-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'place',
+                        'minzoom': 1.0,
+                        'maxzoom': 10.0,
+                        'filter': ['==', 'class', 'country'],
+                        'layout': {
+                            'text-field': ['coalesce', ['get', 'name:it'], ['get', 'name']],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 12,
+                            'text-transform': 'uppercase'
+                        },
+                        'paint': { 'text-color': '#555555', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 }
+                    }, {
+                        'id': `place-state-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'place',
+                        'minzoom': 4.5,
+                        'maxzoom': 12.0,
+                        'filter': ['==', 'class', 'state'],
+                        'layout': {
+                            'text-field': ['coalesce', ['get', 'name:it'], ['get', 'name']],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 12,
+                            'text-anchor': 'center'
+                        },
+                        'paint': { 'text-color': '#666666', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 }
+                    }, {
+                        'id': `place-cities-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'place',
+                        'minzoom': 6.0,
+                        'maxzoom': 15,
+                        'filter': ['in', 'class', 'city', 'town', 'village'],
+                        'layout': {
+                            'text-field': ['coalesce', ['get', 'name:it'], ['get', 'name']],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 13,
+                            'text-anchor': 'center'
+                        },
+                        'paint': { 'text-color': '#111111', 'text-halo-color': '#ffffff', 'text-halo-width': 2 }
+                    });
+
+                    poiLayers.push({
+                        'id': `poi-circle-bg-${mapId}`,
+                        'type': 'circle',
+                        'source': mapId,
+                        'source-layer': 'poi',
+                        'minzoom': 13.0,
+                        'paint': {
+                            'circle-radius': 14,
+                            'circle-color': '#f0f0f0',
+                            'circle-opacity': 0.85,
+                            'circle-stroke-width': 1.5,
+                            'circle-stroke-color': '#94a3b8'
+                        }
+                    }, {
+                        'id': `poi-icons-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'poi',
+                        'minzoom': 13.0,
+                        'layout': {
+                            'icon-image': ['get', 'subclass'],
+                            'icon-size': 1, 
+                            'icon-allow-overlap': true,
+                            'icon-ignore-placement': true
+                        }
+                    }, {
+                        'id': `poi-labels-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'poi',
+                        'minzoom': 13.0,
+                        'layout': {
+                            'text-field': ['coalesce', ['get', 'name:it'], ['get', 'name']],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 11,
+                            'text-anchor': 'top',
+                            'text-offset': [0, 1.2],
+                            'text-max-width': 8,
+                            'text-optional': true,
+                            'text-allow-overlap': false
+                        },
+                        'paint': { 'text-color': '#475569', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 }
+                    });
+
+                    peakLayers.push({
+                        'id': `mountain-peaks-${mapId}`,
+                        'type': 'symbol',
+                        'source': mapId,
+                        'source-layer': 'mountain_peak',
+                        'minzoom': 10.0,
+                        'layout': {
+                            'text-field': ['concat', ['get', 'name'], ' ', ['get', 'ele'], 'm'],
+                            'text-font': ['Open Sans Regular'],
+                            'text-size': 11,
+                            'text-anchor': 'center'
+                        },
+                        'paint': { 'text-color': '#734a08', 'text-halo-color': '#ffffff', 'text-halo-width': 1.5 }
+                    });
+                });
+
+                sources['gpx-track'] = {
+                    'type': 'geojson',
+                    'data': { 'type': 'FeatureCollection', 'features': [] }
+                };
+
+                const layers = [
+                    { 'id': 'background', 'type': 'background', 'paint': { 'background-color': '#f2efe9' } },
+                    ...landuseLayers,
+                    ...waterLayers,
+                    ...buildingLayers,
+                    ...boundaryLayers,
+                    ...contourLayers,
+                    ...roadLayers,
+                    ...placeLayers,
+                    ...poiLayers,
+                    ...peakLayers,
+                    
+                    { 
+                        'id': 'gpx-line-layer',
+                        'type': 'line',
+                        'source': 'gpx-track',
+                        // FILTRO: disegna qui solo le vere tappe ciclistiche (escludendo i trasferimenti)
+                        'filter': ['all', ['==', '$type', 'LineString'], ['!=', 'tipo', 'trasferimento']],
+                        'paint': { 'line-color': '#e60000', 'line-width': 5, 'line-opacity': 0.95 }
+                    },
+                    {
+                        'id': 'gpx-trasferimenti-layer',
+                        'type': 'line',
+                        'source': 'gpx-track',
+                        // FILTRO SPECIFICO: intercetta solo le linee dei trasferimenti logistici
+                        'filter': ['all', ['==', '$type', 'LineString'], ['==', 'tipo', 'trasferimento']],
+                        'paint': { 
+                            'line-color': '#f97316', // Bellissimo Arancione Vivace ad alta visibilità
+                            'line-width': 3.5, 
+                            'line-opacity': 0.90,
+                            'line-dasharray': [3, 3] // TRAZIONE TRATTEGGIATA: 3 pixel di linea e 3 di vuoto!
+                        }
+                    },
+                    {
+                        'id': 'gpx-point-layer',
+                        'type': 'circle',
+                        'source': 'gpx-track',
+                        'filter': ['==', '$type', 'Point'],
+                        'paint': {
+                            // STILE CONSUMER ELEGANTE: Cerchio bianco brillante con un contorno rosso netto
+                            'circle-color': '#ffffff',
+                            'circle-radius': 7,
+                            'circle-stroke-width': 3.5,
+                            'circle-stroke-color': '#e60000'
+                        }
+                    }
+                ];
+
+                const dynamicStyle = {
+                    version: 8,
+                    glyphs: 'http://127.0.0.1:8080/fonts/{fontstack}/{range}.pbf',
+                    sprite: 'http://127.0.0.1:8080/static/sprite',
+                    sources: sources,
+                    layers: layers
+                };
+
+                // Inizializzazione pulita di MapLibre
+                map = new maplibregl.Map({
+                    container: 'map',
+                    center: [12.5674, 41.8719],
+                    zoom: 6,
+                    style: dynamicStyle,                 
+                    projection: 'globe' 
+                });
+
+                map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
+                map.addControl(new maplibregl.NavigationControl());
+
+                // Utilizzo di ResizeObserver per ridimensionare automaticamente la mappa appena il container è visibile
+                const resizeObserver = new ResizeObserver(() => {
+                    if (map) {
+                        map.resize();
+                    }
+                });
+                resizeObserver.observe(document.getElementById('map'));
+
+                // --- 1. ACCENSIONE DELLA MAPPA ED EVENTI INIZIALI ---
+                map.on('load', async () => {
+                    mappaPronta = true; // <-- ACCENDIAMO LA MAPPA!
+                    map.resize();
+
+                    map.on('styleimagemissing', (e) => {
+                        const requestedId = e.id;
+                        if (!map.hasImage(requestedId)) {
+                            const width = 16, height = 16;
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width; canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.clearRect(0, 0, width, height);
+                            map.addImage(requestedId, ctx.getImageData(0, 0, width, height));
+                        }
+                    });
+
+                    // Se c'erano dati arrivati in anticipo mentre la mappa nasceva, li disegna ora
+                    if (datiInCoda) {
+                        window.aggiornaMappaGeoJSON(datiInCoda);
+                        datiInCoda = null;
+                    } else {
+                        // Altrimenti va a vedere se c'è un percorso iniziale memorizzato
+                        recuperaDatiIniziali();
+                    }
+
+                        // --- ABILITIAMO I CLIC INTERATTIVI ADESSO CHE LA MAPPA È VIVA ---
+                    map.on('click', 'gpx-line-layer', (e) => {
+                        if (!e.features || !e.features.length) return;
+                        const props = e.features[0].properties;
+                        
+                        // SE L'UTENTE CLICCA SU UN TRASFERIMENTO (Aereo, Nave, Treno...)
+                        if (props.tipo === 'trasferimento') {
+                            new maplibregl.Popup()
+                                .setLngLat(e.lngLat)
+                                .setHTML(`<strong>✈️ Trasferimento Logistico</strong><br>
+                                          <strong>🚢 Mezzo:</strong> ${props.mezzo || 'Generale'}<br>
+                                          <strong>📦 Vettore:</strong> ${props.vettore || '-'}<br>
+                                          <strong>🟢 Da:</strong> ${props.da_luogo || 'Inizio Tratta'}<br>
+                                          <strong>🏁 A:</strong> ${props.a_luogo || 'Fine Tratta'}`)
+                                .addTo(map);
+                        } else {
+                            // SE CLICCA SU UNA NORMALE TAPPA GPX IN BICICLETTA
+                            new maplibregl.Popup()
+                                .setLngLat(e.lngLat)
+                                .setHTML(`<strong>📄 File:</strong> ${props.nome_file || 'Traccia GPX'}<br>
+                                          <strong>🏁 Sequenza:</strong> Tappa ${props.sequenza || '-'}<br>
+                                          <strong>🏷️ Blocco:</strong> ${props.blocco || 'Generale'}`)
+                                .addTo(map);
+                        }
+                    });
+
+                    map.on('click', 'gpx-point-layer', (e) => {
+                        if (!e.features || !e.features.length) return;
+                        const props = e.features[0].properties;
+                        
+                        // Sdoppiamento del testo visivo a seconda se sia Partenza o Arrivo della tappa
+                        let icona = props.tipo === 'marker_inizio' ? '🟢' : '🔴';
+                        let titolo = props.nome || 'Punto di Controllo';
+                        
+                        new maplibregl.Popup()
+                            .setLngLat(e.features[0].geometry.coordinates)
+                            .setHTML(`<strong>${icona} ${titolo}</strong><br>
+                                      <strong>📍 File collegato:</strong> ${props.nome_file || '-'}<br>
+                                      <strong>🔢 Ordine Cronologico:</strong> Sequenza ${props.sequenza || '-'}`)
+                            .addTo(map);
+                    });
+
+                    // Cambia la forma del cursore del mouse sopra gli elementi cliccabili
+                    map.on('mouseenter', 'gpx-line-layer', () => map.getCanvas().style.cursor = 'pointer');
+                    map.on('mouseleave', 'gpx-line-layer', () => map.getCanvas().style.cursor = '');
+                    map.on('mouseenter', 'gpx-point-layer', () => map.getCanvas().style.cursor = 'pointer');
+                    map.on('mouseleave', 'gpx-point-layer', () => map.getCanvas().style.cursor = '');
+                });
+
+                // --- 2. IL RICEVITORE FLUIDO CON ACCENSIONE PRIORITARIA DEL CICLISTA ---
+                window.aggiornaMappaGeoJSON = function(gpxGeoJson) {
+                    const loadingScreen = document.getElementById('loading-screen');
+                    
+                    // ACCENDIAMO IMMEDIATAMENTE IL CICLISTA SULLO SCHERMO
+                    if (loadingScreen) loadingScreen.style.display = 'flex';
+
+                    if (!mappaPronta) {
+                        datiInCoda = gpxGeoJson;
+                        return;
+                    }
+
+                    // requestAnimationFrame dice a Chromium di disegnare visivamente il ciclista
+                    // prima di avviare il calcolo ciclico pesante delle coordinate
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            try {
+                                if (typeof map === 'undefined' || !map) return;
+                                const sorgente = map.getSource('gpx-track');
+                                if (sorgente) {
+                                    sorgente.setData(gpxGeoJson);
+                                    
+                                    const coordinates = [];
+                                    if (gpxGeoJson && gpxGeoJson.features && gpxGeoJson.features.length > 0) {
+                                        gpxGeoJson.features.forEach(f => {
+                                            if (f.geometry && f.geometry.type === 'LineString') {
+                                                f.geometry.coordinates.forEach(c => coordinates.push(c));
+                                            } else if (f.geometry && f.geometry.type === 'Point') {
+                                                coordinates.push(f.geometry.coordinates);
+                                            }
+                                        });
+                                    }
+                                    
+                                    if (coordinates.length === 0) {
+                                        map.triggerRepaint();
+                                        if (loadingScreen) loadingScreen.style.display = 'none';
+                                        return;
+                                    }
+                                    
+                                    // RADDRIZZATO: Ripristinato l'array originale senza indici errati per non far fallire fitBounds
+                                    const primoPunto = coordinates[0];
+                                    const bounds = new maplibregl.LngLatBounds(primoPunto, primoPunto);
+                                    coordinates.forEach(coord => bounds.extend(coord));
+                                    
+                                    map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 800 });
+                                    map.triggerRepaint();
+
+                                    // IL LAVORO È FINITO: Nascondiamo il ciclista e sblocchiamo lo schermo
+                                    if (loadingScreen) loadingScreen.style.display = 'none';
+                                }
+                            } catch (err) {
+                                console.error("Errore aggiornamento dinamico:", err);
+                                if (loadingScreen) loadingScreen.style.display = 'none';
+                            }
+                        }, 30);
+                    });
+                };
+
+                // --- RIPRISTINATE TUTTE LE FUNZIONI DI CHIUSURA COMPLETE ---
+                async function recuperaDatiIniziali() {
+                    try {
+                        const response = await fetch('/api/get-gpx-data');
+                        if (response.ok) {
+                            let gpxGeoJson = await response.json();
+                            if (gpxGeoJson && gpxGeoJson.features && gpxGeoJson.features.length > 0) {
+                                window.aggiornaMappaGeoJSON(gpxGeoJson);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Nessun GPX iniziale:", e);
+                    }
+                }
+
+            } catch (error) {
+                console.error("Errore fatale in initMap:", error);
+            }
+        }
+
+        initMap();
+    </script>
+</body>
+</html>

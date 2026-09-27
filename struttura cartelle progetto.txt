@@ -1,0 +1,46 @@
+Bikepacking_Studio/
+│
+├── Avvia_Bikepacking_Studio.bat
+├── app_desktop.py
+├── basemap-styles-master
+├── bikepacking.db
+├── bin
+│   ├── martin-cp.exe
+│   ├── martin.exe
+│   └── mbtiles.exe
+├── data
+│   ├── bikepacking_app.db
+│   └── maps
+├── database
+│   └── database_setup.py
+├── export_structure.py
+├── gpx
+├── gui
+│   ├── dashboard.py
+│   ├── mappa.py
+│   └── wizard_percorso.py
+├── paesi_mondo.json
+├── service
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── audit_service.py
+│   ├── clima_service.py
+│   ├── config.py
+│   ├── dogane_service.py
+│   ├── map_manager_service.py
+│   ├── map_server.py
+│   ├── stats_service.py
+│   └── test_tile.pbf
+├── static
+│   ├── aggiorna_sprite.py
+│   ├── maplibre-gl.css
+│   ├── maplibre-gl.js
+│   ├── sprite.json
+│   ├── sprite.png
+│   ├── sprite@2x.json
+│   └── sprite@2x.png
+├── temp_map.html
+├── templates
+│   └── map_view.html
+├── world_coastlines.geojson
+└── world_coastlines_10m.geojson
