@@ -1,4 +1,5 @@
 ﻿import ast
+import argparse
 import json
 import os
 import re
@@ -457,6 +458,194 @@ def scan_non_python_files(root_dir):
     return {k: {subk: sorted(v) for subk, v in vdict.items()} for k, vdict in findings.items()}
 
 
+def _compact_doc(docstring):
+    if not docstring:
+        return ""
+    return docstring.strip().split(".")[0].strip()[:120]
+
+
+def _compact_argument(argument, optional=False):
+    annotation = ast.unparse(argument.annotation) if argument.annotation else ""
+    label = f"{argument.arg}:{annotation}" if annotation else argument.arg
+    return f"{label}=?" if optional else label
+
+
+def _compact_callable(node):
+    args = node.args
+    positional = list(args.posonlyargs) + list(args.args)
+    required_count = len(positional) - len(args.defaults)
+    parameters = [
+        _compact_argument(argument, index >= required_count)
+        for index, argument in enumerate(positional)
+    ]
+    if args.vararg:
+        parameters.append(_compact_argument(args.vararg))
+    kw_defaults = args.kw_defaults
+    for index, argument in enumerate(args.kwonlyargs):
+        parameters.append(_compact_argument(argument, kw_defaults[index] is not None))
+    if args.kwarg:
+        parameters.append(_compact_argument(args.kwarg))
+
+    return {
+        "n": node.name,
+        "l": node.lineno,
+        "p": parameters,
+        "r": ast.unparse(node.returns) if node.returns else "",
+        "d": _compact_doc(ast.get_docstring(node)),
+    }
+
+
+def _compact_python_symbols(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return [], []
+
+    classes = []
+    functions = []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            methods = [
+                _compact_callable(child)
+                for child in node.body
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+            ]
+            classes.append({
+                "n": node.name,
+                "l": node.lineno,
+                "d": _compact_doc(ast.get_docstring(node)),
+                "m": methods,
+            })
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            functions.append(_compact_callable(node))
+
+    return classes, functions
+
+
+def scan_non_python_file_details(root_dir):
+    records = []
+    for root, dirs, files in os.walk(root_dir):
+        dirs[:] = [directory for directory in dirs if directory not in EXCLUDED_DIRS]
+        for filename in files:
+            extension = os.path.splitext(filename)[1].lower()
+            if extension not in {".html", ".htm", ".js", ".css"}:
+                continue
+
+            path = os.path.join(root, filename)
+            try:
+                with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+                    content = handle.read()
+            except OSError:
+                continue
+
+            record = {
+                "t": "asset",
+                "p": os.path.relpath(path, root_dir).replace("\\", "/"),
+                "loc": content.count("\n") + 1,
+            }
+            if extension in {".html", ".htm"}:
+                record["endpoints"] = sorted(set(re.findall(r"['\"](/api/[^'\"]+|http[^'\"]+)['\"]", content)))
+                record["scripts"] = sorted(set(re.findall(r"<script[^>]+src=['\"]([^'\"]+)['\"]", content)))
+                record["ids"] = sorted(set(re.findall(r"id:\s*['\"]([^'\"]+)['\"]", content)))
+            elif extension == ".js":
+                record["endpoints"] = sorted(set(re.findall(r"['\"](/api/[^'\"]+|http[^'\"]+)['\"]", content)))
+                record["calls"] = sorted(set(re.findall(r"(?:fetch|axios\.(?:get|post|put|delete))\s*\(\s*['\"]([^'\"]+)['\"]", content)))
+                record["functions"] = sorted(set(re.findall(r"(?:function\s+|(?:const|let|var)\s+)([A-Za-z_$][\w$]*)\s*(?:=\s*)?\([^)]*\)\s*(?:=>|\{)", content)))[:80]
+            else:
+                selectors = set(re.findall(r"(?:^|})\s*([^{}]+)\s*\{", content))
+                record["selectors"] = sorted(selector.strip() for selector in selectors if selector.strip())[:80]
+            records.append(record)
+
+    return sorted(records, key=lambda record: record["p"])
+
+
+def build_chat_context_records(dati_json, moduli_analizzati, tutti_i_codici, root_dir="."):
+    project_name = os.path.basename(os.path.abspath(root_dir))
+    architecture = dati_json["architettura"]
+    summary = dati_json["sintesi"]
+    module_data = dati_json["moduli"]
+    graph = dati_json["dipendenze"]["call_graph"]
+    calls_by_file = {
+        path: [list(edge) for edge in edges]
+        for path, edges in graph.items()
+    }
+    called_by_file = defaultdict(list)
+    for caller, edges in calls_by_file.items():
+        for target, symbol in edges:
+            called_by_file[target].append([caller, symbol])
+
+    table_owners = defaultdict(lambda: {"created_or_used_by": []})
+    for path, data in module_data.items():
+        for table in data.get("tabelle_usate", []):
+            table_owners[table]["created_or_used_by"].append(path)
+
+    header = {
+        "t": "project",
+        "schema": "chatctx/1",
+        "name": project_name,
+        "instruction": "Standalone static-analysis context; no repository access is implied. File records describe structure, not full source. Treat inferred links and heuristics as clues, verify before editing.",
+        "counts": {
+            "py": summary["totale_moduli"],
+            "classes": summary["totale_classi"],
+            "functions": summary["totale_funzioni"],
+            "routes": summary["totale_rotte_flask"],
+            "tables": summary["totale_tabelle"],
+        },
+        "layers": architecture["strati"],
+        "entry_points": architecture["entry_points"],
+        "routes": [
+            [path, info["file"], info["funzione"], info["metodi"]]
+            for path, info in sorted(architecture["rotte_api"].items())
+        ],
+        "tables": dict(sorted(table_owners.items())),
+        "external_imports": summary["librerie_esterne"],
+        "frontend": architecture["frontend_mappa"],
+        "risk": dati_json["agent_insights"]["risk_level"],
+        "critical_files": dati_json["agent_insights"]["critical_files"],
+        "orphans": [
+            [item["tipo"], item["simbolo"], item["file"]]
+            for item in dati_json["dipendenze"]["simboli_orfani"]
+        ],
+        "priority": dati_json["priority_plan"]["phases"],
+    }
+    records = [header]
+
+    layer_by_file = {
+        path: layer
+        for layer, paths in architecture["strati"].items()
+        for path in paths
+    }
+    for path in sorted(module_data):
+        source = tutti_i_codici.get(path, "")
+        classes, functions = _compact_python_symbols(source)
+        data = module_data[path]
+        analyzer = moduli_analizzati.get(path)
+        records.append({
+            "t": "file",
+            "p": path,
+            "layer": layer_by_file.get(path, "other"),
+            "loc": source.count("\n") + 1 if source else 0,
+            "classes": classes,
+            "functions": functions,
+            "imports_internal": data.get("import_interni", []),
+            "imports_external": data.get("import_esterni", []),
+            "tables": data.get("tabelle_usate", []),
+            "calls": calls_by_file.get(path, []),
+            "called_by": sorted(called_by_file.get(path, [])),
+            "anomalies": data.get("anomalie", []),
+            "external_calls": sorted(analyzer.chiamate_esterne) if analyzer else [],
+        })
+
+    records.extend(scan_non_python_file_details(root_dir))
+    return records
+
+
+def write_chat_context(path, records):
+    with open(path, "w", encoding="utf-8", newline="\n") as file:
+        for record in records:
+            file.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
+
+
 def build_ultra_compact_prompt(dati_json):
     agent = dati_json["agent_insights"]
     summary = dati_json["ai_summary"]
@@ -560,7 +749,7 @@ def genera_report_markdown(dati_json):
     return "\n".join(lines)
 
 
-def esegui_diagnostica_totale():
+def esegui_diagnostica_totale(file_contesto=None):
     print("=== AVVIO DIAGNOSTICA PROFONDA (MINI-AI LOCALE) ===")
 
     base_dir = "."
@@ -693,6 +882,40 @@ def esegui_diagnostica_totale():
     dati_json["priority_plan"] = build_priority_plan(dati_json)
     dati_json["ultra_compact_prompt"] = build_ultra_compact_prompt(dati_json)
 
+    chat_records = build_chat_context_records(dati_json, moduli_analizzati, tutti_i_codici)
+    if file_contesto:
+        target = os.path.normpath(file_contesto).replace("\\", "/")
+        if os.path.isabs(file_contesto):
+            target = os.path.relpath(file_contesto, os.getcwd()).replace("\\", "/")
+        file_records = {record["p"]: record for record in chat_records if record["t"] == "file"}
+        if target not in file_records:
+            raise SystemExit(f"File sorgente non trovato nell'analisi: {file_contesto}")
+
+        selected = file_records[target]
+        related_paths = {
+            path for path, _ in selected["calls"] + selected["called_by"]
+        }
+        for imported_module in selected["imports_internal"]:
+            module_path = imported_module.replace(".", "/")
+            candidates = (f"{module_path}.py", f"{module_path}/__init__.py")
+            related_paths.update(candidate for candidate in candidates if candidate in file_records)
+
+        compact_header = {
+            key: chat_records[0][key]
+            for key in ("t", "schema", "name", "instruction", "counts", "risk", "critical_files")
+        }
+        compact_header["target"] = target
+        compact_header["related_files"] = sorted(path for path in related_paths if path in file_records)
+        filtered_records = [compact_header, selected]
+        filtered_records.extend(
+            file_records[path]
+            for path in sorted(related_paths)
+            if path in file_records and path != target
+        )
+        write_chat_context("CONTESTO_CHAT_FILE.jsonl", filtered_records)
+        print(f"Contesto file generato: CONTESTO_CHAT_FILE.jsonl ({len(filtered_records) - 1} schede file)")
+        return
+
     with open("PROGETTO_INDEX.json", "w", encoding="utf-8") as file:
         json.dump(dati_json, file, indent=2, ensure_ascii=False)
 
@@ -718,6 +941,8 @@ def esegui_diagnostica_totale():
     with open("PROMPT_AGENTE.md", "w", encoding="utf-8") as file:
         file.write(dati_json["ultra_compact_prompt"] + "\n")
 
+    write_chat_context("CONTESTO_CHAT.jsonl", chat_records)
+
     print(f"Moduli Python scanditi: {len(moduli_analizzati)}")
     print(f"Classi rilevate: {sum(len(m.classi) for m in moduli_analizzati.values())}")
     print(f"Funzioni rilevate: {sum(len(m.funzioni_globali) for m in moduli_analizzati.values())}")
@@ -727,7 +952,15 @@ def esegui_diagnostica_totale():
     print("JSON generato: PROGETTO_INDEX.json")
     print("Report generato: PROGETTO_REPORT.md")
     print("Context AI generato: AIDER_CONTEXT.md")
+    print(f"Contesto chatbot generato: CONTESTO_CHAT.jsonl ({len(chat_records)} record)")
 
 
 if __name__ == "__main__":
-    esegui_diagnostica_totale()
+    parser = argparse.ArgumentParser(description="Genera indici e contesti compatti per chatbot e agenti.")
+    parser.add_argument(
+        "--file",
+        dest="file_contesto",
+        help="Genera un pacchetto standalone per un file Python e i suoi collegamenti, es. gui/dashboard.py",
+    )
+    args = parser.parse_args()
+    esegui_diagnostica_totale(file_contesto=args.file_contesto)
