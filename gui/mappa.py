@@ -276,6 +276,7 @@ class MappaWidget(QWidget):
         self.web_view = QWebEngineView(container_mappa)
         self.web_view.setUrl("http://127.0.0.1:8080/map")
         self.web_view.page().featurePermissionRequested.connect(self._gestisci_permessi_gps)
+        self.web_view.loadFinished.connect(self._pagina_mappa_caricata)
         layout_container.addWidget(self.web_view)
 
         # Creazione del pannello fluttuante sovrapposto
@@ -287,17 +288,49 @@ class MappaWidget(QWidget):
         main_layout.addWidget(container_mappa)
 
     def _gestisci_permessi_gps(self, url, feature):
-        permission_feature = getattr(QWebEnginePage.PermissionFeature, 'Geolocation', None)
-        if permission_feature is None and hasattr(QWebEnginePage, 'Geolocation'):
-            permission_feature = QWebEnginePage.Geolocation
-            
-        if feature == permission_feature:
-            granted_policy = getattr(QWebEnginePage.PermissionPolicy, 'PermissionGrantedByUser', None)
-            if granted_policy is None and hasattr(QWebEnginePage, 'PermissionGrantedByUser'):
-                granted_policy = QWebEnginePage.PermissionGrantedByUser
-                
-            self.web_view.page().setFeaturePermission(url, feature, granted_policy)
-            print(f"🛰️ Permesso di geolocalizzazione GPS concesso con successo per: {url.toString()}")
+        feature_enum = getattr(QWebEnginePage, "Feature", None)
+        permission_feature = getattr(feature_enum, "Geolocation", None)
+        if permission_feature is None:
+            permission_feature = getattr(QWebEnginePage, "Geolocation", None)
+        if permission_feature is None or feature != permission_feature:
+            return
+
+        policy_enum = getattr(QWebEnginePage, "PermissionPolicy", None)
+        granted_policy = getattr(policy_enum, "PermissionGrantedByUser", None)
+        if granted_policy is None:
+            granted_policy = getattr(QWebEnginePage, "PermissionGrantedByUser", None)
+        if granted_policy is None:
+            return
+
+        self.web_view.page().setFeaturePermission(url, feature, granted_policy)
+        print(f"🛰️ Permesso di geolocalizzazione GPS concesso con successo per: {url.toString()}")
+
+    def _pagina_mappa_caricata(self, caricata):
+        if caricata and self.isVisible():
+            self._ridimensiona_mappa()
+
+    def _ridimensiona_mappa(self):
+        self.web_view.page().runJavaScript(
+            "if(typeof map !== 'undefined' && map) map.resize();"
+        )
+
+    def _imposta_pagina_sospesa(self, sospesa):
+        page = self.web_view.page()
+        lifecycle_enum = getattr(QWebEnginePage, "LifecycleState", None)
+        lifecycle_state = getattr(lifecycle_enum, "Frozen" if sospesa else "Active", None)
+        set_lifecycle_state = getattr(page, "setLifecycleState", None)
+        get_lifecycle_state = getattr(page, "lifecycleState", None)
+        if lifecycle_state is None or not callable(set_lifecycle_state) or not callable(get_lifecycle_state):
+            return
+        if get_lifecycle_state() != lifecycle_state:
+            set_lifecycle_state(lifecycle_state)
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        QTimer.singleShot(
+            0,
+            lambda: self._imposta_pagina_sospesa(True) if not self.isVisible() else None
+        )
 
     def toggle_pannello(self):
         if self.pannello_pianificazione.isVisible():
@@ -321,6 +354,7 @@ class MappaWidget(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        self._imposta_pagina_sospesa(False)
         if hasattr(self, 'pannello_pianificazione'):
             self.pannello_pianificazione.hide()
             
@@ -336,7 +370,7 @@ class MappaWidget(QWidget):
                 return
                 
         QTimer.singleShot(100, lambda: self.pannello_pianificazione.show() if hasattr(self, 'pannello_pianificazione') else None)
-        QTimer.singleShot(50, lambda: self.web_view.page().runJavaScript("if(typeof map !== 'undefined') map.resize();"))
+        QTimer.singleShot(0, self._ridimensiona_mappa)
         QTimer.singleShot(300, lambda: self.web_view.setZoomFactor(1.0))
 
     def rigenera_mappa(self, current_progetto_id, db_name, force=False, mappa_necessita_aggiornamento=True):
@@ -352,12 +386,10 @@ class MappaWidget(QWidget):
                 pass
             
             js_code = """
-                if(window.aggiornaMappaGeoJSON) { 
+                if(window.aggiornaMappaGeoJSON) {
                     window.aggiornaMappaGeoJSON({'type': 'FeatureCollection', 'features': []});
-                    if(typeof map !== 'undefined' && map) {
-                        map.flyTo({ center: [12.5674, 41.8719], zoom: 6, duration: 1200 });
-                    }
                 }
+                if(window.centraMappaSuGpsORoma) window.centraMappaSuGpsORoma();
             """
             self.web_view.page().runJavaScript(js_code)
             return False

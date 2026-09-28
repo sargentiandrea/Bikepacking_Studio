@@ -4,13 +4,21 @@
 
 
 ## 📊 1. Sintesi Globale
-- **Moduli Python monitorati:** `19`
+- **Moduli Python monitorati:** `20`
 
 ## 🔍 2. Rilevamento Anomalie e Codice Orfano
 
 - ✅ *Nessuna grave anomalia di framework o libreria rilevata nei moduli principali.*
 
 ## 🗺️ 3. Mappatura Dettagliata per Modulo
+
+### 📄 Modulo: `agente_locale.py`
+**⚙️ Funzioni:**
+  - `def chiedi_all_agente()` - *Invia una richiesta all'agente locale forzando l'italiano e passando il codice*
+**🌐 Endpoint / Rete:**
+  - `http://localhost:11434/api/generate`
+
+----------------------------------------
 
 ### 📄 Modulo: `analizza_progetto_definitivo.py`
 **👥 Classi:**
@@ -25,13 +33,14 @@
   - `def analizza_template_html()`
   - `def esegui_diagnostica_totale()`
 **🗄️ Database / SQL:**
-  - `insert `
-  - `select `
   - `create table`
+  - `delete `
+  - `sqlite`
 **🌐 Endpoint / Rete:**
   - `127.0.0.1`
-  - `localhost`
-  - `/api/`
+  - `@app.route`
+  - `
+✅ DIAGNOSTICA COMPLETATA! Report generato in: `
 
 ----------------------------------------
 
@@ -39,11 +48,11 @@
 **⚙️ Funzioni:**
   - `def analizza_progetto()`
 **🌐 Endpoint / Rete:**
-  - `
-✅ REPORT_ARCHITETTURA.md generato con successo nella cartella del progetto!`
-  - `127.0.0.1:`
   - `# 🗺️ REPORT BIKEPACKING STUDIO - MAPPA DELLA VERITÀ
 `
+  - `127.0.0.1:`
+  - `
+✅ REPORT_ARCHITETTURA.md generato con successo nella cartella del progetto!`
 
 ----------------------------------------
 
@@ -66,10 +75,19 @@
   - `applica_riordinamento()`
 - `class BikepackingStudioApp`
   - `__init__()`
+  - `cambia_pagina()`
   - `gestisci_cambio_progetto()` - *Aggiorna lo stato globale della finestra principale quando la dashboard cambia progetto*
   - `crea_bottone_navigazione()`
   - `crea_pagina_mappa()`
   - `crea_pagina_audit()`
+  - `crea_pagina_trasporti()`
+  - `crea_pagina_dogane()`
+  - `crea_pagina_clima()`
+  - `crea_pagina_statistiche()`
+  - `crea_pagina_placeholder()`
+  - `apri_pagina_clima()`
+  - `apri_pagina_statistiche()`
+  - `verifica_progetto_attivo()`
   - `carica_lista_percorsi()` - *Reindirizza al nuovo modulo DashboardPage*
   - `apri_percorso_selezionato()`
   - `crea_nuovo_progetto_dialog()`
@@ -83,56 +101,22 @@
   - `cambia_ruolo_tappa()`
   - `elimina_singola_tappa()`
   - `elimina_percorso_corrente()`
+  - `mostra_mappa_gap()`
+  - `avvia_wizard_trasferimento()`
   - `aggiorna_tabella_allarmi()`
-  - `_coordinate_in_nome_luogo()` - *Converte Lat/Lon nel nome della città/località tramite OpenStreetMap Nominatim*
-  - `rigenera_mappa()` - *Delega il lavoro pesante e la gestione dati al modulo gui/mappa*
-  - `apri_in_browser()`
-  - `crea_pagina_dogane()`
-  - `esegui_analisi_doganale()`
-  - `carica_o_analizza_dogane_automatico()` - *Controlla se ci sono dati doganali salvati usando il servizio centralizzato*
-  - `_worker_analisi_doganale()`
-  - `aggiorna_ui_dogane()` - *Popola la tabella nel thread principale della GUI*
-  - `crea_pagina_trasporti()`
-  - `crea_pagina_clima()` - *Crea la pagina grafica per la Catena Stagionale & Simulatore Meteo*
-  - `esegui_analisi_clima()`
-  - `_worker_analisi_clima()` - *Worker eseguito in background*
-  - `aggiorna_ui_clima()` - *Aggiorna la tabella GUI con i risultati calcolati e rende editabile la colonna Extra*
-  - `su_modifica_cella_clima()` - *Rileva la modifica dei Giorni Extra e ricalcola la catena per tutti i blocchi*
-  - `apri_pagina_clima()` - *Apre la pagina Clima e avvia il calcolo della catena stagionale*
-  - `crea_pagina_statistiche()` - *Crea la pagina con le KPI Card e le tabelle di metriche altimetriche e fasce costiere*
-  - `apri_pagina_statistiche()` - *Passa alla pagina statistiche e aggiorna i dati del progetto corrente*
-  - `apri_finestra_elenco_paesi()` - *Apre la finestra dei paesi con ricerca robusta tramite ISO2 e chiavi standard*
-  - `carica_statistiche_progetto()` - *Metodo di caricamento sicuro e ottimizzato delle statistiche*
-  - `crea_pagina_placeholder()`
-  - `verifica_progetto_attivo()` - *Controlla se l'utente ha selezionato un percorso dalla Dashboard*
-  - `mostra_avviso_nessun_progetto()` - *Crea la schermata di avviso quando non c'è un percorso aperto*
-  - `mostra_mappa_gap()` - *Apre un popup con la mappa del tratto mancante e poi apre la logistica con nomi leggibili*
-  - `_coordinate_in_nome_luogo_leggibile()` - *Converte le coordinate in un nome leggibile o usa le coordinate pulite se la lingua non è occidentale*
-  - `cambia_pagina()`
-  - `aggiorna_tabella_trasferimenti()`
-  - `elimina_trasferimento()`
-  - `apri_dialog_trasporto()` - *Ponte di sicurezza per la mappa*
-  - `apri_dialogo_trasferimento()` - *Ponte di sicurezza alternativo per la mappa*
-  - `avvia_dialog_logistica_con_geocoding()` - *Metodo blindato: impedisce doppi avvii e garantisce nomi leggibili*
-  - `apri_dialog_trasferimento()`
-  - `salva_trasferimento()`
-  - `on_progetto_selezionato()` - *Gestisce la selezione o la creazione di un progetto, impostandolo come attivo*
 **⚙️ Funzioni:**
   - `def inizializza_database()`
   - `def determina_blocco_da_nome_file()`
   - `def calcola_distanza_haversine()`
   - `def ottieni_nome_localita()`
 **🗄️ Database / SQL:**
-  - `UPDATE tappe SET sequenza = ? WHERE id = ?`
-  - `
-            SELECT a.tipo_allarme, a.messaggio, a.risolto, a.tappa_origine_id, `
+  - `INSERT INTO blocchi_ordine (id_progetto, nome_blocco, ordine) VALUES (?, ?, ?)`
   - `SELECT nome_blocco FROM blocchi_ordine WHERE id_progetto = ? ORDER BY ordine ASC`
+  - `DELETE FROM trasferimenti WHERE id_progetto = ?`
 **🌐 Endpoint / Rete:**
   - `
         CREATE TABLE IF NOT EXISTS dogane_progetto (
             id INTEGER PRI`
-  - `Mezzo di Trasporto:`
-  - `🔍 Cerca Soluzioni di Trasporto Online`
 
 ----------------------------------------
 
@@ -152,14 +136,12 @@
   - `def inizializza_database()`
 **🗄️ Database / SQL:**
   - `
-        CREATE TABLE IF NOT EXISTS dogane_progetto (
-            id INTEGER PRI`
+        CREATE TABLE IF NOT EXISTS tappe (
+            id INTEGER PRIMARY KEY A`
   - `
         CREATE TABLE IF NOT EXISTS trasferimenti (
             id INTEGER PRIMA`
-  - `
-        CREATE TABLE IF NOT EXISTS tappe (
-            id INTEGER PRIMARY KEY A`
+  - `data/bikepacking_app.db`
 **🌐 Endpoint / Rete:**
   - `
         CREATE TABLE IF NOT EXISTS dogane_progetto (
@@ -189,23 +171,29 @@
   - `cambia_ruolo_tappa()`
   - `elimina_singola_tappa()`
   - `carica_lista_percorsi()`
-  - `crea_nuovo_progetto_dialog()`
-  - `apri_percorso_selezionato()`
-  - `apri_progetto_per_id()`
-  - `chiama_selettore_gpx()` - *Apre direttamente la finestra per scegliere i file GPX e li elabora subito*
-  - `elimina_percorso_corrente()`
-  - `modifica_blocco_multiplo()` - *Permette di cambiare il blocco a tutte le tappe selezionate contemporaneamente*
+  - `crea_nuovo_progetto_dialog()` - *Apre un dialog modale (WizardNuovoPercorsoDialog) per la creazione guidata 
+di un nuovo itinerario*
+  - `apri_percorso_selezionato()` - *Apre il percorso selezionato dall'utente tramite clic nella lista della dashboard*
+  - `apri_progetto_per_id()` - *Imposta il progetto attivo in memoria, emette il segnale e carica le tappe*
+  - `chiama_selettore_gpx()` - *Apre un dialog nativo di sistema per la scelta dei file GPX da importare*
+  - `elimina_percorso_corrente()` - *Elimina permanentemente il progetto attivo e tutte le tappe collegate dal database*
+  - `modifica_blocco_multiplo()` - *Modifica in blocco l'attributo 'blocco' per tutte le tappe selezionate nella tabella*
 - `class WizardNuovoPercorsoDialog`
   - `__init__()`
-  - `init_ui()`
-  - `conferma_creazione()`
+  - `init_ui()` - *Inizializza e dispone tutti gli elementi grafici del wizard*
+  - `conferma_creazione()` - *Estrae i dati inseriti nei widget e chiude il dialog con successo*
 **🗄️ Database / SQL:**
-  - `UPDATE tappe SET sequenza = ? WHERE id = ?`
+  - `
+                            INSERT INTO tappe (id_progetto, sequenza, blocco, n`
   - `SELECT nome_file FROM tappe WHERE id_progetto = ?`
-  - `UPDATE tappe SET stato = ? WHERE id = ?`
+  - `
+                        UPDATE tappe SET blocco = ? 
+                        WH`
 **🌐 Endpoint / Rete:**
   - `📂 Importa file GPX esistenti (Tracce Esterne)`
-  - `📁 Importa File GPX`
+  - `Apre un dialog nativo di sistema per la scelta dei file GPX da importare.`
+  - `
+        Apre un dialog modale (WizardNuovoPercorsoDialog) per la creazione guid`
 
 ----------------------------------------
 
@@ -223,6 +211,7 @@
 - `class MappaWidget`
   - `__init__()`
   - `setup_ui()`
+  - `_gestisci_permessi_gps()`
   - `toggle_pannello()`
   - `reload_map()`
   - `showEvent()`
@@ -232,14 +221,12 @@
 - `class WorkerCaricamentoMappa`
   - `__init__()`
   - `run()`
-  - `open_map_manager()`
-  - `reload_map()`
 **🗄️ Database / SQL:**
-  - `SELECT id, tipo_mezzo, vettore, da_luogo, a_luogo, start_lat, start_lon, end_lat`
   - `SELECT id, nome_file, sequenza, stato, blocco FROM tappe WHERE id_progetto = ? O`
+  - `SELECT id, tipo_mezzo, vettore, da_luogo, a_luogo, start_lat, start_lon, end_lat`
 **🌐 Endpoint / Rete:**
-  - `http://127.0.0.1:8080/api/set-gpx-data`
   - `http://127.0.0.1:8080/map`
+  - `http://127.0.0.1:8080/api/set-gpx-data`
 
 ----------------------------------------
 
@@ -272,19 +259,20 @@ che non sono già coperti da trasferimenti logistici registrati*
   - `def genera_raccordo_gpx()` - *Esegue il routing (BRouter o OSRM), crea il file GPX del raccordo,
 aggiorna la sequenza delle tappe, inserisce la nuova tappa e registra il trasferimento*
 **🗄️ Database / SQL:**
+  - `SELECT start_lat, start_lon FROM tappe WHERE id = ?`
   - `
         SELECT start_lat, start_lon, end_lat, end_lon 
         FROM trasferimen`
-  - `UPDATE tappe SET sequenza = sequenza + 1 WHERE id_progetto = ? AND sequenza > ?`
-  - `
-        INSERT INTO tappe (id_progetto, sequenza, blocco, nome_file, start_lat,`
-**🌐 Endpoint / Rete:**
-  - `
-        CREATE TABLE IF NOT EXISTS trasferimenti_logistici (
-            id INT`
   - `
         INSERT INTO trasferimenti_logistici 
         (id_progetto, id_tappa_ori`
+**🌐 Endpoint / Rete:**
+  - `
+        INSERT INTO trasferimenti_logistici 
+        (id_progetto, id_tappa_ori`
+  - `
+        CREATE TABLE IF NOT EXISTS trasferimenti_logistici (
+            id INT`
 
 ----------------------------------------
 
@@ -297,10 +285,14 @@ posizione geografica e all'altitudine della tappa/blocco*
   - `def calcola_catena_stagionale()` - *Calcola la sequenza temporale con rilevamento DINAMICO dei mesi ideali
 basato sulle coordinate reali delle tappe del progetto*
 **🗄️ Database / SQL:**
-  - `SELECT data_partenza, modificatore_riposo FROM progetto_stagione WHERE id_proget`
   - `
-        INSERT INTO progetto_stagione (id_progetto, data_partenza, modificatore`
+        SELECT 
+            COALESCE(t.blocco, 'Generico') as nome_blocco,
+    `
   - `SELECT nome_blocco, giorni_extra, mesi_ideali_custom FROM blocchi_stagione WHERE`
+  - `
+        CREATE TABLE IF NOT EXISTS blocchi_stagione (
+            id INTEGER PR`
 
 ----------------------------------------
 
@@ -323,21 +315,19 @@ basato sulle coordinate reali delle tappe del progetto*
             codice_iso2,
       `
   - `
-                    INSERT OR REPLACE INTO anagrafica_paesi 
-                  `
+        CREATE TABLE IF NOT EXISTS anagrafica_paesi (
+            codice_iso2 T`
+  - `
+        CREATE TABLE IF NOT EXISTS dogane_progetto (
+            id INTEGER PRI`
+**🌐 Endpoint / Rete:**
   - `
         CREATE TABLE IF NOT EXISTS anagrafica_paesi (
             codice_iso2 T`
-**🌐 Endpoint / Rete:**
   - `Passaporto valido (6+ mesi)`
   - `
-        CREATE TABLE IF NOT EXISTS anagrafica_paesi (
-            codice_iso2 T`
-  - `
-        SELECT 
-            ordine_progressivo,
-            codice_iso2,
-      `
+                    INSERT OR REPLACE INTO anagrafica_paesi 
+                  `
 
 ----------------------------------------
 
@@ -364,9 +354,9 @@ basato sulle coordinate reali delle tappe del progetto*
   - `def run_server()`
   - `def start_local_map_server()`
 **🌐 Endpoint / Rete:**
-  - `/api/set-gpx-data`
-  - `/api/get-gpx-data`
+  - `/api/maps/list`
   - `127.0.0.1`
+  - `/api/set-gpx-data`
 
 ----------------------------------------
 
@@ -386,16 +376,13 @@ basato sulle coordinate reali delle tappe del progetto*
   - `def get_paesi_attraversati_stats()` - *Estrae i paesi basandosi rigorosamente sui codici ISO2 salvati nel database*
 **🗄️ Database / SQL:**
   - `
-        SELECT distanza_km, start_lat, start_lon, end_lat, end_lon, nome_file 
-`
-  - `
-        SELECT blocco, distanza_km, nome_file 
-        FROM tappe 
-        WHER`
-  - `
             SELECT codice_iso2, paese_nome 
             FROM dogane_progetto 
  `
+  - `
+        SELECT distanza_km, start_lat, start_lon, end_lat, end_lon, nome_file 
+`
+  - `SELECT distanza_km, nome_file FROM tappe WHERE id_progetto = ? AND stato = 'ATTI`
 
 ----------------------------------------
 
@@ -412,5 +399,5 @@ basato sulle coordinate reali delle tappe del progetto*
 ## 🌍 4. Stato Frontend Mappa (`templates/map_view.html`)
 
 - **Stato:** Analizzato con successo.
-- **Endpoint JS:** `['/api/get-gpx-data', 'http://127.0.0.1:8080/fonts/{fontstack}/{range}.pbf', '/api/maps/list', 'http://127.0.0.1:8080/static/sprite']`
+- **Endpoint JS:** `['/api/maps/list', 'http://127.0.0.1:8080/fonts/{fontstack}/{range}.pbf', 'http://127.0.0.1:8080/static/sprite', '/api/get-gpx-data']`
 - **Layer MapLibre:** `Nessuno`

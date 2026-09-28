@@ -52,6 +52,53 @@
         let map;
         let mappaPronta = false;
         let datiInCoda = null;
+        let datiPercorsoPresenti = false;
+        let richiestaGpsInCorso = false;
+        let ultimaRichiestaGps = 0;
+
+        function centraSuRoma() {
+            if (map && mappaPronta) {
+                map.flyTo({ center: [12.5674, 41.8719], zoom: 6, duration: 1200 });
+            }
+        }
+
+        function centraMappaSuGpsORoma() {
+            if (!map || !mappaPronta) return;
+
+            const adesso = Date.now();
+            if (richiestaGpsInCorso || adesso - ultimaRichiestaGps < 1500) return;
+            ultimaRichiestaGps = adesso;
+
+            if (!navigator.geolocation) {
+                centraSuRoma();
+                return;
+            }
+
+            richiestaGpsInCorso = true;
+            navigator.geolocation.getCurrentPosition(
+                (posizione) => {
+                    richiestaGpsInCorso = false;
+                    if (datiPercorsoPresenti) return;
+
+                    const lat = posizione.coords.latitude;
+                    const lon = posizione.coords.longitude;
+                    if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+                        lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                        centraSuRoma();
+                        return;
+                    }
+
+                    map.flyTo({ center: [lon, lat], zoom: 12, duration: 1200 });
+                },
+                () => {
+                    richiestaGpsInCorso = false;
+                    if (!datiPercorsoPresenti) centraSuRoma();
+                },
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        }
+
+        window.centraMappaSuGpsORoma = centraMappaSuGpsORoma;
 
         async function initMap() {
             try { 
@@ -471,6 +518,7 @@
                 map.on('load', async () => {
                     mappaPronta = true; // <-- ACCENDIAMO LA MAPPA!
                     map.resize();
+                    centraMappaSuGpsORoma();
 
                     map.on('styleimagemissing', (e) => {
                         const requestedId = e.id;
@@ -545,6 +593,10 @@
                 // --- 2. IL RICEVITORE FLUIDO CON ACCENSIONE PRIORITARIA DEL CICLISTA ---
                 window.aggiornaMappaGeoJSON = function(gpxGeoJson) {
                     const loadingScreen = document.getElementById('loading-screen');
+                    datiPercorsoPresenti = Boolean(
+                        gpxGeoJson && gpxGeoJson.features &&
+                        gpxGeoJson.features.some(feature => feature.geometry && feature.geometry.type === 'LineString')
+                    );
                     
                     // ACCENDIAMO IMMEDIATAMENTE IL CICLISTA SULLO SCHERMO
                     if (loadingScreen) loadingScreen.style.display = 'flex';

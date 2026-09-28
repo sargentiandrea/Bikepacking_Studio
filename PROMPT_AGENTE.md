@@ -1,0 +1,1 @@
+Progetto: Bikepacking_Studio. Contesto: 20 moduli, 15 classi, 136 funzioni, 6 endpoint Flask, 89 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/dashboard.py, gui/mappa.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti.

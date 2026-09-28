@@ -15,3 +15,5 @@ venv/
 .idea/
 .vscode/
 temp_map.html
+.aider*
+.env

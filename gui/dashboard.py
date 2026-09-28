@@ -433,7 +433,7 @@ class DashboardPage(QWidget):
         except Exception as e:
             print(f"Errore caricamento percorsi: {e}")
 
-def crea_nuovo_progetto_dialog(self):
+    def crea_nuovo_progetto_dialog(self):
         """
         Apre un dialog modale (WizardNuovoPercorsoDialog) per la creazione guidata 
         di un nuovo itinerario. Gestisce sia la scelta di disegnare da zero sulla mappa 
