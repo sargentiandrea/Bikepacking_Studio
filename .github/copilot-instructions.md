@@ -95,3 +95,20 @@ Se ti viene chiesto qualcosa di vago, **fermati e chiedi** cosa intende esattame
 Il progetto deve diventare un'app multi-piattaforma (desktop, web, iOS, Android) per bikepacking, con funzionalità avanzate di pianificazione percorso, analisi clima, dogane internazionali, e certificazione di viaggi intercontinentali.
 
 Lavoriamo per passi. Preferiamo **una modifica piccola e sicura al giorno** a un refactor gigantesco che rompe tutto.
+
+## PROBLEMI ARCHITETTURALI NOTI (aggiornato 2026-09-29)
+
+### Duplicazioni tra `app_desktop.py` e `gui/dashboard.py`
+10 funzioni sono duplicate. Casi critici:
+- `elimina_percorso_corrente`: la versione in `app_desktop.py` cancella da più tabelle (tappe, allarmi, trasferimenti, ordine blocchi), quella in `gui/dashboard.py` solo progetto e tappe. **BUG LATENTE da risolvere.**
+- `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`: versioni in `app_desktop.py` contengono logica aggiuntiva (audit, mappa, allarmi) non presente in `gui/dashboard.py`. Da allineare.
+- `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`: copie non usate, rimovibili.
+
+### `calcola_distanza_haversine` in 3 file
+Definita in `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`. Da centralizzare in `service/geo_utils.py`.
+
+### Priorità di intervento
+1. Risolvere bug `elimina_percorso_corrente` (pulizia DB incompleta)
+2. Allineare `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`
+3. Rimuovere copie morte: `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`
+4. Centralizzare `calcola_distanza_haversine` in `service/geo_utils.py`
