@@ -1,3 +1,14 @@
+# ============================================================
+# audit_service.py
+# ------------------------------------------------------------
+# Servizio di audit del percorso bikepacking.
+# Rileva interruzioni (gap) tra le tappe, gestisce trasferimenti
+# (traghetti, treni, bus) e genera raccordi GPX automatici.
+#
+# Ultima revisione: 2026-09-29
+# Analizzato e documentato da: GitHub Copilot
+# ============================================================
+
 import sqlite3
 import math
 import os
