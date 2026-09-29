@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_analisi": "2026-09-29T18:24:44.627248",
+    "data_analisi": "2026-09-29T18:13:10.344026",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
@@ -378,129 +378,7 @@
         "tipo": "funzione",
         "file": "static/aggiorna_sprite.py"
       }
-    ],
-    "duplicazioni": [
-      {
-        "nome": "calcola_distanza_haversine",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py",
-          "service/audit_service.py"
-        ],
-        "numero_copie": 3
-      },
-      {
-        "nome": "init_ui",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py",
-          "gui/wizard_percorso.py"
-        ],
-        "numero_copie": 3
-      },
-      {
-        "nome": "carica_lista_percorsi",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "apri_percorso_selezionato",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "crea_nuovo_progetto_dialog",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elabora_files_gpx",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "aggiorna_tabella_tappe",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "aggiorna_blocco_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "toggle_pausa_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "cambia_ruolo_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elimina_singola_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elimina_percorso_corrente",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "conferma_creazione",
-        "file": [
-          "gui/dashboard.py",
-          "gui/wizard_percorso.py"
-        ],
-        "numero_copie": 2
-      }
-    ],
-    "mappa_dipendenze": {
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/stats_service.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
-      "service/clima_service.py": [
-        "app_desktop"
-      ]
-    }
+    ]
   },
   "moduli": {
     "app_desktop.py": {

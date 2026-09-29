@@ -451,6 +451,10 @@ def trova_simboli_orfani(moduli, tutti_i_codici):
     Un simbolo è 'orfano' se è definito in un file ma il suo nome non appare
     in NESSUN altro file del progetto, e non è un nome noto come sempre-usato
     (entry point, metodo magico, callback Qt, ecc.).
+
+    IMPORTANTE: i metodi chiamati con self.nome() sono considerati USATI,
+    anche se non appaiono in altri file. Questo elimina la maggior parte
+    dei falsi positivi (metodi di classe chiamati internamente).
     """
     definizioni = {}  # nome -> (file_dove_definito, tipo)
 
@@ -459,6 +463,9 @@ def trova_simboli_orfani(moduli, tutti_i_codici):
             definizioni[cls["nome"]] = (percorso, "classe")
         for fn in modulo.funzioni_globali:
             definizioni[fn["nome"]] = (percorso, "funzione")
+
+    # NUOVO: raccogli tutti i nomi di metodo chiamati con self.
+    metodi_chiamati_con_self = analizza_chiamate_self(moduli, tutti_i_codici)
 
     orfani = []
     for nome, (file_def, tipo) in definizioni.items():
@@ -470,6 +477,9 @@ def trova_simboli_orfani(moduli, tutti_i_codici):
             continue
         # Salta nomi che iniziano con _ (privati)
         if nome.startswith("_") and not nome.startswith("__"):
+            continue
+        # NUOVO: salta metodi chiamati con self.nome()
+        if nome in metodi_chiamati_con_self:
             continue
 
         # Cerca il nome in tutti gli ALTRI file del progetto
@@ -489,7 +499,6 @@ def trova_simboli_orfani(moduli, tutti_i_codici):
             })
 
     return orfani
-
 
 # ------------------------------------------------------------
 # CLASSIFICAZIONE ARCHITETTURALE
@@ -656,6 +665,91 @@ def costruisci_aider_context(dati):
         "prossimi_passi": agent["azioni_consigliate"],
         "prompt_agente": costruisci_prompt_agente(dati),
     }
+def trova_duplicazioni(moduli):
+    """
+    Trova funzioni/metodi con lo stesso nome definiti in file diversi.
+    Es: 'calcola_distanza_haversine' esiste sia in audit_service.py
+    che in app_desktop.py -> probabile duplicazione.
+    """
+    # Mappa: nome_funzione -> lista di file dove è definita
+    nomi_a_file = defaultdict(list)
+
+    for percorso, modulo in moduli.items():
+        for fn in modulo.funzioni_globali:
+            nomi_a_file[fn["nome"]].append(percorso)
+        for cls in modulo.classi:
+            for metodo in cls["metodi"]:
+                nomi_a_file[metodo["nome"]].append(percorso)
+
+    # Trova solo quelli che appaiono in più di un file
+    duplicazioni = []
+    for nome, files in nomi_a_file.items():
+        # Rimuovi duplicati (stesso file, ma definizione multipla)
+        files_unici = sorted(set(files))
+        if len(files_unici) > 1:
+            # Salta nomi troppo generici
+            if nome in {"__init__", "run", "main", "start", "setup", "update", "get", "set"}:
+                continue
+            duplicazioni.append({
+                "nome": nome,
+                "file": files_unici,
+                "numero_copie": len(files_unici),
+            })
+
+    # Ordina per numero di copie decrescente
+    duplicazioni.sort(key=lambda x: x["numero_copie"], reverse=True)
+    return duplicazioni
+
+
+def analizza_chiamate_self(moduli, tutti_i_codici):
+    """
+    Cerca chiamate a metodi interni del tipo 'self.nome_metodo()' nel codice.
+    Restituisce l'insieme di tutti i nomi di metodo chiamati con self.
+    Serve per ridurre i falsi positivi nei simboli orfani: un metodo
+    chiamato con self.nome() NON è orfano, è usato internamente.
+    """
+    metodi_chiamati_con_self = set()
+
+    for percorso, codice in tutti_i_codici.items():
+        # Cerca pattern 'self.nome_metodo' (seguito da '(' o meno)
+        trovate = re.findall(r"self\.([a-zA-Z_][a-zA-Z0-9_]*)", codice)
+        for nome in trovate:
+            metodi_chiamati_con_self.add(nome)
+
+    return metodi_chiamati_con_self
+
+
+def costruisci_mappa_dipendenze(moduli):
+    """
+    Costruisce una mappa delle dipendenze tra moduli del progetto.
+    Per ogni modulo, dice quali altri moduli lo importano.
+    """
+    # Mappa: modulo_destinazione -> insieme di moduli che lo importano
+    chi_importa_chi = defaultdict(set)
+
+    # Per ogni modulo sorgente, guarda i suoi import interni
+    for percorso_sorgente, modulo in moduli.items():
+        # Normalizza il nome del sorgente (senza .py)
+        sorgente_norm = percorso_sorgente.replace("\\", "/").replace(".py", "")
+
+        for imp in modulo.import_interni:
+            # Normalizza il nome dell'import (es: 'service.audit_service' -> 'service/audit_service')
+            imp_norm = imp.replace(".", "/")
+
+            # Trova il modulo di destinazione reale
+            for percorso_dest, _ in moduli.items():
+                dest_norm = percorso_dest.replace("\\", "/").replace(".py", "")
+                if dest_norm.endswith(imp_norm):
+                    chi_importa_chi[percorso_dest].add(sorgente_norm)
+                    break
+
+    # Converti in un formato ordinato
+    risultato = {}
+    for destinazione, importatori in chi_importa_chi.items():
+        risultato[destinazione] = sorted(importatori)
+
+    return risultato
+
 
 
 # ------------------------------------------------------------
@@ -716,6 +810,21 @@ def genera_ai_brief(dati):
     righe.append("")
 
     # --- Moduli principali ---
+
+        # --- Duplicazioni ---
+    duplicazioni = dati["dipendenze"].get("duplicazioni", [])
+    if duplicazioni:
+        righe.append("## Duplicazioni rilevate")
+        righe.append("")
+        righe.append(f"*{len(duplicazioni)} funzioni/metodi definiti in più file:*")
+        righe.append("")
+        for dup in duplicazioni[:20]:
+            files_str = ", ".join(f"`{f}`" for f in dup["file"])
+            righe.append(f"- `{dup['nome']}` ({dup['numero_copie']} copie) → {files_str}")
+        if len(duplicazioni) > 20:
+            righe.append(f"- ... e altre {len(duplicazioni) - 20}")
+        righe.append("")
+
     righe.append("## Moduli principali")
     righe.append("")
     ordinati = sorted(
@@ -1091,6 +1200,18 @@ def esegui_analisi():
     non_python = scansiona_file_non_python(".")
     print()
 
+    # 7b. Trova duplicazioni tra file
+    print("7b. Ricerca duplicazioni tra file...")
+    duplicazioni = trova_duplicazioni(moduli)
+    print(f"    Trovate {len(duplicazioni)} funzioni/metodi duplicati.")
+    print()
+
+    # 7c. Costruisci mappa delle dipendenze
+    print("7c. Costruzione mappa dipendenze...")
+    mappa_dipendenze = costruisci_mappa_dipendenze(moduli)
+    print(f"    Mappati {len(mappa_dipendenze)} moduli con importatori.")
+    print()
+
     # 8. Costruisci il JSON completo
     print("8. Costruzione dataset JSON...")
     dati = {
@@ -1120,6 +1241,8 @@ def esegui_analisi():
         },
         "dipendenze": {
             "simboli_orfani": simboli_orfani,
+            "duplicazioni": duplicazioni,
+            "mappa_dipendenze": mappa_dipendenze,
         },
         "moduli": {},
         "non_python_signals": non_python,

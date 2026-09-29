@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_analisi": "2026-09-29T18:24:44.627248",
+    "data_analisi": "2026-09-29T17:11:17.649278",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
@@ -204,7 +204,137 @@
         "file": "app_desktop.py"
       },
       {
+        "simbolo": "sposta_su",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "sposta_giu",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "applica_riordinamento",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "gestisci_cambio_progetto",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_bottone_navigazione",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_mappa",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_audit",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_trasporti",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_dogane",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_clima",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_statistiche",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "apri_finestra_elenco_paesi",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "aggiorna_pagina_trasporti",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "raccorda_gap_selezionato",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "aggiorna_pagina_dogane",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "aggiorna_pagina_clima",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "calcola_pagina_clima",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "salva_impostazioni_clima",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "aggiorna_pagina_statistiche",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "crea_pagina_placeholder",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "apri_pagina_clima",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "apri_pagina_statistiche",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "verifica_progetto_attivo",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
         "simbolo": "apri_selettore_file",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "raccorda_traccia_istantaneo",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "mostra_mappa_gap",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "avvia_wizard_trasferimento",
         "tipo": "funzione",
         "file": "app_desktop.py"
       },
@@ -220,6 +350,21 @@
       },
       {
         "simbolo": "carica_tappe_progetto",
+        "tipo": "funzione",
+        "file": "gui/dashboard.py"
+      },
+      {
+        "simbolo": "apri_progetto_per_id",
+        "tipo": "funzione",
+        "file": "gui/dashboard.py"
+      },
+      {
+        "simbolo": "chiama_selettore_gpx",
+        "tipo": "funzione",
+        "file": "gui/dashboard.py"
+      },
+      {
+        "simbolo": "modifica_blocco_multiplo",
         "tipo": "funzione",
         "file": "gui/dashboard.py"
       },
@@ -254,6 +399,26 @@
         "file": "gui/mappa.py"
       },
       {
+        "simbolo": "refresh_catalog",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
+        "simbolo": "on_item_selected",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
+        "simbolo": "start_download",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
+        "simbolo": "on_download_finished",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
         "simbolo": "attiva_modalita_interazione",
         "tipo": "funzione",
         "file": "gui/mappa.py"
@@ -265,6 +430,21 @@
       },
       {
         "simbolo": "cancella_anteprima_percorso",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
+        "simbolo": "toggle_pannello",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
+        "simbolo": "reload_map",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
+        "simbolo": "open_map_manager",
         "tipo": "funzione",
         "file": "gui/mappa.py"
       },
@@ -378,129 +558,7 @@
         "tipo": "funzione",
         "file": "static/aggiorna_sprite.py"
       }
-    ],
-    "duplicazioni": [
-      {
-        "nome": "calcola_distanza_haversine",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py",
-          "service/audit_service.py"
-        ],
-        "numero_copie": 3
-      },
-      {
-        "nome": "init_ui",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py",
-          "gui/wizard_percorso.py"
-        ],
-        "numero_copie": 3
-      },
-      {
-        "nome": "carica_lista_percorsi",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "apri_percorso_selezionato",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "crea_nuovo_progetto_dialog",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elabora_files_gpx",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "aggiorna_tabella_tappe",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "aggiorna_blocco_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "toggle_pausa_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "cambia_ruolo_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elimina_singola_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elimina_percorso_corrente",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "conferma_creazione",
-        "file": [
-          "gui/dashboard.py",
-          "gui/wizard_percorso.py"
-        ],
-        "numero_copie": 2
-      }
-    ],
-    "mappa_dipendenze": {
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/stats_service.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
-      "service/clima_service.py": [
-        "app_desktop"
-      ]
-    }
+    ]
   },
   "moduli": {
     "app_desktop.py": {
@@ -7499,7 +7557,7 @@
     "totale_funzioni": 175,
     "endpoint_flask": 7,
     "tabelle_rilevate": 11,
-    "simboli_orfani": 42,
+    "simboli_orfani": 78,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
@@ -7577,7 +7635,7 @@
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 42",
+      "Simboli orfani: 78",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -7592,7 +7650,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 16 moduli, 16 classi, 175 funzioni, 7 endpoint Flask, 42 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 16 moduli, 16 classi, 175 funzioni, 7 endpoint Flask, 78 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 16 moduli, 16 classi, 175 funzioni, 7 endpoint Flask, 42 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 16 moduli, 16 classi, 175 funzioni, 7 endpoint Flask, 78 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }
