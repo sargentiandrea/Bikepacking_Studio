@@ -1,0 +1,227 @@
+============================================================
+LEGGIMI - ANALISI PROFONDA DEL PROGETTO
+============================================================
+
+Questo file ti spiega come usare lo strumento di analisi.
+Leggilo una volta con calma. Poi non ti servirà più.
+
+
+------------------------------------------------------------
+1. COSA HAI IN MANO
+------------------------------------------------------------
+
+Hai tre file:
+
+  a) analisi_profonda.py
+     -> Lo script che analizza il progetto.
+     -> Si trova in: C:\Users\sarge\Desktop\Bikepacking_Studio\
+
+  b) analisi_profonda.bat
+     -> Il lanciatore. Doppio click e parte tutto.
+     -> Si trova in: C:\Users\sarge\Desktop\
+
+  c) LEGGIMI_ANALISI.txt
+     -> Questo file. Istruzioni.
+
+
+------------------------------------------------------------
+2. COME SI USA (il 99% delle volte)
+------------------------------------------------------------
+
+  1. Vai sul Desktop di Windows.
+  2. Doppio click su "analisi_profonda".
+  3. Aspetta. Si apre una finestra nera con dei messaggi.
+  4. Alla fine si apre automaticamente la cartella REPORT.
+  5. Guarda i file dentro.
+
+Tutto qui. Non devi fare altro.
+
+
+------------------------------------------------------------
+3. COSA TROVI NELLA CARTELLA REPORT
+------------------------------------------------------------
+
+Ogni volta che lanci l'analisi, vengono creati questi file
+(nel nome c'è data e ora, così non si sovrascrivono mai):
+
+  2026-09-29_14-30-05_analisi.json
+     -> Tutto il progetto in formato dati. Serve alle IA.
+
+  2026-09-29_14-30-05_report.md
+     -> Report leggibile per te. Aprilo con VS Code.
+
+  2026-09-29_14-30-05_prompt_agente.md
+     -> Un prompt pronto da copiare e dare a un'IA (Copilot, Aider...).
+
+  2026-09-29_14-30-05_aider_context.md
+     -> Contesto specifico per Aider.
+
+  2026-09-29_14-30-05_riepilogo.txt
+     -> Riassunto breve in testo semplice.
+
+E poi, indipendentemente dalla data:
+
+  CHANGELOG.md
+     -> Confronto con l'analisi precedente. Ti dice:
+        - cosa è cambiato nei numeri
+        - quali simboli orfani sono nuovi
+        - quali sono stati risolti
+        - quali file sono stati aggiunti o rimossi
+
+  ULTIMO_RUN.json
+     -> Copia dell'ultima analisi. Non toccarlo:
+        serve per il confronto al prossimo avvio.
+
+
+------------------------------------------------------------
+4. COSA SIGNIFICANO I NUMERI NEL REPORT
+------------------------------------------------------------
+
+  Moduli Python
+     -> Quanti file .py ci sono nel progetto.
+
+  Classi
+     -> Quante classi (i "tipi di oggetto" del codice).
+
+  Funzioni globali
+     -> Quante funzioni definite fuori dalle classi.
+
+  Rotte Flask
+     -> Quanti endpoint HTTP espone il backend.
+
+  Tabelle rilevate
+     -> Quante tabelle del database sono citate nel codice.
+
+  Simboli orfani
+     -> Classi o funzioni definite ma mai usate altrove.
+        Se sono tanti, potrebbe esserci codice vecchio da pulire.
+        Se sono pochi, il progetto è in buona salute.
+
+  Livello di rischio
+     -> basso / medio / alto
+        Calcolato in base a: numero di orfani, anomalie, file
+        troppo grandi, rotte mancanti.
+
+
+------------------------------------------------------------
+5. COSA FARE QUANDO QUALCOSA NON VA
+------------------------------------------------------------
+
+  Caso 1: il doppio click non fa niente o si chiude subito.
+     -> Probabilmente Python non è installato, oppure non è
+        nel PATH di Windows.
+     -> Per verificare: apri il prompt dei comandi (cerca "cmd"
+        nel menu Start), scrivi "python --version" e premi Invio.
+     -> Se vedi un numero di versione (es. Python 3.11.5), va bene.
+     -> Se vedi un errore, Python non è installato o è installato
+        male. In quel caso scrivi all'IA che ti sta aiutando.
+
+  Caso 2: la finestra nera dice "ERRORE: la cartella del progetto
+          non esiste".
+     -> Il percorso nel file .bat non è corretto.
+     -> Apri analisi_profonda.bat con VS Code (click destro ->
+        Apri con -> VS Code) e controlla questa riga:
+           set PROGETTO=C:\Users\sarge\Desktop\Bikepacking_Studio
+     -> Deve puntare alla cartella dove sta davvero il progetto.
+
+  Caso 3: la finestra nera dice "ERRORE: lo script non esiste".
+     -> analisi_profonda.py non è nella cartella giusta.
+     -> Deve stare in C:\Users\sarge\Desktop\Bikepacking_Studio\
+
+  Caso 4: durante l'analisi appaiono errori del tipo
+          "errore di sintassi in ...".
+     -> Alcuni file del progetto hanno errori di sintassi Python.
+        Non è grave: lo script li salta e continua.
+     -> Se sono tanti e ti preoccupano, segnalalo all'IA.
+
+  Caso 5: tutto funziona ma i numeri sembrano sbagliati.
+     -> Verifica la lista CARTELLE_ESCLUSE dentro analisi_profonda.py
+        (riga 30 circa). Se qualche cartella non deve essere
+        analizzata, aggiungila lì.
+
+
+------------------------------------------------------------
+6. COME MODIFICARE LA CONFIGURAZIONE
+------------------------------------------------------------
+
+Apri analisi_profonda.py con VS Code. In alto trovi una sezione
+chiamata "COSTANTI DI CONFIGURAZIONE". Le voci più utili:
+
+  CARTELLE_ESCLUSE
+     -> Cartelle da ignorare durante l'analisi.
+     -> Aggiungi qui il nome di una cartella (senza percorso)
+        per escluderla. Es: "miei_dati", "temp", "backup".
+
+  FRAMEWORK_UI_RICHIESTO
+     -> Il framework grafico che vuoi usare. Ora è "PySide6".
+     -> Se trovi import di PyQt5, PyQt6, PySide2, tkinter,
+        lo script te lo segnala come anomalia.
+
+  NOMI_SEMPRE_USATI
+     -> Nomi che non devono MAI essere considerati orfani.
+     -> Se hai un metodo strano che viene chiamato solo da
+        un framework e ti risulta orfano, aggiungilo qui.
+
+Dopo aver modificato il file, salva con Ctrl+S. La prossima
+analisi userà la nuova configurazione.
+
+
+------------------------------------------------------------
+7. UNA REGOLA D'ORO
+------------------------------------------------------------
+
+Quando l'analisi ti dice che c'è un problema, NON chiedere
+all'IA di risolverlo subito. Prima fai così:
+
+  1. Apri il report .md della data più recente
+  2. Cerca il problema (Ctrl+F nel file)
+  3. Leggi cosa dice
+  4. Chiedi all'IA di spiegartelo in italiano semplice
+  5. SOLO QUANDO HAI CAPITO, autorizza la modifica
+
+Questo ti evita di accumulare modifiche che non capisci.
+Ed è la vera differenza tra "farsi scrivere un'app" e
+"guidare la costruzione di un'app".
+
+
+------------------------------------------------------------
+8. FLUSSO DI LAVORO CONSIGLIATO
+------------------------------------------------------------
+
+  Tu (regista)
+     |
+     v
+  Lanci analisi_profonda.bat
+     |
+     v
+  Ottieni in REPORT/:
+     - report.md (leggibile)
+     - analisi.json (dati per IA)
+     - prompt_agente.md (pronto per Copilot/Aider)
+     - changelog.md (cosa è cambiato)
+     |
+     v
+  Incolli prompt_agente.md a un'IA (DeepSeek, Copilot, ecc.)
+     |
+     v
+  L'IA ti dice cosa fare / l'agente applica le modifiche
+     |
+     v
+  Rilancia analisi_profonda.bat
+     |
+     v
+  Confronti il changelog con l'analisi precedente
+     |
+     v
+  Vedi cosa è cambiato. Se è migliorato, hai fatto progressi.
+  Se è peggiorato, torni indietro (GitHub è tuo amico).
+
+
+------------------------------------------------------------
+FINE
+------------------------------------------------------------
+
+Se hai dubbi, apri una chat con l'IA e incolla il report.
+L'IA leggerà tutto e ti risponderà.
+
+Buon lavoro.

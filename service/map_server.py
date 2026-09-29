@@ -2,6 +2,7 @@ import os
 import subprocess
 import threading
 import urllib.parse
+from collections import deque
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory, send_file
 from flask_cors import CORS
 
@@ -15,6 +16,9 @@ FONTS_DIR = os.path.abspath(os.path.join(PROJECT_ROOT, 'fonts'))
 # Memoria globale per le tracce GPX e il processo di Martin
 current_gpx_geojson = {"type": "FeatureCollection", "features": []}
 martin_process = None
+map_interaction_events = deque(maxlen=200)
+map_interaction_lock = threading.Lock()
+map_interaction_sequence = 0
 
 # --- 2. INIZIALIZZAZIONE FLASK ---
 app = Flask(__name__, 
@@ -109,6 +113,64 @@ def set_gpx_data():
 def get_gpx_data():
     global current_gpx_geojson
     return jsonify(current_gpx_geojson)
+
+
+@app.route('/api/map-interactions', methods=['POST'])
+def ricevi_interazione_mappa():
+    """Accoda un waypoint richiesto dall'utente tramite click o drag sulla mappa."""
+    global map_interaction_sequence
+    payload = request.get_json(silent=True) or {}
+    azione = payload.get("action")
+    if azione not in {"add_waypoint", "rubberband_waypoint", "cancel_interaction"}:
+        return jsonify({"status": "error", "message": "Azione mappa non valida"}), 400
+
+    try:
+        id_progetto = int(payload["project_id"])
+        if azione == "cancel_interaction":
+            latitudine = longitudine = None
+            tappa_id = None
+        else:
+            latitudine = float(payload["lat"])
+            longitudine = float(payload["lon"])
+            tappa_id = int(payload["tappa_id"]) if payload.get("tappa_id") is not None else None
+    except (KeyError, TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Coordinate o progetto mancanti"}), 400
+
+    if id_progetto <= 0 or (
+        azione != "cancel_interaction"
+        and not (-90 <= latitudine <= 90 and -180 <= longitudine <= 180)
+    ):
+        return jsonify({"status": "error", "message": "Coordinate o progetto fuori intervallo"}), 400
+    if azione == "rubberband_waypoint" and tappa_id is None:
+        return jsonify({"status": "error", "message": "Tappa da modificare non indicata"}), 400
+
+    with map_interaction_lock:
+        map_interaction_sequence += 1
+        evento = {
+            "id": map_interaction_sequence,
+            "action": azione,
+            "project_id": id_progetto,
+            "tappa_id": tappa_id,
+            "lat": latitudine,
+            "lon": longitudine,
+        }
+        map_interaction_events.append(evento)
+
+    return jsonify({"status": "queued", "event_id": evento["id"]}), 202
+
+
+@app.route('/api/map-interactions', methods=['GET'])
+def leggi_interazioni_mappa():
+    """Restituisce gli eventi successivi al cursore gestito da MappaWidget."""
+    try:
+        dopo_id = max(0, int(request.args.get("after", 0)))
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Cursore eventi non valido"}), 400
+
+    with map_interaction_lock:
+        eventi = [evento for evento in map_interaction_events if evento["id"] > dopo_id]
+        ultimo_id = map_interaction_sequence
+    return jsonify({"status": "success", "events": eventi, "latest_id": ultimo_id})
 
 # --- 6. ROTTE UTILITÀ E DEBUG ---
 

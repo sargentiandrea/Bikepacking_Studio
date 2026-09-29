@@ -342,6 +342,106 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
     return tabella_finale
 
 
+def analizza_dati_rotta_brouter(proprieta, coordinate):
+    """Estrae KPI e categorie di superficie dai metadati GeoJSON di BRouter."""
+    proprieta = proprieta or {}
+    coordinate = coordinate or []
+
+    try:
+        distanza_totale_km = float(proprieta.get("track-length", 0)) / 1000.0
+    except (TypeError, ValueError):
+        distanza_totale_km = 0.0
+
+    try:
+        tempo_totale_secondi = float(proprieta.get("total-time", 0))
+    except (TypeError, ValueError):
+        tempo_totale_secondi = 0.0
+
+    velocita_media_kmh = (
+        distanza_totale_km / (tempo_totale_secondi / 3600.0)
+        if distanza_totale_km > 0 and tempo_totale_secondi > 0
+        else None
+    )
+
+    quote = []
+    for punto in coordinate:
+        if len(punto) > 2:
+            try:
+                quota = float(punto[2])
+                if math.isfinite(quota):
+                    quote.append(quota)
+            except (TypeError, ValueError):
+                continue
+
+    categorie = {
+        "Asfalto / pavimentato": {"km": 0.0, "colore": "#64748b"},
+        "Pista ciclabile": {"km": 0.0, "colore": "#22c55e"},
+        "Sentiero": {"km": 0.0, "colore": "#f59e0b"},
+        "Sterrato": {"km": 0.0, "colore": "#a16207"},
+        "Non specificata": {"km": 0.0, "colore": "#64748b"},
+    }
+    pavimentate = {"asphalt", "paved", "concrete", "concrete:lanes", "paving_stones", "sett", "cobblestone"}
+    sterrate = {"gravel", "fine_gravel", "compacted", "ground", "dirt", "earth", "unpaved", "grass", "sand", "mud"}
+
+    messaggi = proprieta.get("messages") or []
+    if messaggi:
+        intestazioni = [str(valore).strip().casefold() for valore in messaggi[0]]
+        indice_distanza = intestazioni.index("distance") if "distance" in intestazioni else None
+        indice_waytags = intestazioni.index("waytags") if "waytags" in intestazioni else None
+        for riga in messaggi[1:]:
+            try:
+                distanza_m = float(riga[indice_distanza]) if indice_distanza is not None else 0.0
+            except (IndexError, TypeError, ValueError):
+                distanza_m = 0.0
+            if distanza_m <= 0:
+                continue
+
+            waytags = str(riga[indice_waytags]) if indice_waytags is not None and len(riga) > indice_waytags else ""
+            tags = {}
+            for elemento in waytags.split():
+                chiave, separatore, valore = elemento.partition("=")
+                if separatore:
+                    tags[chiave.casefold()] = valore.casefold()
+
+            superficie = tags.get("surface", "")
+            strada = tags.get("highway", "")
+            if strada == "cycleway":
+                categoria = "Pista ciclabile"
+            elif superficie in pavimentate:
+                categoria = "Asfalto / pavimentato"
+            elif superficie in sterrate:
+                categoria = "Sterrato"
+            elif strada in {"path", "track", "bridleway", "footway"}:
+                categoria = "Sentiero"
+            else:
+                categoria = "Non specificata"
+            categorie[categoria]["km"] += distanza_m / 1000.0
+
+    totale_superfici_km = sum(categoria["km"] for categoria in categorie.values())
+    if totale_superfici_km <= 0 and distanza_totale_km > 0:
+        categorie["Non specificata"]["km"] = distanza_totale_km
+        totale_superfici_km = distanza_totale_km
+
+    distribuzione = []
+    for nome, dati in categorie.items():
+        if dati["km"] <= 0:
+            continue
+        distribuzione.append({
+            "categoria": nome,
+            "km": round(dati["km"], 2),
+            "percentuale": round(dati["km"] / totale_superfici_km * 100, 1),
+            "colore": dati["colore"],
+        })
+
+    return {
+        "distanza_km": round(distanza_totale_km, 2),
+        "velocita_media_kmh": round(velocita_media_kmh, 1) if velocita_media_kmh is not None else None,
+        "altitudine_min_m": round(min(quote)) if quote else None,
+        "altitudine_max_m": round(max(quote)) if quote else None,
+        "superfici": distribuzione,
+    }
+
+
 import sqlite3
 import os
 import json

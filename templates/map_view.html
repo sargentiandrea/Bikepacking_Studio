@@ -55,6 +55,71 @@
         let datiPercorsoPresenti = false;
         let richiestaGpsInCorso = false;
         let ultimaRichiestaGps = 0;
+        let modalitaInterazioneMappa = null;
+        let idProgettoInterazioneMappa = null;
+        let trascinamentoPercorso = null;
+        let markerTrascinamento = null;
+        let consumaClickDopoTrascinamento = false;
+
+        async function inviaInterazioneMappa(action, coordinate, tappaId = null) {
+            const projectId = idProgettoInterazioneMappa;
+            modalitaInterazioneMappa = null;
+            if (map && map.getCanvas()) map.getCanvas().style.cursor = '';
+            if (!projectId || (action !== 'cancel_interaction' && !coordinate)) return;
+
+            try {
+                const response = await fetch('/api/map-interactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action,
+                        project_id: projectId,
+                        tappa_id: tappaId,
+                        lat: coordinate ? coordinate.lat : null,
+                        lon: coordinate ? coordinate.lng : null
+                    })
+                });
+                if (!response.ok) console.warn('Waypoint non accodato:', await response.text());
+            } catch (error) {
+                console.error('Impossibile inviare il punto al planner:', error);
+            }
+        }
+
+        window.impostaModalitaInterazioneMappa = function(mode, projectId) {
+            modalitaInterazioneMappa = mode;
+            idProgettoInterazioneMappa = projectId;
+            if (map && map.getCanvas()) {
+                map.getCanvas().style.cursor = mode ? (mode === 'rubberband' ? 'grab' : 'crosshair') : '';
+            }
+        };
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape' || !modalitaInterazioneMappa) return;
+            if (trascinamentoPercorso) {
+                map.dragPan.enable();
+                trascinamentoPercorso = null;
+                if (markerTrascinamento) markerTrascinamento.remove();
+                markerTrascinamento = null;
+                const source = map.getSource('planned-route');
+                if (source) source.setData({ type: 'FeatureCollection', features: [] });
+            }
+            inviaInterazioneMappa('cancel_interaction', null);
+        });
+
+        window.aggiornaAnteprimaPercorso = function(routeGeoJson) {
+            if (!map || !mappaPronta) return;
+            const source = map.getSource('planned-route');
+            if (!source) return;
+            source.setData(routeGeoJson || { type: 'FeatureCollection', features: [] });
+            const line = routeGeoJson && routeGeoJson.features &&
+                routeGeoJson.features.find(feature => feature.geometry && feature.geometry.type === 'LineString');
+            if (line && line.geometry.coordinates.length) {
+                const first = line.geometry.coordinates[0];
+                const bounds = new maplibregl.LngLatBounds(first, first);
+                line.geometry.coordinates.forEach(point => bounds.extend(point));
+                map.fitBounds(bounds, { padding: 70, maxZoom: 15, duration: 350 });
+            }
+        };
 
         function centraSuRoma() {
             if (map && mappaPronta) {
@@ -437,6 +502,10 @@
                     'type': 'geojson',
                     'data': { 'type': 'FeatureCollection', 'features': [] }
                 };
+                sources['planned-route'] = {
+                    'type': 'geojson',
+                    'data': { 'type': 'FeatureCollection', 'features': [] }
+                };
 
                 const layers = [
                     { 'id': 'background', 'type': 'background', 'paint': { 'background-color': '#f2efe9' } },
@@ -469,6 +538,30 @@
                             'line-width': 3.5, 
                             'line-opacity': 0.90,
                             'line-dasharray': [3, 3] // TRAZIONE TRATTEGGIATA: 3 pixel di linea e 3 di vuoto!
+                        }
+                    },
+                    {
+                        'id': 'planned-route-line',
+                        'type': 'line',
+                        'source': 'planned-route',
+                        'filter': ['==', '$type', 'LineString'],
+                        'paint': {
+                            'line-color': '#0284c7',
+                            'line-width': 6,
+                            'line-opacity': 0.95,
+                            'line-dasharray': [1.5, 1]
+                        }
+                    },
+                    {
+                        'id': 'planned-route-points',
+                        'type': 'circle',
+                        'source': 'planned-route',
+                        'filter': ['==', '$type', 'Point'],
+                        'paint': {
+                            'circle-color': '#38bdf8',
+                            'circle-radius': 6,
+                            'circle-stroke-width': 2,
+                            'circle-stroke-color': '#ffffff'
                         }
                     },
                     {
@@ -544,6 +637,15 @@
                         // --- ABILITIAMO I CLIC INTERATTIVI ADESSO CHE LA MAPPA È VIVA ---
                     map.on('click', 'gpx-line-layer', (e) => {
                         if (!e.features || !e.features.length) return;
+                        if (consumaClickDopoTrascinamento) {
+                            consumaClickDopoTrascinamento = false;
+                            return;
+                        }
+                        if (modalitaInterazioneMappa === 'add_waypoint') {
+                            e.preventDefault();
+                            inviaInterazioneMappa('add_waypoint', e.lngLat);
+                            return;
+                        }
                         const props = e.features[0].properties;
                         
                         // SE L'UTENTE CLICCA SU UN TRASFERIMENTO (Aereo, Nave, Treno...)
@@ -569,6 +671,15 @@
 
                     map.on('click', 'gpx-point-layer', (e) => {
                         if (!e.features || !e.features.length) return;
+                        if (consumaClickDopoTrascinamento) {
+                            consumaClickDopoTrascinamento = false;
+                            return;
+                        }
+                        if (modalitaInterazioneMappa === 'add_waypoint') {
+                            e.preventDefault();
+                            inviaInterazioneMappa('add_waypoint', e.lngLat);
+                            return;
+                        }
                         const props = e.features[0].properties;
                         
                         // Sdoppiamento del testo visivo a seconda se sia Partenza o Arrivo della tappa
@@ -581,6 +692,71 @@
                                       <strong>📍 File collegato:</strong> ${props.nome_file || '-'}<br>
                                       <strong>🔢 Ordine Cronologico:</strong> Sequenza ${props.sequenza || '-'}`)
                             .addTo(map);
+                    });
+
+                    map.on('click', (e) => {
+                        if (modalitaInterazioneMappa === 'add_waypoint') {
+                            e.preventDefault();
+                            inviaInterazioneMappa('add_waypoint', e.lngLat);
+                        }
+                    });
+
+                    map.on('mousedown', 'gpx-line-layer', (e) => {
+                        if (modalitaInterazioneMappa !== 'rubberband' || !e.features || !e.features.length) return;
+                        const tappaId = Number(e.features[0].properties.tappa_id);
+                        if (!Number.isInteger(tappaId) || tappaId <= 0) return;
+
+                        e.preventDefault();
+                        trascinamentoPercorso = { tappaId, puntoIniziale: e.lngLat };
+                        map.dragPan.disable();
+                        map.getCanvas().style.cursor = 'grabbing';
+                        markerTrascinamento = new maplibregl.Marker({ color: '#0284c7' })
+                            .setLngLat(e.lngLat)
+                            .addTo(map);
+                        const source = map.getSource('planned-route');
+                        if (source) source.setData({
+                            type: 'FeatureCollection',
+                            features: [{
+                                type: 'Feature',
+                                geometry: { type: 'LineString', coordinates: [e.lngLat.toArray(), e.lngLat.toArray()] },
+                                properties: { tipo: 'rubberband' }
+                            }]
+                        });
+                    });
+
+                    map.on('mousemove', (e) => {
+                        if (!trascinamentoPercorso || !markerTrascinamento) return;
+                        markerTrascinamento.setLngLat(e.lngLat);
+                        const source = map.getSource('planned-route');
+                        if (source) source.setData({
+                            type: 'FeatureCollection',
+                            features: [{
+                                type: 'Feature',
+                                geometry: {
+                                    type: 'LineString',
+                                    coordinates: [trascinamentoPercorso.puntoIniziale.toArray(), e.lngLat.toArray()]
+                                },
+                                properties: { tipo: 'rubberband' }
+                            }]
+                        });
+                    });
+
+                    map.on('mouseup', (e) => {
+                        if (!trascinamentoPercorso) return;
+                        const tappaId = trascinamentoPercorso.tappaId;
+                        const distanzaPixel = trascinamentoPercorso.puntoIniziale.dist(e.point);
+                        map.dragPan.enable();
+                        if (markerTrascinamento) markerTrascinamento.remove();
+                        markerTrascinamento = null;
+                        trascinamentoPercorso = null;
+                        const source = map.getSource('planned-route');
+                        if (source) source.setData({ type: 'FeatureCollection', features: [] });
+                        if (distanzaPixel > 8) {
+                            consumaClickDopoTrascinamento = true;
+                            inviaInterazioneMappa('rubberband_waypoint', e.lngLat, tappaId);
+                        } else {
+                            map.getCanvas().style.cursor = 'grab';
+                        }
                     });
 
                     // Cambia la forma del cursore del mouse sopra gli elementi cliccabili
