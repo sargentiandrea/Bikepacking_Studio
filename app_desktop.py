@@ -806,9 +806,11 @@ class BikepackingStudioApp(QMainWindow):
             conn.close()
 
             gaps = service.audit_service.rileva_gap_progetto(self.current_progetto_id)
+            strade_vietate = service.audit_service.rileva_strade_vietate_progetto(self.current_progetto_id)
+            allarmi = gaps + strade_vietate
             self._imposta_righe_tabella(self.table_trasferimenti, trasferimenti)
-            self.table_gap_trasporti.setRowCount(len(gaps))
-            for row_index, gap in enumerate(gaps):
+            self.table_gap_trasporti.setRowCount(len(allarmi))
+            for row_index, gap in enumerate(allarmi):
                 item_tipo = QTableWidgetItem(gap["tipo"])
                 item_tipo.setData(Qt.UserRole, (gap["id_tappa_origine"], gap["id_tappa_destinazione"]))
                 self.table_gap_trasporti.setItem(row_index, 0, item_tipo)
@@ -816,7 +818,8 @@ class BikepackingStudioApp(QMainWindow):
                 self.table_gap_trasporti.setItem(row_index, 2, QTableWidgetItem(gap["messaggio"]))
 
             self.lbl_stato_trasporti.setText(
-                f"{len(trasferimenti)} trasferimenti salvati; {len(gaps)} interruzioni da valutare."
+                f"{len(trasferimenti)} trasferimenti salvati; {len(gaps)} interruzioni e "
+                f"{len(strade_vietate)} tratti vietati alle bici da valutare."
             )
         except Exception as errore:
             self.lbl_stato_trasporti.setText(f"Errore durante il caricamento logistico: {errore}")
@@ -825,6 +828,14 @@ class BikepackingStudioApp(QMainWindow):
         row = self.table_gap_trasporti.currentRow()
         if row < 0:
             QMessageBox.information(self, "Selezione richiesta", "Seleziona prima un'interruzione.")
+            return
+
+        tipo_selezionato = self.table_gap_trasporti.item(row, 0).text()
+        if not tipo_selezionato.startswith("GAP_"):
+            QMessageBox.information(
+                self, "Raccordo non disponibile",
+                "Questo allarme non è un'interruzione di percorso: non prevede la generazione automatica di un raccordo GPX."
+            )
             return
 
         ids = self.table_gap_trasporti.item(row, 0).data(Qt.UserRole)

@@ -60,6 +60,7 @@
         let trascinamentoPercorso = null;
         let markerTrascinamento = null;
         let consumaClickDopoTrascinamento = false;
+        let ultimoGeoJsonGpx = null; // ultima traccia disegnata, serve per evidenziare/centrare una singola tappa
 
         async function inviaInterazioneMappa(action, coordinate, tappaId = null) {
             const projectId = idProgettoInterazioneMappa;
@@ -118,6 +119,38 @@
                 const bounds = new maplibregl.LngLatBounds(first, first);
                 line.geometry.coordinates.forEach(point => bounds.extend(point));
                 map.fitBounds(bounds, { padding: 70, maxZoom: 15, duration: 350 });
+            }
+        };
+
+        // Evidenzia sulla mappa il tratto GPX di UNA sola tappa (usata dall'elenco
+        // "tappe intermedie" del pannello fluttuante: click su una riga -> qui).
+        // Passare null/undefined per tornare allo stile normale di tutte le tappe.
+        window.evidenziaTappa = function(tappaId) {
+            if (!map || !mappaPronta || !map.getLayer('gpx-line-layer')) return;
+
+            if (tappaId === null || tappaId === undefined) {
+                map.setPaintProperty('gpx-line-layer', 'line-color', '#e60000');
+                map.setPaintProperty('gpx-line-layer', 'line-width', 5);
+                return;
+            }
+
+            const idNumerico = Number(tappaId);
+            map.setPaintProperty('gpx-line-layer', 'line-color', [
+                'case', ['==', ['get', 'tappa_id'], idNumerico], '#facc15', '#e60000'
+            ]);
+            map.setPaintProperty('gpx-line-layer', 'line-width', [
+                'case', ['==', ['get', 'tappa_id'], idNumerico], 8, 5
+            ]);
+
+            if (!ultimoGeoJsonGpx || !ultimoGeoJsonGpx.features) return;
+            const tratto = ultimoGeoJsonGpx.features.find(
+                f => f.geometry && f.geometry.type === 'LineString' && Number(f.properties && f.properties.tappa_id) === idNumerico
+            );
+            if (tratto && tratto.geometry.coordinates.length) {
+                const primoPunto = tratto.geometry.coordinates[0];
+                const bounds = new maplibregl.LngLatBounds(primoPunto, primoPunto);
+                tratto.geometry.coordinates.forEach(punto => bounds.extend(punto));
+                map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 600 });
             }
         };
 
@@ -791,6 +824,7 @@
                                 const sorgente = map.getSource('gpx-track');
                                 if (sorgente) {
                                     sorgente.setData(gpxGeoJson);
+                                    ultimoGeoJsonGpx = gpxGeoJson;
                                     
                                     const coordinates = [];
                                     if (gpxGeoJson && gpxGeoJson.features && gpxGeoJson.features.length > 0) {

@@ -189,7 +189,9 @@ def show_map():
 
 def run_server(host='127.0.0.1', port=8080):
     start_martin_server()
-    app.run(host=host, port=port, debug=False, use_reloader=False)
+    # threaded=True evita che una richiesta lenta (es. tile o dati GPX) blocchi
+    # le altre richieste in coda, causando i "blocchi" temporanei dell'interfaccia.
+    app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
 
 def start_local_map_server(host='127.0.0.1', port=8080):
     server_thread = threading.Thread(target=run_server, args=(host, port), daemon=True)

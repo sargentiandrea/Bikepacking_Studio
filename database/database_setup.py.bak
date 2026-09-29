@@ -104,34 +104,6 @@ def inizializza_database():
         )
     """)
 
-    # Cache locale (100% offline) della ripartizione superfici/divieti bici
-    # calcolata confrontando i file GPX con le mappe vettoriali già scaricate
-    # in data/maps/. Vedi service/superfici_service.py.
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS superfici_tappa (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tappa_id INTEGER UNIQUE,
-            dati_json TEXT,
-            calcolato_il TEXT,
-            FOREIGN KEY (tappa_id) REFERENCES tappe(id)
-        )
-    """)
-
-    # Cache locale (100% offline) dei nomi luogo risolti da coordinate GPS,
-    # usata dal pannello di pianificazione sulla mappa per non dover rileggere
-    # le mappe .mbtiles ogni volta che si riapre lo stesso percorso.
-    # La chiave è la coppia di coordinate arrotondate a 5 decimali (~1 metro
-    # di precisione): punti già visti in precedenza vengono riletti all'istante.
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS cache_nomi_luoghi (
-            lat_arrotondata REAL NOT NULL,
-            lon_arrotondata REAL NOT NULL,
-            nome TEXT,
-            calcolato_il TEXT,
-            PRIMARY KEY (lat_arrotondata, lon_arrotondata)
-        )
-    """)
-
     conn.commit()
     conn.close()
 

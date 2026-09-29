@@ -1,6 +1,7 @@
 import os
 import json
 import sqlite3
+import threading
 import time
 import uuid
 import re
@@ -173,8 +174,22 @@ class PannelloPianificazioneWidget(QFrame):
         self.firma_ultima_anteprima = None
         self.callback_worker_pianificazione = None
         self.firma_worker_pianificazione = None
-        self.setFixedWidth(340)  # Imposta una larghezza fissa coerente con il layout della mappa
-        self.setMaximumHeight(500)
+        self._progetto_sincronizzato_id = "non_ancora_verificato"  # sentinella diversa da None/ID reali
+        self._worker_superfici_offline = None
+        self._workers_superfici_attivi = []  # tiene in vita i worker finché non finiscono davvero
+        self._richiesta_superfici_in_sospeso = None
+        self._token_analisi_superfici = 0
+        self._worker_nomi_luoghi = None
+        self._workers_nomi_attivi = []  # stesso principio dei worker superfici: mai perdere il riferimento a un thread vivo
+        self._richiesta_nomi_in_sospeso = None
+        self._token_nomi_luoghi = 0
+        self._worker_altimetria = None
+        self._workers_altimetria_attivi = []  # stesso principio degli altri worker: mai perdere il riferimento a un thread vivo
+        self._richiesta_altimetria_in_sospeso = None
+        self._token_altimetria = 0
+        self._dati_tappe_intermedie = []  # elenco di sola consultazione delle tappe di un percorso già caricato
+        self.setMinimumWidth(320)
+        self.setMaximumWidth(420)
         
         # Stile visivo generale del pannello (sfondo scuro, bordi arrotondati, font pulito)
         self.setStyleSheet("""
@@ -270,6 +285,44 @@ class PannelloPianificazioneWidget(QFrame):
         layout_partenza.addWidget(self.input_partenza)
         contenuto_layout.addLayout(layout_partenza)
 
+        # --- ELENCO TAPPE INTERMEDIE (percorso già caricato: sola consultazione) ---
+        # Diverso dai "punti di passaggio" manuali più sotto: qui non si edita
+        # nulla, si vedono solo le tappe del percorso aperto e si può cliccare
+        # una riga per evidenziarla sulla mappa.
+        self.contenitore_tappe_intermedie = QWidget()
+        layout_tappe_intermedie_esterno = QVBoxLayout(self.contenitore_tappe_intermedie)
+        layout_tappe_intermedie_esterno.setContentsMargins(0, 0, 0, 0)
+        layout_tappe_intermedie_esterno.setSpacing(4)
+
+        self.btn_toggle_tappe_intermedie = QPushButton("▾ 0 tappe intermedie")
+        self.btn_toggle_tappe_intermedie.setCheckable(True)
+        self.btn_toggle_tappe_intermedie.setChecked(True)
+        self.btn_toggle_tappe_intermedie.setCursor(Qt.PointingHandCursor)
+        self.btn_toggle_tappe_intermedie.setStyleSheet(
+            "QPushButton { background: transparent; color: #7dd3fc; border: none; text-align: left; "
+            "padding: 2px 0; font-size: 12px; font-weight: 600; } "
+            "QPushButton:hover { color: #bae6fd; }"
+        )
+        self.btn_toggle_tappe_intermedie.clicked.connect(self._toggle_elenco_tappe_intermedie)
+        layout_tappe_intermedie_esterno.addWidget(self.btn_toggle_tappe_intermedie)
+
+        self.area_scorrimento_tappe_intermedie = QScrollArea()
+        self.area_scorrimento_tappe_intermedie.setWidgetResizable(True)
+        self.area_scorrimento_tappe_intermedie.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.area_scorrimento_tappe_intermedie.setMaximumHeight(170)
+        self.area_scorrimento_tappe_intermedie.setStyleSheet(
+            "QScrollArea { background-color: #161616; border: 1px solid #2d2d2d; border-radius: 6px; }"
+        )
+        contenuto_lista_tappe = QWidget()
+        self.layout_lista_tappe_intermedie = QVBoxLayout(contenuto_lista_tappe)
+        self.layout_lista_tappe_intermedie.setContentsMargins(4, 4, 4, 4)
+        self.layout_lista_tappe_intermedie.setSpacing(2)
+        self.area_scorrimento_tappe_intermedie.setWidget(contenuto_lista_tappe)
+        layout_tappe_intermedie_esterno.addWidget(self.area_scorrimento_tappe_intermedie)
+
+        self.contenitore_tappe_intermedie.setVisible(False)  # compare solo se il percorso caricato ha tappe intermedie
+        contenuto_layout.addWidget(self.contenitore_tappe_intermedie)
+
         self.contenitore_punti_passaggio = QWidget()
         self.layout_punti_passaggio = QVBoxLayout(self.contenitore_punti_passaggio)
         self.layout_punti_passaggio.setContentsMargins(0, 0, 0, 0)
@@ -309,34 +362,40 @@ class PannelloPianificazioneWidget(QFrame):
         contenuto_layout.addLayout(layout_arrivo)
 
         lbl_superfici = QLabel("Superfici del percorso")
-        lbl_superfici.setStyleSheet("color: #94a3b8; font-size: 11px; margin-top: 4px; border: none;")
+        lbl_superfici.setStyleSheet("color: #cbd5e1; font-size: 12px; font-weight: 600; margin-top: 4px; border: none;")
         contenuto_layout.addWidget(lbl_superfici)
         self.barra_superfici = BarraSuperfici()
         contenuto_layout.addWidget(self.barra_superfici)
-        self.layout_leggenda_superfici = QHBoxLayout()
-        self.layout_leggenda_superfici.setContentsMargins(0, 0, 0, 0)
-        self.layout_leggenda_superfici.setSpacing(8)
+        # Griglia (non una singola riga) per la legenda: con molte categorie di
+        # superficie una sola riga orizzontale tagliava il testo delle ultime voci.
+        self.layout_leggenda_superfici = QGridLayout()
+        self.layout_leggenda_superfici.setContentsMargins(0, 4, 0, 0)
+        self.layout_leggenda_superfici.setHorizontalSpacing(12)
+        self.layout_leggenda_superfici.setVerticalSpacing(3)
         contenuto_layout.addLayout(self.layout_leggenda_superfici)
         self.lbl_stato_superfici = QLabel("La ripartizione compare dopo il calcolo della rotta.")
         self.lbl_stato_superfici.setWordWrap(True)
-        self.lbl_stato_superfici.setStyleSheet("font-size: 10px; color: #94a3b8;")
+        self.lbl_stato_superfici.setStyleSheet("font-size: 11px; color: #cbd5e1; line-height: 1.4;")
         contenuto_layout.addWidget(self.lbl_stato_superfici)
 
         lbl_dettagli = QLabel("Dettagli tecnici")
-        lbl_dettagli.setStyleSheet("color: #94a3b8; font-size: 11px; margin-top: 4px; border: none;")
+        lbl_dettagli.setStyleSheet("color: #cbd5e1; font-size: 12px; font-weight: 600; margin-top: 4px; border: none;")
         contenuto_layout.addWidget(lbl_dettagli)
-        dettagli_layout = QGridLayout()
+        # Una colonna sola (non più una griglia 2x2): con nomi lunghi come
+        # "Velocità media stimata" la griglia a due colonne tagliava il testo.
+        dettagli_layout = QVBoxLayout()
         dettagli_layout.setContentsMargins(0, 0, 0, 0)
-        dettagli_layout.setHorizontalSpacing(8)
-        dettagli_layout.setVerticalSpacing(4)
+        dettagli_layout.setSpacing(5)
+        stile_dettaglio = "font-size: 12px; color: #f1f5f9; font-weight: 500; border: none;"
         self.lbl_velocita_media = QLabel("Velocità media stimata: --")
         self.lbl_altitudine_massima = QLabel("Altitudine massima: --")
         self.lbl_altitudine_minima = QLabel("Altitudine minima: --")
         self.lbl_distanza_totale = QLabel("Distanza totale: --")
-        dettagli_layout.addWidget(self.lbl_velocita_media, 0, 0)
-        dettagli_layout.addWidget(self.lbl_altitudine_massima, 0, 1)
-        dettagli_layout.addWidget(self.lbl_altitudine_minima, 1, 0)
-        dettagli_layout.addWidget(self.lbl_distanza_totale, 1, 1)
+        for etichetta in (self.lbl_velocita_media, self.lbl_altitudine_massima,
+                          self.lbl_altitudine_minima, self.lbl_distanza_totale):
+            etichetta.setStyleSheet(stile_dettaglio)
+            etichetta.setWordWrap(True)
+            dettagli_layout.addWidget(etichetta)
         contenuto_layout.addLayout(dettagli_layout)
         
         # --- PROFILO DI INSTRADAMENTO ---
@@ -513,6 +572,340 @@ class PannelloPianificazioneWidget(QFrame):
         except (OSError, sqlite3.Error, ValueError) as errore:
             QMessageBox.warning(self, "Modifica tratta non riuscita", str(errore))
 
+    def sincronizza_stato_percorso(self):
+        """
+        Riconosce lo stato del percorso attivo: se il progetto caricato ha già
+        delle tappe (file GPX importati o creati in precedenza), precompila
+        automaticamente Partenza, Destinazione, eventuali tappe intermedie e i
+        dettagli tecnici disponibili (distanza, altitudine). Non tocca nulla se
+        l'utente ha già iniziato a pianificare manualmente un nuovo tratto.
+        """
+        finestra_principale = getattr(self.mappa_widget, "parent_app", None)
+        id_progetto = getattr(finestra_principale, "current_progetto_id", None)
+
+        if id_progetto != self._progetto_sincronizzato_id:
+            # Cambio di progetto (o percorso chiuso): puliamo il pannello prima di
+            # ripopolarlo, ma solo se non c'è già una modifica manuale in corso.
+            self._progetto_sincronizzato_id = id_progetto
+            if self.tappa_in_modifica_id is None:
+                self.input_partenza.clear()
+                self.input_destinazione.clear()
+                while self.punti_passaggio:
+                    self._rimuovi_punto_passaggio(self.punti_passaggio[-1]["widget"])
+                self._popola_tappe_intermedie([])
+                self._evidenzia_tappa_su_mappa(None)
+                self.lbl_velocita_media.setText("Velocità media stimata: --")
+                self.lbl_altitudine_massima.setText("Altitudine massima: --")
+                self.lbl_altitudine_minima.setText("Altitudine minima: --")
+                self.lbl_distanza_totale.setText("Distanza totale: --")
+                self.barra_superfici.imposta_superfici([])
+                self._popola_legenda_superfici([])
+                self.lbl_stato_superfici.setText("La ripartizione compare dopo il calcolo della rotta.")
+                # Invalida eventuali analisi/geocodifiche del percorso precedente
+                # ancora in corso in background: senza questo, un risultato
+                # tardivo potrebbe ripopolare i campi appena svuotati.
+                self._token_analisi_superfici += 1
+                self._token_nomi_luoghi += 1
+                self._token_altimetria += 1
+                # Chiediamo anche ai worker eventualmente ancora in esecuzione
+                # di fermarsi subito invece di continuare a girare a vuoto in
+                # sottofondo: senza questo, un'analisi pesante su un percorso
+                # enorme restava attiva anche dopo essere diventata inutile,
+                # e la richiesta per il nuovo percorso doveva aspettare in
+                # coda che finisse, rallentando ogni cambio successivo.
+                if self._worker_superfici_offline is not None:
+                    try:
+                        self._worker_superfici_offline.request_stop()
+                    except RuntimeError:
+                        pass
+                if self._worker_nomi_luoghi is not None:
+                    try:
+                        self._worker_nomi_luoghi.request_stop()
+                    except RuntimeError:
+                        pass
+                if self._worker_altimetria is not None:
+                    try:
+                        self._worker_altimetria.request_stop()
+                    except RuntimeError:
+                        pass
+
+        if not id_progetto or self.tappa_in_modifica_id is not None:
+            return
+        if self.input_partenza.text().strip() or self.input_destinazione.text().strip():
+            return  # l'utente ha già iniziato a compilare i campi manualmente
+
+        try:
+            with sqlite3.connect(DB_NAME, timeout=15.0) as conn:
+                tappe = conn.execute(
+                    """
+                    SELECT id, nome_file, start_lat, start_lon, end_lat, end_lon, distanza_km
+                    FROM tappe
+                    WHERE id_progetto = ? AND stato = 'ATTIVA' AND nome_file IS NOT NULL
+                    ORDER BY sequenza ASC
+                    """,
+                    (id_progetto,),
+                ).fetchall()
+        except sqlite3.Error as errore:
+            print(f"Nota: impossibile leggere le tappe del progetto per il wizard: {errore}")
+            return
+
+        if not tappe:
+            return
+
+        _, primo_file, primo_lat, primo_lon, _, _, _ = tappe[0]
+        _, _, _, _, ultimo_lat, ultimo_lon, _ = tappe[-1]
+
+        # Mostriamo subito le coordinate (nessuna attesa): il nome del luogo,
+        # se le mappe locali lo contengono, arriva poco dopo in background
+        # (vedi _avvia_risoluzione_nomi_luoghi) senza bloccare l'interfaccia.
+        richieste_nomi = []
+        if primo_lat is not None and primo_lon is not None:
+            self.input_partenza.setText(f"{primo_lat:.6f}, {primo_lon:.6f}")
+            richieste_nomi.append({"chiave": "partenza", "lat": primo_lat, "lon": primo_lon})
+        if ultimo_lat is not None and ultimo_lon is not None:
+            self.input_destinazione.setText(f"{ultimo_lat:.6f}, {ultimo_lon:.6f}")
+            richieste_nomi.append({"chiave": "destinazione", "lat": ultimo_lat, "lon": ultimo_lon})
+
+        # Le tappe intermedie (se il percorso caricato ne ha più di una) vengono
+        # mostrate in un elenco a scorrimento separato e di sola consultazione:
+        # cliccandone una si evidenzia il tratto corrispondente sulla mappa.
+        tappe_intermedie = []
+        for tappa_id, _, start_lat, start_lon, _, _, _ in tappe[1:-1]:
+            if start_lat is None or start_lon is None:
+                continue
+            testo_iniziale = f"{start_lat:.6f}, {start_lon:.6f}"
+            tappe_intermedie.append({"id": tappa_id, "testo": testo_iniziale})
+            richieste_nomi.append({"chiave": tappa_id, "lat": start_lat, "lon": start_lon})
+        self._popola_tappe_intermedie(tappe_intermedie)
+
+        if richieste_nomi:
+            self._avvia_risoluzione_nomi_luoghi(richieste_nomi)
+
+        distanza_totale_km = sum(riga[5] or 0.0 for riga in tappe)
+        self.lbl_distanza_totale.setText(
+            f"Distanza totale: {distanza_totale_km:.1f} km" if distanza_totale_km > 0 else "Distanza totale: --"
+        )
+
+        # L'altimetria (min/max) legge e fa il parsing XML di ogni file GPX del
+        # percorso: con percorsi molto lunghi (centinaia di tappe) farlo qui,
+        # in modo sincrono sul thread dell'interfaccia, bloccava l'intera app
+        # per minuti. Ora viene calcolata in un thread separato, come già
+        # avviene per superfici e nomi luogo.
+        nomi_file = [nome_file for _, nome_file, *_ in tappe if nome_file]
+        self._avvia_analisi_altimetria(nomi_file)
+
+        self._avvia_analisi_superfici_offline(id_progetto)
+        self._adatta_altezza_al_contenuto()
+
+    def _avvia_risoluzione_nomi_luoghi(self, richieste):
+        """
+        Risolve in un thread separato il nome del luogo più vicino (offline,
+        dalle mappe locali) per partenza/arrivo/tappe intermedie, così
+        l'interfaccia non si blocca nemmeno con percorsi molto lunghi.
+        Finché il nome non è pronto restano visibili le coordinate.
+        """
+        self._token_nomi_luoghi += 1
+
+        try:
+            worker_ancora_attivo = self._worker_nomi_luoghi is not None and self._worker_nomi_luoghi.isRunning()
+        except RuntimeError:
+            # Difesa aggiuntiva: se per qualche motivo il riferimento non è
+            # stato azzerato in tempo, trattiamo il worker come già finito
+            # invece di far esplodere l'intera sincronizzazione del pannello.
+            worker_ancora_attivo = False
+            self._worker_nomi_luoghi = None
+
+        if worker_ancora_attivo:
+            self._richiesta_nomi_in_sospeso = richieste
+            # Il vecchio worker non serve più (la richiesta è già superata):
+            # gli chiediamo di fermarsi subito, così quello nuovo può partire
+            # appena possibile invece di aspettare che finisca tutto da solo.
+            self._worker_nomi_luoghi.request_stop()
+            return
+
+        self._avvia_worker_nomi_luoghi(richieste)
+
+    def _avvia_worker_nomi_luoghi(self, richieste):
+        token_corrente = self._token_nomi_luoghi
+        worker = WorkerNomiLuoghi(richieste)
+        self._worker_nomi_luoghi = worker
+        self._workers_nomi_attivi.append(worker)
+        worker.nomi_pronti.connect(
+            lambda risultati, token=token_corrente: self._fine_risoluzione_nomi_luoghi(risultati, token)
+        )
+        worker.finished.connect(lambda worker=worker: self._ripulisci_worker_nomi(worker))
+        worker.start()
+
+    def _ripulisci_worker_nomi(self, worker):
+        """Rimuove dalla lista di sopravvivenza un worker di geocodifica che ha finito, e lo elimina."""
+        if worker in self._workers_nomi_attivi:
+            self._workers_nomi_attivi.remove(worker)
+        if self._worker_nomi_luoghi is worker:
+            # Fondamentale: senza questo azzeramento il riferimento rimaneva
+            # puntato al worker distrutto, e la prossima chiamata a isRunning()
+            # falliva con "Internal C++ object already deleted" interrompendo
+            # tutta la sincronizzazione del pannello a metà.
+            self._worker_nomi_luoghi = None
+        worker.deleteLater()
+
+    def _fine_risoluzione_nomi_luoghi(self, risultati, token):
+        richiesta_in_sospeso = self._richiesta_nomi_in_sospeso
+        self._richiesta_nomi_in_sospeso = None
+        if richiesta_in_sospeso is not None:
+            self._avvia_worker_nomi_luoghi(richiesta_in_sospeso)
+
+        if token != self._token_nomi_luoghi:
+            return  # nel frattempo l'utente ha cambiato percorso: risultato superato
+
+        if "partenza" in risultati:
+            self.input_partenza.setText(risultati["partenza"])
+        if "destinazione" in risultati:
+            self.input_destinazione.setText(risultati["destinazione"])
+        testi_tappe_intermedie = {
+            chiave: testo for chiave, testo in risultati.items()
+            if chiave not in ("partenza", "destinazione")
+        }
+        if testi_tappe_intermedie:
+            self._aggiorna_testo_tappe_intermedie(testi_tappe_intermedie)
+
+    def _avvia_analisi_superfici_offline(self, id_progetto):
+        """
+        Calcola in un thread separato (per non bloccare l'interfaccia) la
+        ripartizione delle superfici confrontando i GPX con le mappe locali
+        già scaricate. Nessuna chiamata di rete: se il calcolo è già stato
+        fatto in precedenza, viene semplicemente riletto dalla cache locale.
+        """
+        self.lbl_stato_superfici.setText("Analisi offline delle superfici in corso (mappe locali già scaricate)...")
+        self._token_analisi_superfici += 1
+
+        try:
+            worker_ancora_attivo = self._worker_superfici_offline is not None and self._worker_superfici_offline.isRunning()
+        except RuntimeError:
+            worker_ancora_attivo = False
+            self._worker_superfici_offline = None
+
+        if worker_ancora_attivo:
+            # Un'analisi è già in corso (es. la pagina è stata riaperta velocemente):
+            # non ne lanciamo una seconda in parallelo, la mettiamo in coda e
+            # partirà appena l'attuale sarà terminata (vedi _fine_analisi_superfici_offline).
+            # Il vecchio calcolo non serve più: gli chiediamo di fermarsi subito
+            # invece di lasciarlo continuare a girare a vuoto in sottofondo
+            # (con percorsi enormi restava attivo per minuti anche se inutile).
+            self._richiesta_superfici_in_sospeso = id_progetto
+            self._worker_superfici_offline.request_stop()
+            return
+
+        self._avvia_worker_superfici(id_progetto)
+
+    def _avvia_worker_superfici(self, id_progetto):
+        token_corrente = self._token_analisi_superfici
+        worker = WorkerAnalisiSuperficiOffline(id_progetto)
+        self._worker_superfici_offline = worker
+        self._workers_superfici_attivi.append(worker)
+        worker.analisi_completata.connect(
+            lambda risultato, token=token_corrente: self._fine_analisi_superfici_offline(risultato, token)
+        )
+        worker.finished.connect(lambda worker=worker: self._ripulisci_worker_superfici(worker))
+        worker.start()
+
+    def _ripulisci_worker_superfici(self, worker):
+        """Rimuove dalla lista di sopravvivenza un worker di analisi superfici che ha finito, e lo elimina."""
+        if worker in self._workers_superfici_attivi:
+            self._workers_superfici_attivi.remove(worker)
+        if self._worker_superfici_offline is worker:
+            # Stesso bug del worker nomi-luoghi: senza azzerare il riferimento,
+            # il prossimo controllo isRunning() punterebbe a un thread già
+            # distrutto e farebbe crashare la sincronizzazione del pannello.
+            self._worker_superfici_offline = None
+        worker.deleteLater()
+
+    def _fine_analisi_superfici_offline(self, risultato, token):
+        # Se nel frattempo è arrivata una nuova richiesta (messa in coda perché
+        # un'analisi era già in corso), la avviamo ora che il worker è libero.
+        richiesta_in_sospeso = self._richiesta_superfici_in_sospeso
+        self._richiesta_superfici_in_sospeso = None
+        if richiesta_in_sospeso is not None:
+            self._avvia_worker_superfici(richiesta_in_sospeso)
+
+        if token != self._token_analisi_superfici:
+            return  # nel frattempo l'utente ha cambiato percorso: risultato superato
+
+        if not risultato or not risultato.get("disponibile"):
+            motivo = (risultato or {}).get("motivo", "Dati non disponibili.")
+            self.lbl_stato_superfici.setText(f"Superfici non calcolabili offline: {motivo}")
+            return
+
+        self.barra_superfici.imposta_superfici(risultato.get("superfici", []))
+        self._popola_legenda_superfici(risultato.get("superfici", []))
+
+        copertura = risultato.get("copertura_percentuale", 0)
+        n_vietati = len(risultato.get("tratti_vietati", []))
+        messaggio = f"Stima offline da mappe locali già scaricate (copertura {copertura:.0f}% del percorso)."
+        if n_vietati:
+            messaggio += f" Attenzione: {n_vietati} tratto/i probabilmente vietati alle bici (vedi Audit)."
+        self.lbl_stato_superfici.setText(messaggio)
+        self._adatta_altezza_al_contenuto()
+
+    def _avvia_analisi_altimetria(self, nomi_file):
+        """
+        Calcola in un thread separato altitudine massima/minima leggendo i
+        file GPX del percorso: farlo sul thread dell'interfaccia bloccava
+        l'intera app (anche a lungo, con percorsi di centinaia di tappe).
+        """
+        self._token_altimetria += 1
+
+        try:
+            worker_ancora_attivo = self._worker_altimetria is not None and self._worker_altimetria.isRunning()
+        except RuntimeError:
+            worker_ancora_attivo = False
+            self._worker_altimetria = None
+
+        if worker_ancora_attivo:
+            self._richiesta_altimetria_in_sospeso = nomi_file
+            # Come per gli altri worker: il calcolo precedente non serve più,
+            # meglio interromperlo subito invece di aspettare che finisca.
+            self._worker_altimetria.request_stop()
+            return
+
+        self._avvia_worker_altimetria(nomi_file)
+
+    def _avvia_worker_altimetria(self, nomi_file):
+        token_corrente = self._token_altimetria
+        worker = WorkerAltimetria(nomi_file)
+        self._worker_altimetria = worker
+        self._workers_altimetria_attivi.append(worker)
+        worker.altimetria_pronta.connect(
+            lambda risultato, token=token_corrente: self._fine_analisi_altimetria(risultato, token)
+        )
+        worker.finished.connect(lambda worker=worker: self._ripulisci_worker_altimetria(worker))
+        worker.start()
+
+    def _ripulisci_worker_altimetria(self, worker):
+        """Rimuove dalla lista di sopravvivenza un worker di altimetria che ha finito, e lo elimina."""
+        if worker in self._workers_altimetria_attivi:
+            self._workers_altimetria_attivi.remove(worker)
+        if self._worker_altimetria is worker:
+            # Stesso bug degli altri worker: senza azzerare il riferimento,
+            # il prossimo isRunning() punterebbe a un thread già distrutto.
+            self._worker_altimetria = None
+        worker.deleteLater()
+
+    def _fine_analisi_altimetria(self, risultato, token):
+        richiesta_in_sospeso = self._richiesta_altimetria_in_sospeso
+        self._richiesta_altimetria_in_sospeso = None
+        if richiesta_in_sospeso is not None:
+            self._avvia_worker_altimetria(richiesta_in_sospeso)
+
+        if token != self._token_altimetria:
+            return  # nel frattempo l'utente ha cambiato percorso: risultato superato
+
+        massima = risultato.get("massima")
+        minima = risultato.get("minima")
+        if massima is not None:
+            self.lbl_altitudine_massima.setText(f"Altitudine massima: {round(massima)} m")
+        if minima is not None:
+            self.lbl_altitudine_minima.setText(f"Altitudine minima: {round(minima)} m")
+
     def showEvent(self, event):
         super().showEvent(event)
         QTimer.singleShot(0, self._adatta_altezza_al_contenuto)
@@ -598,22 +991,94 @@ class PannelloPianificazioneWidget(QFrame):
             punto["label"].setText(etichetta)
             punto["input"].setPlaceholderText(f"Punto di passaggio {etichetta}...")
 
-    def _aggiorna_dettagli_rotta(self, statistiche):
-        """Aggiorna barra superfici, legenda e KPI della rotta calcolata."""
-        statistiche = statistiche or {}
-        superfici = statistiche.get("superfici", [])
-        self.barra_superfici.imposta_superfici(superfici)
+    def _toggle_elenco_tappe_intermedie(self):
+        """Apre/chiude l'elenco a scorrimento delle tappe intermedie del percorso caricato."""
+        aperto = self.btn_toggle_tappe_intermedie.isChecked()
+        self.area_scorrimento_tappe_intermedie.setVisible(aperto)
+        numero = len(self._dati_tappe_intermedie)
+        self.btn_toggle_tappe_intermedie.setText(f"{'▾' if aperto else '▸'} {numero} tappa/e intermedia/e")
+        QTimer.singleShot(0, self._adatta_altezza_al_contenuto)
 
+    def _costruisci_riga_tappa_intermedia(self, indice, tappa_id, testo):
+        """Crea una riga cliccabile dell'elenco: il click evidenzia la tappa sulla mappa."""
+        riga = QPushButton(f"📍 {indice + 1}.  {testo}")
+        riga.setCursor(Qt.PointingHandCursor)
+        riga.setStyleSheet(
+            "QPushButton { background: transparent; color: #e2e8f0; border: none; text-align: left; "
+            "padding: 6px 6px; border-radius: 4px; font-size: 12px; } "
+            "QPushButton:hover { background-color: #263746; color: #7dd3fc; }"
+        )
+        riga.clicked.connect(lambda checked=False, tid=tappa_id: self._evidenzia_tappa_su_mappa(tid))
+        return riga
+
+    def _popola_tappe_intermedie(self, tappe):
+        """
+        Ricostruisce l'elenco a scorrimento delle tappe intermedie del percorso
+        caricato. 'tappe' è una lista di dict con chiavi 'id' e 'testo' (nome
+        del luogo, o coordinate se il nome non è disponibile offline).
+        """
+        while self.layout_lista_tappe_intermedie.count():
+            elemento = self.layout_lista_tappe_intermedie.takeAt(0)
+            if elemento.widget():
+                elemento.widget().deleteLater()
+
+        self._dati_tappe_intermedie = list(tappe or [])
+        numero = len(self._dati_tappe_intermedie)
+        self.contenitore_tappe_intermedie.setVisible(numero > 0)
+        if numero == 0:
+            QTimer.singleShot(0, self._adatta_altezza_al_contenuto)
+            return
+
+        for indice, tappa in enumerate(self._dati_tappe_intermedie):
+            riga = self._costruisci_riga_tappa_intermedia(indice, tappa["id"], tappa["testo"])
+            self.layout_lista_tappe_intermedie.addWidget(riga)
+
+        aperto = self.btn_toggle_tappe_intermedie.isChecked()
+        self.btn_toggle_tappe_intermedie.setText(f"{'▾' if aperto else '▸'} {numero} tappa/e intermedia/e")
+        self.area_scorrimento_tappe_intermedie.setVisible(aperto)
+        QTimer.singleShot(0, self._adatta_altezza_al_contenuto)
+
+    def _aggiorna_testo_tappe_intermedie(self, testi_per_id):
+        """Aggiorna solo il testo (es. nome del luogo appena risolto) senza ricostruire le righe."""
+        for indice in range(self.layout_lista_tappe_intermedie.count()):
+            widget = self.layout_lista_tappe_intermedie.itemAt(indice).widget()
+            if not widget or indice >= len(self._dati_tappe_intermedie):
+                continue
+            tappa_id = self._dati_tappe_intermedie[indice]["id"]
+            nuovo_testo = testi_per_id.get(tappa_id)
+            if nuovo_testo:
+                self._dati_tappe_intermedie[indice]["testo"] = nuovo_testo
+                widget.setText(f"📍 {indice + 1}.  {nuovo_testo}")
+
+    def _popola_legenda_superfici(self, superfici):
+        """
+        Ricostruisce la legenda delle superfici (usata sia dal calcolo offline
+        sia dal routing manuale) su una griglia a 2 colonne invece di un'unica
+        riga orizzontale: con molte categorie una riga sola tagliava il testo.
+        """
         while self.layout_leggenda_superfici.count():
             elemento = self.layout_leggenda_superfici.takeAt(0)
             if elemento.widget():
                 elemento.widget().deleteLater()
 
-        for superficie in superfici:
-            legenda = QLabel(f"{superficie['categoria']} {superficie['percentuale']:.0f}%")
-            legenda.setStyleSheet(f"font-size: 9px; color: {superficie['colore']};")
-            self.layout_leggenda_superfici.addWidget(legenda)
-        self.layout_leggenda_superfici.addStretch()
+        colonne = 2
+        for indice, superficie in enumerate(superfici or []):
+            legenda = QLabel(f"● {superficie['categoria']} — {superficie['percentuale']:.0f}%")
+            legenda.setStyleSheet(f"font-size: 11px; color: {superficie['colore']}; font-weight: 600;")
+            legenda.setWordWrap(True)
+            self.layout_leggenda_superfici.addWidget(legenda, indice // colonne, indice % colonne)
+
+    def _evidenzia_tappa_su_mappa(self, tappa_id):
+        """Chiede alla mappa di evidenziare (colore diverso + centratura) la tappa selezionata."""
+        if self.mappa_widget:
+            self.mappa_widget.evidenzia_tappa(tappa_id)
+
+    def _aggiorna_dettagli_rotta(self, statistiche):
+        """Aggiorna barra superfici, legenda e KPI della rotta calcolata."""
+        statistiche = statistiche or {}
+        superfici = statistiche.get("superfici", [])
+        self.barra_superfici.imposta_superfici(superfici)
+        self._popola_legenda_superfici(superfici)
 
         if superfici:
             non_specificata = next(
@@ -848,6 +1313,8 @@ class MappaWidget(QWidget):
         super().__init__(None)
         self.parent_app = parent
         self.mappa_worker = None
+        self._token_caricamento_mappa = 0
+        self._mappa_workers_attivi = []  # tiene in vita i worker finché non finiscono davvero (vedi rigenera_mappa)
         self.ultimo_progetto_id_caricato = None
         self._ultimo_evento_mappa_id = 0
         self._poll_interazioni_timer = QTimer(self)
@@ -1008,6 +1475,12 @@ class MappaWidget(QWidget):
             "window.aggiornaAnteprimaPercorso({type:'FeatureCollection',features:[]});"
         )
 
+    def evidenzia_tappa(self, tappa_id):
+        """Evidenzia (colore e centratura) il tratto GPX della tappa selezionata nell'elenco del pannello."""
+        self.web_view.page().runJavaScript(
+            f"if(window.evidenziaTappa) window.evidenziaTappa({json.dumps(tappa_id)});"
+        )
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         if hasattr(self, "pannello_pianificazione"):
@@ -1066,10 +1539,12 @@ class MappaWidget(QWidget):
                 from service.config import DB_NAME
                 QTimer.singleShot(100, lambda: self.rigenera_mappa(p_id, DB_NAME, force=True))
                 QTimer.singleShot(400, lambda: self.pannello_pianificazione.show() if hasattr(self, 'pannello_pianificazione') else None)
+                QTimer.singleShot(450, lambda: self.pannello_pianificazione.sincronizza_stato_percorso() if hasattr(self, 'pannello_pianificazione') else None)
                 QTimer.singleShot(500, lambda: self.web_view.setZoomFactor(1.0))
                 return
-                
+
         QTimer.singleShot(100, lambda: self.pannello_pianificazione.show() if hasattr(self, 'pannello_pianificazione') else None)
+        QTimer.singleShot(150, lambda: self.pannello_pianificazione.sincronizza_stato_percorso() if hasattr(self, 'pannello_pianificazione') else None)
         QTimer.singleShot(0, self._ridimensiona_mappa)
         QTimer.singleShot(300, lambda: self.web_view.setZoomFactor(1.0))
 
@@ -1080,11 +1555,13 @@ class MappaWidget(QWidget):
             if hasattr(self, 'ultimo_progetto_id_caricato'):
                 self.ultimo_progetto_id_caricato = None
             vuoto = {"type": "FeatureCollection", "features": []}
-            try:
-                requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=2)
-            except Exception:
-                pass
-            
+            # Invio in background: una richiesta di rete sincrona qui bloccherebbe
+            # l'interfaccia se il server Flask locale è occupato con un'altra richiesta.
+            threading.Thread(
+                target=lambda: requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=5),
+                daemon=True,
+            ).start()
+
             js_code = """
                 if(window.aggiornaMappaGeoJSON) {
                     window.aggiornaMappaGeoJSON({'type': 'FeatureCollection', 'features': []});
@@ -1100,9 +1577,13 @@ class MappaWidget(QWidget):
             print(f"ℹ️ Cache Mappa: Il percorso ID {current_progetto_id} è già presente. Calcolo in background saltato.")
             return True
 
-        if self.mappa_worker and self.mappa_worker.isRunning():
-            self.mappa_worker.terminate()
-            self.mappa_worker.wait()
+        # NOTA: in precedenza qui si forzava la chiusura del worker precedente con
+        # terminate()+wait(), un'operazione pericolosa che può bloccare l'interfaccia
+        # per tempi imprevedibili. Ora lasciamo che il vecchio worker finisca da solo
+        # e scartiamo il suo risultato tramite un "token" se nel frattempo ne è
+        # partito uno più recente.
+        self._token_caricamento_mappa += 1
+        token_corrente = self._token_caricamento_mappa
 
         # RADDRIZZATO: Rimosso 'const ls' che mandava in crash il secondo tentativo di caricamento
         js_accendi = "if(document.getElementById('loading-screen')) { document.getElementById('loading-screen').style.display = 'flex'; }"
@@ -1112,18 +1593,30 @@ class MappaWidget(QWidget):
         self.ultimo_progetto_id_caricato = current_progetto_id
 
         self.mappa_worker = WorkerCaricamentoMappa(current_progetto_id, db_name)
-        self.mappa_worker.elaborazione_completata.connect(self._fine_caricamento_asincrono)
+        self._mappa_workers_attivi.append(self.mappa_worker)
+        self.mappa_worker.elaborazione_completata.connect(
+            lambda payload, token=token_corrente: self._fine_caricamento_asincrono(payload, token)
+        )
+        self.mappa_worker.finished.connect(
+            lambda worker=self.mappa_worker: self._ripulisci_mappa_worker(worker)
+        )
         self.mappa_worker.start()
         return True
-    
-    def _fine_caricamento_asincrono(self, geojson_payload):
-        import json
-        import requests
-        try:
-            requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=geojson_payload, timeout=10)
-        except Exception as e:
-            print(f"Nota: Sincronizzazione Flask in background bypassata: {e}")
 
+    def _ripulisci_mappa_worker(self, worker):
+        """Rimuove dalla lista di sopravvivenza un worker di caricamento mappa che ha finito, e lo elimina."""
+        if worker in self._mappa_workers_attivi:
+            self._mappa_workers_attivi.remove(worker)
+        worker.deleteLater()
+    
+    def _fine_caricamento_asincrono(self, geojson_payload, token=None):
+        if token is not None and token != self._token_caricamento_mappa:
+            print("ℹ️ Cache Mappa: risultato di caricamento superato da una richiesta più recente, scartato.")
+            return
+        import json
+        # NOTA: l'invio dati al server Flask (requests.post) è stato spostato dentro
+        # WorkerCaricamentoMappa, così questa funzione, eseguita sul thread
+        # dell'interfaccia, non fa più chiamate di rete bloccanti.
         stringa_geojson = json.dumps(geojson_payload)
         js_code = f"if(window.aggiornaMappaGeoJSON) {{ window.aggiornaMappaGeoJSON({stringa_geojson}); }}"
         self.web_view.page().runJavaScript(js_code)
@@ -1144,6 +1637,119 @@ def _distanza_haversine_km(lat1, lon1, lat2, lon2):
     delta_lon = radians(lon2 - lon1)
     a = sin(delta_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(delta_lon / 2) ** 2
     return 2 * raggio_terra_km * asin(sqrt(a))
+
+
+class WorkerAnalisiSuperficiOffline(QThread):
+    """
+    Calcola in background (fuori dal thread dell'interfaccia) la ripartizione
+    superfici/divieti bici di un progetto, leggendo solo le mappe locali già
+    scaricate. Nessuna chiamata di rete: usa service/superfici_service.py,
+    che a sua volta rilegge la cache già salvata quando possibile.
+    """
+    analisi_completata = Signal(dict)
+
+    def __init__(self, id_progetto, parent=None):
+        super().__init__(parent)
+        self.id_progetto = id_progetto
+        self._annullato = False
+
+    def request_stop(self):
+        """Chiede al worker di interrompersi il prima possibile (es. l'utente
+        ha già cambiato percorso e il risultato non servirebbe più): senza
+        questo, un'analisi pesante su un percorso enorme continuava a
+        girare in sottofondo anche quando ormai inutile, rallentando i
+        calcoli successivi mettendosi in coda dietro di essa."""
+        self._annullato = True
+
+    def run(self):
+        try:
+            from service.superfici_service import analizza_superfici_progetto
+            risultato = analizza_superfici_progetto(
+                self.id_progetto, deve_continuare=lambda: not self._annullato
+            )
+        except Exception as errore:
+            risultato = {"disponibile": False, "motivo": f"Errore durante l'analisi offline: {errore}"}
+        self.analisi_completata.emit(risultato)
+
+
+class WorkerNomiLuoghi(QThread):
+    """
+    Risolve in background (fuori dal thread dell'interfaccia) il nome del
+    luogo più vicino a una o più coordinate, leggendo solo le mappe locali
+    già scaricate (nessuna chiamata di rete). Usato dal pannello per
+    mostrare "Aosta" invece di "45.737200, 7.315500".
+    """
+    nomi_pronti = Signal(dict)
+
+    def __init__(self, richieste, parent=None):
+        super().__init__(parent)
+        # richieste: lista di dict {"chiave": ..., "lat": ..., "lon": ...}
+        self.richieste = list(richieste or [])
+        self._annullato = False
+
+    def request_stop(self):
+        """Vedi WorkerAnalisiSuperficiOffline.request_stop: stessa logica."""
+        self._annullato = True
+
+    def run(self):
+        from service.geocodifica_offline_service import nome_luogo_da_coordinate
+        risultati = {}
+        for richiesta in self.richieste:
+            if self._annullato:
+                break
+            try:
+                nome = nome_luogo_da_coordinate(richiesta["lat"], richiesta["lon"])
+            except Exception as errore:
+                print(f"Nota: geocodifica offline non riuscita: {errore}")
+                nome = None
+            risultati[richiesta["chiave"]] = nome or f"{richiesta['lat']:.6f}, {richiesta['lon']:.6f}"
+        self.nomi_pronti.emit(risultati)
+
+
+class WorkerAltimetria(QThread):
+    """
+    Legge in background (fuori dal thread dell'interfaccia) i file GPX di un
+    percorso per calcolare altitudine massima e minima. Con percorsi molto
+    lunghi (centinaia di tappe) questa lettura può richiedere parecchi
+    secondi: farla sul thread principale bloccava l'intera applicazione.
+    """
+    altimetria_pronta = Signal(dict)
+
+    def __init__(self, nomi_file, parent=None):
+        super().__init__(parent)
+        self.nomi_file = list(nomi_file or [])
+        self._annullato = False
+
+    def request_stop(self):
+        """Vedi WorkerAnalisiSuperficiOffline.request_stop: stessa logica."""
+        self._annullato = True
+
+    def run(self):
+        quote = []
+        for nome_file in self.nomi_file:
+            if self._annullato:
+                break
+            percorso_gpx = os.path.join(GPX_DIR, os.path.basename(nome_file))
+            if not os.path.exists(percorso_gpx):
+                continue
+            try:
+                with open(percorso_gpx, "r", encoding="utf-8", errors="ignore") as file_gpx:
+                    traccia = gpxpy.parse(file_gpx)
+                quote.extend(
+                    punto.elevation
+                    for track in traccia.tracks
+                    for segmento in track.segments
+                    for punto in segmento.points
+                    if punto.elevation is not None
+                )
+            except Exception as errore_lettura:
+                print(f"Nota: impossibile leggere l'altimetria di {nome_file}: {errore_lettura}")
+
+        risultato = {
+            "massima": max(quote) if quote else None,
+            "minima": min(quote) if quote else None,
+        }
+        self.altimetria_pronta.emit(risultato)
 
 
 class PianificazionePercorsoWorker(QThread):
@@ -1351,5 +1957,12 @@ class WorkerCaricamentoMappa(QThread):
             conn.close()
         except Exception as err:
             print(f"Errore database nel worker: {err}")
-            
+
+        # Invio dati al server Flask locale eseguito qui, nel thread in background,
+        # per non bloccare mai l'interfaccia grafica con una chiamata di rete.
+        try:
+            requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)
+        except Exception as errore_rete:
+            print(f"Nota: Sincronizzazione Flask in background bypassata: {errore_rete}")
+
         self.elaborazione_completata.emit(payload)

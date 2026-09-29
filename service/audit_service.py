@@ -93,6 +93,54 @@ def rileva_gap_progetto(id_progetto):
                 
     return gap_rilevati
 
+def rileva_strade_vietate_progetto(id_progetto):
+    """
+    Legge la cache locale delle superfici (calcolata offline confrontando i
+    GPX con le mappe scaricate, vedi service/superfici_service.py) e segnala
+    un allarme per ogni tratto del percorso che attraversa una strada
+    probabilmente vietata alle biciclette (bicycle=no, access=no, autostrade...).
+
+    Non calcola nulla al volo: se la cache per una tappa non è ancora stata
+    generata (mai aperta nel pannello mappa), quella tappa viene semplicemente
+    saltata, senza tentare alcuna chiamata esterna.
+    """
+    from service.superfici_service import carica_superfici_tappa
+
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, sequenza, nome_file
+        FROM tappe
+        WHERE id_progetto = ? AND stato = 'ATTIVA'
+        ORDER BY sequenza ASC
+    """, (id_progetto,))
+    tappe = cursor.fetchall()
+    conn.close()
+
+    allarmi_rilevati = []
+    for tappa_id, sequenza, nome_file in tappe:
+        dati_cache = carica_superfici_tappa(tappa_id)
+        if not dati_cache or not dati_cache.get("disponibile"):
+            continue
+
+        tratti_vietati = dati_cache.get("tratti_vietati") or []
+        if not tratti_vietati:
+            continue
+
+        primo_motivo = tratti_vietati[0].get("motivo", "tratto vietato")
+        msg = (
+            f"Nel file '{nome_file}' sono stati rilevati {len(tratti_vietati)} tratto/i "
+            f"probabilmente vietati alle biciclette (es. {primo_motivo})."
+        )
+        allarmi_rilevati.append({
+            "id_tappa_origine": tappa_id,
+            "id_tappa_destinazione": tappa_id,
+            "tipo": "STRADA_VIETATA_BICI",
+            "messaggio": msg
+        })
+
+    return allarmi_rilevati
+
 def registra_trasferimento_gap(id_progetto, id_origine, id_destinazione, tipo_trasporto, note=""):
     """Registra il trasferimento logistico per colmare il GAP."""
     conn = sqlite3.connect(DB_NAME, timeout=30.0)
