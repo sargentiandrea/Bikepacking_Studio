@@ -1,15 +1,15 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-09-30 alle 15:20:41*
+*Generato il 2026-09-30 alle 23:10:14*
 
 ## 1. Sintesi
 
-- Moduli Python: **19**
+- Moduli Python: **21**
 - Classi: **19**
-- Funzioni globali: **240**
+- Funzioni globali: **250**
 - Rotte Flask: **7**
-- Tabelle rilevate: **15**
-- Simboli orfani: **50**
+- Tabelle rilevate: **18**
+- Simboli orfani: **52**
 
 ## Database
 
@@ -24,14 +24,14 @@
 | `blocchi_ordine` | 23 | id (PK), id_progetto (FK → progetti.id) |
 | `blocchi_stagione` | 18 | id (PK) |
 | `cache_geo_paesi` | 2 | lat_griglia (PK), lon_griglia (PK) |
-| `cache_nomi_luoghi` | 983 | lat_arrotondata (PK), lon_arrotondata (PK) |
+| `cache_nomi_luoghi` | 993 | lat_arrotondata (PK), lon_arrotondata (PK) |
 | `confini_box` | 11 | id (PK) |
 | `dogane_percorso` | 0 | id (PK) |
 | `dogane_progetto` | 67 | id (PK), id_progetto (FK → progetti.id) |
-| `progetti` | 2 | id (PK) |
+| `progetti` | 3 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
-| `superfici_tappa` | 935 | id (PK), tappa_id (FK → tappe.id) |
-| `tappe` | 983 | id (PK), id_progetto (FK → progetti.id) |
+| `superfici_tappa` | 992 | id (PK), tappa_id (FK → tappe.id) |
+| `tappe` | 993 | id (PK), id_progetto (FK → progetti.id) |
 | `trasferimenti` | 28 | id (PK), id_progetto (FK → progetti.id) |
 
 ## File di configurazione
@@ -50,18 +50,18 @@
 - `http://127.0.0.1:8080/api/set-gpx-data`
 - `http://127.0.0.1:8080/map`
 - `http://localhost:3000`
-- `http://router.project-osrm.org/route/v1/biking/`
 - `http://www.topografix.com/GPX/1/1`
+- `http://{BROUTER_HOST}:{BROUTER_PORT}`
+- `http://{BROUTER_HOST}:{BROUTER_PORT}/brouter`
 - `http://{host}:{port}`
-- `https://brouter.de/brouter`
-- `https://brouter.de/brouter?`
-- `https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=it`
-- `https://nominatim.openstreetmap.org/search`
+- `https://creativecommons.org/licenses/by/4.0/\n`
+- `https://download.geonames.org/export/dump/allCountries.zip`
+- `https://download.geonames.org/export/dump/alternateNamesV2.zip`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles`
-- `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_coastline.geojson`
+- `https://www.geonames.org/\n`
 - `martin`
 - `redis`
 
@@ -78,20 +78,21 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (9 file)
+**core** (10 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/clima_service.py`
 - `service/config.py`
 - `service/dogane_service.py`
 - `service/geocodifica_offline_service.py`
+- `service/geonames_service.py`
 - `service/map_manager_service.py`
-- `service/stats_service.py`
-- ... e altri 1
+- ... e altri 2
 
-**altro** (5 file)
+**altro** (6 file)
 - `app_desktop.py`
 - `backup.py`
+- `installa_geonames.py`
 - `misura_prestazioni.py`
 - `resources/genera_catalogo_sprite.py`
 - `static/aggiorna_sprite.py`
@@ -120,14 +121,14 @@
 
 ## 5. Simboli orfani
 
-*50 simboli definiti ma mai citati altrove:*
+*52 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
 - **classe** `DropAreaGPX` in `app_desktop.py`
 - **classe** `GestoreBlocchiWidget` in `app_desktop.py`
+- **classe** `BikepackingStudioApp` in `app_desktop.py`
 - **funzione** `determina_blocco_da_nome_file` in `app_desktop.py`
-- **funzione** `ottieni_nome_localita` in `app_desktop.py`
 - **funzione** `carica_blocchi` in `app_desktop.py`
 - **funzione** `apri_selettore_file` in `app_desktop.py`
 - **funzione** `esegui_backup_progetto` in `backup.py`
@@ -147,25 +148,25 @@
 - **funzione** `cancella_anteprima_percorso` in `gui/mappa.py`
 - **funzione** `evidenzia_tappa` in `gui/mappa.py`
 - **funzione** `request_stop` in `gui/mappa.py`
+- **funzione** `nome_luogo` in `gui/mappa.py`
 - **classe** `WizardNuovoPercorso` in `gui/wizard_percorso.py`
 - **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
 - **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
 - **funzione** `registra_trasferimento_gap` in `service/audit_service.py`
-- **funzione** `determina_mesi_ideali_automatici` in `service/clima_service.py`
-- ... e altri 20
+- ... e altri 22
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 83 funzioni
-- `app_desktop.py`: 5 classi, 53 funzioni
+- `gui/mappa.py`: 9 classi, 84 funzioni
+- `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `misura_prestazioni.py`: 0 classi, 14 funzioni
-- `service/stats_service.py`: 0 classi, 13 funzioni
-- `service/map_server.py`: 0 classi, 12 funzioni
+- `service/map_server.py`: 0 classi, 14 funzioni
+- `service/stats_service.py`: 0 classi, 12 funzioni
+- `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/map_manager_service.py`: 2 classi, 4 funzioni
 - `service/audit_service.py`: 0 classi, 5 funzioni
-- `service/geocodifica_offline_service.py`: 0 classi, 5 funzioni
 
 ## 7. Livello di rischio e file critici
 

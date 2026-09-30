@@ -1,7 +1,10 @@
 # --- ESCLUSIONE DATI PESANTI E MAPPE OFFLINE ---
 basemap-styles-master/
 data/maps/
+geonames/
+brouter/
 gpx/
+GPX CORSICA/
 bin/
 *.db
 *.geojson

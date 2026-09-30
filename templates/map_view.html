@@ -61,6 +61,20 @@
         let markerTrascinamento = null;
         let consumaClickDopoTrascinamento = false;
         let ultimoGeoJsonGpx = null; // ultima traccia disegnata, serve per evidenziare/centrare una singola tappa
+        let tappaEvidenziataId = null;
+
+        function testoPopupSicuro(valore, ripiego = '-') {
+            const testo = valore === null || valore === undefined || valore === ''
+                ? ripiego
+                : String(valore);
+            return testo.replace(/[&<>"']/g, carattere => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[carattere]);
+        }
 
         async function inviaInterazioneMappa(action, coordinate, tappaId = null) {
             const projectId = idProgettoInterazioneMappa;
@@ -122,19 +136,23 @@
             }
         };
 
-        // Evidenzia sulla mappa il tratto GPX di UNA sola tappa (usata dall'elenco
-        // "tappe intermedie" del pannello fluttuante: click su una riga -> qui).
-        // Passare null/undefined per tornare allo stile normale di tutte le tappe.
+        // Evidenzia una tappa e centra la mappa; ripetere il click o passare null
+        // ripristina il colore normale e permette di deselezionare.
         window.evidenziaTappa = function(tappaId) {
             if (!map || !mappaPronta || !map.getLayer('gpx-line-layer')) return;
 
-            if (tappaId === null || tappaId === undefined) {
+            const idNumerico = tappaId === null || tappaId === undefined
+                ? null
+                : Number(tappaId);
+            if (idNumerico === null || !Number.isFinite(idNumerico) ||
+                tappaEvidenziataId === idNumerico) {
+                tappaEvidenziataId = null;
                 map.setPaintProperty('gpx-line-layer', 'line-color', '#e60000');
                 map.setPaintProperty('gpx-line-layer', 'line-width', 5);
                 return;
             }
 
-            const idNumerico = Number(tappaId);
+            tappaEvidenziataId = idNumerico;
             map.setPaintProperty('gpx-line-layer', 'line-color', [
                 'case', ['==', ['get', 'tappa_id'], idNumerico], '#facc15', '#e60000'
             ]);
@@ -670,6 +688,10 @@
                         // --- ABILITIAMO I CLIC INTERATTIVI ADESSO CHE LA MAPPA È VIVA ---
                     map.on('click', 'gpx-line-layer', (e) => {
                         if (!e.features || !e.features.length) return;
+                        const markerSottoClick = map.queryRenderedFeatures(e.point, {
+                            layers: ['gpx-point-layer']
+                        });
+                        if (markerSottoClick.length) return;
                         if (consumaClickDopoTrascinamento) {
                             consumaClickDopoTrascinamento = false;
                             return;
@@ -679,25 +701,25 @@
                             inviaInterazioneMappa('add_waypoint', e.lngLat);
                             return;
                         }
-                        const props = e.features[0].properties;
+                        const props = e.features[0].properties || {};
                         
                         // SE L'UTENTE CLICCA SU UN TRASFERIMENTO (Aereo, Nave, Treno...)
                         if (props.tipo === 'trasferimento') {
                             new maplibregl.Popup()
                                 .setLngLat(e.lngLat)
                                 .setHTML(`<strong>✈️ Trasferimento Logistico</strong><br>
-                                          <strong>🚢 Mezzo:</strong> ${props.mezzo || 'Generale'}<br>
-                                          <strong>📦 Vettore:</strong> ${props.vettore || '-'}<br>
-                                          <strong>🟢 Da:</strong> ${props.da_luogo || 'Inizio Tratta'}<br>
-                                          <strong>🏁 A:</strong> ${props.a_luogo || 'Fine Tratta'}`)
+                                          <strong>🚢 Mezzo:</strong> ${testoPopupSicuro(props.mezzo, 'Generale')}<br>
+                                          <strong>📦 Vettore:</strong> ${testoPopupSicuro(props.vettore)}<br>
+                                          <strong>🟢 Da:</strong> ${testoPopupSicuro(props.da, 'Inizio tratta')}<br>
+                                          <strong>🏁 A:</strong> ${testoPopupSicuro(props.a, 'Fine tratta')}`)
                                 .addTo(map);
                         } else {
                             // SE CLICCA SU UNA NORMALE TAPPA GPX IN BICICLETTA
                             new maplibregl.Popup()
                                 .setLngLat(e.lngLat)
-                                .setHTML(`<strong>📄 File:</strong> ${props.nome_file || 'Traccia GPX'}<br>
-                                          <strong>🏁 Sequenza:</strong> Tappa ${props.sequenza || '-'}<br>
-                                          <strong>🏷️ Blocco:</strong> ${props.blocco || 'Generale'}`)
+                                .setHTML(`<strong>📄 File:</strong> ${testoPopupSicuro(props.nome_file, 'Traccia GPX')}<br>
+                                          <strong>🟢 Da:</strong> ${testoPopupSicuro(props.nome_luogo_partenza)}<br>
+                                          <strong>🏁 A:</strong> ${testoPopupSicuro(props.nome_luogo_arrivo)}`)
                                 .addTo(map);
                         }
                     });
@@ -713,17 +735,18 @@
                             inviaInterazioneMappa('add_waypoint', e.lngLat);
                             return;
                         }
-                        const props = e.features[0].properties;
+                        const props = e.features[0].properties || {};
                         
                         // Sdoppiamento del testo visivo a seconda se sia Partenza o Arrivo della tappa
                         let icona = props.tipo === 'marker_inizio' ? '🟢' : '🔴';
-                        let titolo = props.nome || 'Punto di Controllo';
+                        let titolo = props.nome || 'Punto di controllo';
+                        let direzione = props.tipo === 'marker_inizio' ? 'Inizio tappa' : 'Fine tappa';
                         
                         new maplibregl.Popup()
                             .setLngLat(e.features[0].geometry.coordinates)
-                            .setHTML(`<strong>${icona} ${titolo}</strong><br>
-                                      <strong>📍 File collegato:</strong> ${props.nome_file || '-'}<br>
-                                      <strong>🔢 Ordine Cronologico:</strong> Sequenza ${props.sequenza || '-'}`)
+                            .setHTML(`<strong>${icona} ${testoPopupSicuro(titolo)}</strong><br>
+                                      <strong>📍 ${direzione}:</strong> ${testoPopupSicuro(props.nome_luogo)}<br>
+                                      <strong>📄 File:</strong> ${testoPopupSicuro(props.nome_file)}`)
                             .addTo(map);
                     });
 
@@ -825,6 +848,7 @@
                                 if (sorgente) {
                                     sorgente.setData(gpxGeoJson);
                                     ultimoGeoJsonGpx = gpxGeoJson;
+                                    window.evidenziaTappa(null);
                                     
                                     const bbox = gpxGeoJson && gpxGeoJson.bbox;
                                     if (!Array.isArray(bbox) || bbox.length !== 4 ||

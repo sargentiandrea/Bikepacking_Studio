@@ -16,7 +16,7 @@ import requests
 import gpxpy
 import gpxpy.gpx
 
-from service.config import DB_NAME
+from service.config import BROUTER_URL, DB_NAME
 
 def calcola_distanza_haversine(lat1, lon1, lat2, lon2):
     """Calcola la distanza in chilometri tra due punti geografici usando la formula di Haversine."""
@@ -190,38 +190,24 @@ def genera_raccordo_gpx(id_progetto, t1_id, t2_id, t1_nome, t2_nome, db_name="bi
 
     punti_strada = []
 
-    # Prova BRouter
+    # Prova il servizio BRouter locale
     try:
-        url_brouter = (
-            f"https://brouter.de/brouter?"
-            f"lonlats={end_lon},{end_lat}|{start_lon},{start_lat}"
-            f"&profile=trekking&format=geojson"
+        resp = requests.get(
+            BROUTER_URL,
+            params={
+                "lonlats": f"{end_lon},{end_lat}|{start_lon},{start_lat}",
+                "profile": "trekking",
+                "format": "geojson",
+            },
+            timeout=320,
         )
-        resp = requests.get(url_brouter, timeout=10)
         if resp.status_code == 200:
             data = resp.json()
             if "features" in data and len(data["features"]) > 0:
                 coords = data["features"][0]["geometry"]["coordinates"]
                 punti_strada = [(c[1], c[0]) for c in coords]
     except Exception as e:
-        print("Routing BRouter fallito, provo OSRM:", e)
-
-    # Fallback su OSRM se BRouter fallisce
-    if not punti_strada:
-        try:
-            url_osrm = (
-                f"http://router.project-osrm.org/route/v1/biking/"
-                f"{end_lon},{end_lat};{start_lon},{start_lat}"
-                f"?overview=full&geometries=geojson&exclude=motorway,trunk"
-            )
-            resp = requests.get(url_osrm, timeout=8)
-            if resp.status_code == 200:
-                data = resp.json()
-                if "routes" in data and len(data["routes"]) > 0:
-                    coords = data["routes"][0]["geometry"]["coordinates"]
-                    punti_strada = [(c[1], c[0]) for c in coords]
-        except Exception as e:
-            print("Routing OSRM fallito:", e)
+        print("Routing BRouter locale fallito:", e)
 
     is_linea_retta = False
     if not punti_strada:

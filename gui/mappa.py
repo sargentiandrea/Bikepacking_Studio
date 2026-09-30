@@ -2,7 +2,7 @@ import os
 import json
 import sqlite3
 import threading
-import time
+import math
 import uuid
 import re
 from contextlib import closing
@@ -21,7 +21,8 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtCore import QUrl, Qt, QTimer, QThread, Signal
 from PySide6.QtGui import QColor, QPainter
 
-from service.config import BASE_DIR, DB_NAME
+from service.config import BASE_DIR, BROUTER_URL, DB_NAME
+from service.geonames_service import cerca_coordinate_luogo
 from service.map_manager_service import MapManagerService, DownloadWorker
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
@@ -187,6 +188,8 @@ class PannelloPianificazioneWidget(QFrame):
         self._workers_altimetria_attivi = []  # stesso principio degli altri worker: mai perdere il riferimento a un thread vivo
         self._richiesta_altimetria_in_sospeso = None
         self._token_altimetria = 0
+        self._id_tappa_inizio = None
+        self._id_tappa_fine = None
         self._dati_tappe_intermedie = []  # elenco di sola consultazione delle tappe di un percorso già caricato
         self.setMinimumWidth(320)
         self.setMaximumWidth(420)
@@ -277,11 +280,16 @@ class PannelloPianificazioneWidget(QFrame):
         # --- SEZIONE PARTENZA ---
         layout_partenza = QHBoxLayout()
         layout_partenza.setSpacing(8)
-        lbl_icon_a = QLabel("🟢")
-        lbl_icon_a.setFixedWidth(20)
+        self.btn_seleziona_inizio = QPushButton("🟢")
+        self.btn_seleziona_inizio.setFixedSize(24, 30)
+        self.btn_seleziona_inizio.setToolTip("Centra sulla tappa iniziale; clicca di nuovo per deselezionarla")
+        self.btn_seleziona_inizio.setStyleSheet("QPushButton { background: transparent; border: none; padding: 0; }")
+        self.btn_seleziona_inizio.clicked.connect(
+            lambda: self._evidenzia_tappa_su_mappa(self._id_tappa_inizio)
+        )
         self.input_partenza = QLineEdit()
-        self.input_partenza.setPlaceholderText("Inserisci punto di partenza...")
-        layout_partenza.addWidget(lbl_icon_a)
+        self.input_partenza.setPlaceholderText("Localita o coordinate di partenza...")
+        layout_partenza.addWidget(self.btn_seleziona_inizio)
         layout_partenza.addWidget(self.input_partenza)
         contenuto_layout.addLayout(layout_partenza)
 
@@ -353,13 +361,27 @@ class PannelloPianificazioneWidget(QFrame):
         # --- SEZIONE DESTINAZIONE ---
         layout_arrivo = QHBoxLayout()
         layout_arrivo.setSpacing(8)
-        lbl_icon_b = QLabel("🏁")
-        lbl_icon_b.setFixedWidth(20)
+        self.btn_seleziona_fine = QPushButton("🏁")
+        self.btn_seleziona_fine.setFixedSize(24, 30)
+        self.btn_seleziona_fine.setToolTip("Centra sulla tappa finale; clicca di nuovo per deselezionarla")
+        self.btn_seleziona_fine.setStyleSheet("QPushButton { background: transparent; border: none; padding: 0; }")
+        self.btn_seleziona_fine.clicked.connect(
+            lambda: self._evidenzia_tappa_su_mappa(self._id_tappa_fine)
+        )
         self.input_destinazione = QLineEdit()
-        self.input_destinazione.setPlaceholderText("Inserisci destinazione...")
-        layout_arrivo.addWidget(lbl_icon_b)
+        self.input_destinazione.setPlaceholderText("Localita o coordinate di destinazione...")
+        layout_arrivo.addWidget(self.btn_seleziona_fine)
         layout_arrivo.addWidget(self.input_destinazione)
         contenuto_layout.addLayout(layout_arrivo)
+        lbl_attribuzione_geonames = QLabel(
+            "Ricerca locale GeoNames - dati CC BY 4.0 "
+            "(geonames.org, creativecommons.org/licenses/by/4.0/)"
+        )
+        lbl_attribuzione_geonames.setWordWrap(True)
+        lbl_attribuzione_geonames.setStyleSheet(
+            "font-size: 10px; color: #94a3b8; border: none;"
+        )
+        contenuto_layout.addWidget(lbl_attribuzione_geonames)
 
         lbl_superfici = QLabel("Superfici del percorso")
         lbl_superfici.setStyleSheet("color: #cbd5e1; font-size: 12px; font-weight: 600; margin-top: 4px; border: none;")
@@ -594,6 +616,10 @@ class PannelloPianificazioneWidget(QFrame):
                     self._rimuovi_punto_passaggio(self.punti_passaggio[-1]["widget"])
                 self._popola_tappe_intermedie([])
                 self._evidenzia_tappa_su_mappa(None)
+                self._id_tappa_inizio = None
+                self._id_tappa_fine = None
+                self.btn_seleziona_inizio.setEnabled(False)
+                self.btn_seleziona_fine.setEnabled(False)
                 self.lbl_velocita_media.setText("Velocità media stimata: --")
                 self.lbl_altitudine_massima.setText("Altitudine massima: --")
                 self.lbl_altitudine_minima.setText("Altitudine minima: --")
@@ -652,8 +678,19 @@ class PannelloPianificazioneWidget(QFrame):
         if not tappe:
             return
 
+        self._id_tappa_inizio = tappe[0][0]
+        self._id_tappa_fine = tappe[-1][0]
+        self.btn_seleziona_inizio.setEnabled(True)
+        self.btn_seleziona_fine.setEnabled(True)
+
         _, primo_file, primo_lat, primo_lon, _, _, _ = tappe[0]
         _, _, _, _, ultimo_lat, ultimo_lon, _ = tappe[-1]
+        self.btn_seleziona_inizio.setToolTip(
+            f"Centra sulla tappa iniziale (ID {self._id_tappa_inizio}); clicca di nuovo per deselezionarla"
+        )
+        self.btn_seleziona_fine.setToolTip(
+            f"Centra sulla tappa finale (ID {self._id_tappa_fine}); clicca di nuovo per deselezionarla"
+        )
 
         # Mostriamo subito le coordinate (nessuna attesa): il nome del luogo,
         # se le mappe locali lo contengono, arriva poco dopo in background
@@ -681,7 +718,7 @@ class PannelloPianificazioneWidget(QFrame):
         if richieste_nomi:
             self._avvia_risoluzione_nomi_luoghi(richieste_nomi)
 
-        distanza_totale_km = sum(riga[5] or 0.0 for riga in tappe)
+        distanza_totale_km = sum(riga[6] or 0.0 for riga in tappe)
         self.lbl_distanza_totale.setText(
             f"Distanza totale: {distanza_totale_km:.1f} km" if distanza_totale_km > 0 else "Distanza totale: --"
         )
@@ -902,7 +939,7 @@ class PannelloPianificazioneWidget(QFrame):
         massima = risultato.get("massima")
         minima = risultato.get("minima")
         if massima is not None:
-            self.lbl_altitudine_massima.setText(f"Altitudine massima: {round(massima)} m")
+            self.lbl_altitudine_massima.setText(f"Altitudine massima: {int(massima)} m")
         if minima is not None:
             self.lbl_altitudine_minima.setText(f"Altitudine minima: {round(minima)} m")
 
@@ -1069,7 +1106,7 @@ class PannelloPianificazioneWidget(QFrame):
             self.layout_leggenda_superfici.addWidget(legenda, indice // colonne, indice % colonne)
 
     def _evidenzia_tappa_su_mappa(self, tappa_id):
-        """Chiede alla mappa di evidenziare (colore diverso + centratura) la tappa selezionata."""
+        """Evidenzia o deseleziona una tappa e centra il relativo tratto."""
         if self.mappa_widget:
             self.mappa_widget.evidenzia_tappa(tappa_id)
 
@@ -1679,7 +1716,7 @@ class WorkerNomiLuoghi(QThread):
     già scaricate (nessuna chiamata di rete). Usato dal pannello per
     mostrare "Aosta" invece di "45.737200, 7.315500".
     """
-    nomi_pronti = Signal(dict)
+    nomi_pronti = Signal(object)
 
     def __init__(self, richieste, parent=None):
         super().__init__(parent)
@@ -1766,7 +1803,7 @@ class PianificazionePercorsoWorker(QThread):
         self.punti_passaggio = list(punti_passaggio or [])
         self.tappa_id = tappa_id
 
-    def _geocodifica(self, luogo, sessione):
+    def _geocodifica(self, luogo):
         coordinate = re.fullmatch(
             r"\s*([-+]?\d+(?:\.\d+)?)\s*[,;]\s*([-+]?\d+(?:\.\d+)?)\s*",
             luogo,
@@ -1777,20 +1814,7 @@ class PianificazionePercorsoWorker(QThread):
                 return latitudine, longitudine
             raise ValueError(f"Coordinate fuori intervallo: '{luogo}'.")
 
-        risposta = sessione.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": luogo, "format": "jsonv2", "limit": 1},
-            headers={
-                "User-Agent": "BikepackingStudioApp/2.0",
-                "Accept-Language": "it",
-            },
-            timeout=12,
-        )
-        risposta.raise_for_status()
-        risultati = risposta.json()
-        if not risultati:
-            raise ValueError(f"Non trovo una posizione per '{luogo}'. Prova a specificare meglio il luogo.")
-        return float(risultati[0]["lat"]), float(risultati[0]["lon"])
+        return cerca_coordinate_luogo(luogo)
 
     def _profilo_brouter(self):
         if "strada" in self.profilo.casefold():
@@ -1798,14 +1822,11 @@ class PianificazionePercorsoWorker(QThread):
         return "trekking"
 
     def run(self):
-        sessione = requests.Session()
         try:
             luoghi = [self.partenza, *self.punti_passaggio, self.destinazione]
-            coordinate_luoghi = []
-            for indice, luogo in enumerate(luoghi):
-                if indice:
-                    time.sleep(1)
-                coordinate_luoghi.append(self._geocodifica(luogo, sessione))
+            coordinate_luoghi = [
+                self._geocodifica(luogo) for luogo in luoghi
+            ]
 
             if len(set(coordinate_luoghi)) != len(coordinate_luoghi):
                 raise ValueError("Due o più punti inseriti corrispondono alla stessa posizione.")
@@ -1815,15 +1836,15 @@ class PianificazionePercorsoWorker(QThread):
                 for latitudine, longitudine in coordinate_luoghi
             )
 
-            risposta = sessione.get(
-                "https://brouter.de/brouter",
+            risposta = requests.get(
+                BROUTER_URL,
                 params={
                     "lonlats": lonlats,
                     "profile": self._profilo_brouter(),
                     "alternativeidx": 0,
                     "format": "geojson",
                 },
-                timeout=25,
+                timeout=320,
             )
             risposta.raise_for_status()
             dati = risposta.json()
@@ -1868,8 +1889,6 @@ class PianificazionePercorsoWorker(QThread):
             self.completato.emit(False, {}, str(errore))
         except Exception as errore:
             self.completato.emit(False, {}, f"Errore imprevisto durante il calcolo: {errore}")
-        finally:
-            sessione.close()
 
 
 # Worker che legge i GPX esistenti e prepara le geometrie per MapLibre.
@@ -1894,10 +1913,66 @@ class WorkerCaricamentoMappa(QThread):
             cursor = conn.cursor()
             
             # 1. ESTRAZIONE TAPPE GPX REALI
-            cursor.execute("SELECT id, nome_file, sequenza, stato, blocco FROM tappe WHERE id_progetto = ? ORDER BY sequenza ASC", (self.p_id,))
+            cursor.execute(
+                """
+                SELECT id, nome_file, sequenza, stato, blocco,
+                       start_lat, start_lon, end_lat, end_lon
+                FROM tappe
+                WHERE id_progetto = ?
+                ORDER BY sequenza ASC
+                """,
+                (self.p_id,),
+            )
             tappe = cursor.fetchall()
+
+            cursor.execute(
+                """
+                SELECT lat_arrotondata, lon_arrotondata, nome
+                FROM cache_nomi_luoghi
+                WHERE nome IS NOT NULL AND nome != ''
+                """
+            )
+            nomi_luoghi = {
+                (round(lat, 5), round(lon, 5)): nome
+                for lat, lon, nome in cursor.fetchall()
+            }
+            coordinate_nomi_luoghi = list(nomi_luoghi.items())
+
+            def nome_luogo(lat, lon, lat_salvata, lon_salvata):
+                for latitudine, longitudine in (
+                    (lat, lon),
+                    (lat_salvata, lon_salvata),
+                ):
+                    if latitudine is None or longitudine is None:
+                        continue
+                    nome = nomi_luoghi.get(
+                        (round(float(latitudine), 5), round(float(longitudine), 5))
+                    )
+                    if nome:
+                        return str(nome)
+                latitudine = float(lat)
+                longitudine = float(lon)
+                fattore_longitudine = 111320 * max(
+                    0.01, abs(math.cos(math.radians(latitudine)))
+                )
+                distanza_minima = 250 ** 2
+                nome_piu_vicino = None
+                for (lat_cache, lon_cache), nome in coordinate_nomi_luoghi:
+                    distanza_quadrata = (
+                        ((lat_cache - latitudine) * 111320) ** 2
+                        + ((lon_cache - longitudine) * fattore_longitudine) ** 2
+                    )
+                    if distanza_quadrata < distanza_minima:
+                        distanza_minima = distanza_quadrata
+                        nome_piu_vicino = nome
+                if nome_piu_vicino:
+                    return str(nome_piu_vicino)
+                return f"{float(lat):.6f}, {float(lon):.6f}"
             
-            for tappa_id, nome_file_db, seq, stato, blocco in tappe:
+            for (
+                tappa_id, nome_file_db, seq, stato, blocco,
+                start_lat, start_lon, end_lat, end_lon,
+            ) in tappe:
                 if not nome_file_db: continue
                 solo_nome = os.path.basename(nome_file_db)
                 filepath = os.path.join(GPX_DIR, solo_nome)
@@ -1923,6 +1998,12 @@ class WorkerCaricamentoMappa(QThread):
                                             bbox_tappa[3] = max(bbox_tappa[3], point.latitude)
                             
                             if coords:
+                                nome_partenza = nome_luogo(
+                                    coords[0][1], coords[0][0], start_lat, start_lon
+                                )
+                                nome_arrivo = nome_luogo(
+                                    coords[-1][1], coords[-1][0], end_lat, end_lon
+                                )
                                 if bbox_progetto is None:
                                     bbox_progetto = bbox_tappa.copy()
                                 else:
@@ -1938,20 +2019,36 @@ class WorkerCaricamentoMappa(QThread):
                                     "properties": {
                                         "tipo": "tappa", "tappa_id": tappa_id, "sequenza": seq,
                                         "blocco": str(blocco), "stato": str(stato),
-                                        "nome_file": solo_nome
+                                        "nome_file": solo_nome,
+                                        "nome_luogo_partenza": nome_partenza,
+                                        "nome_luogo_arrivo": nome_arrivo,
                                     }
                                 })
                                 # --- MARKER INIZIO TAPPA ---
                                 payload["features"].append({
                                     "type": "Feature",
                                     "geometry": {"type": "Point", "coordinates": coords[0]},
-                                    "properties": {"tipo": "marker_inizio", "sequenza": seq, "nome": f"Partenza Tappa {seq}", "nome_file": solo_nome}
+                                    "properties": {
+                                        "tipo": "marker_inizio",
+                                        "tappa_id": tappa_id,
+                                        "sequenza": seq,
+                                        "nome": f"Tappa {seq} - inizio",
+                                        "nome_luogo": nome_partenza,
+                                        "nome_file": solo_nome,
+                                    }
                                 })
                                 # --- MARKER FINE TAPPA (NUOVO!) ---
                                 payload["features"].append({
                                     "type": "Feature",
                                     "geometry": {"type": "Point", "coordinates": coords[-1]},
-                                    "properties": {"tipo": "marker_fine", "sequenza": seq, "nome": f"Arrivo Tappa {seq}", "nome_file": solo_nome}
+                                    "properties": {
+                                        "tipo": "marker_fine",
+                                        "tappa_id": tappa_id,
+                                        "sequenza": seq,
+                                        "nome": f"Tappa {seq} - fine",
+                                        "nome_luogo": nome_arrivo,
+                                        "nome_file": solo_nome,
+                                    }
                                 })
                                 
                     except Exception:

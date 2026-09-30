@@ -11,7 +11,6 @@ import gpxpy.gpx
 import webbrowser
 import shutil
 import math
-import requests
 import json
 import urllib.request
 
@@ -92,20 +91,6 @@ def calcola_distanza_haversine(lat1, lon1, lat2, lon2):
     a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
-
-def ottieni_nome_localita(lat, lon):
-    try:
-        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=it"
-        headers = {'User-Agent': 'BikepackingStudioApp/2.0'}
-        resp = requests.get(url, headers=headers, timeout=4)
-        if resp.status_code == 200:
-            data = resp.json().get('address', {})
-            citta = data.get('city') or data.get('town') or data.get('village') or data.get('county') or "Località sconosciuta"
-            stato = data.get('country', '')
-            return f"{citta} ({stato})" if stato else citta
-    except Exception as e:
-        print("Errore Reverse Geocoding:", e)
-    return f"{round(lat, 3)}, {round(lon, 3)}"
 
 class DropAreaGPX(QFrame):
     files_dropped = Signal(list)
@@ -1071,7 +1056,8 @@ class BikepackingStudioApp(QMainWindow):
                 conn = sqlite3.connect(DB_NAME)
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO progetti (nome, descrizione) VALUES (?, ?)", 
+                    "INSERT INTO progetti (nome_progetto, descrizione, data_creazione) "
+                    "VALUES (?, ?, CURRENT_TIMESTAMP)",
                     (nome, txt_desc.text().strip())
                 )
                 new_id = cursor.lastrowid

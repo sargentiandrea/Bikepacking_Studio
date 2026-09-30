@@ -1,17 +1,15 @@
 import sqlite3
 import os
-import urllib.request
 import json
 import math
 import xml.etree.ElementTree as ET
-from shapely.geometry import Point, LineString, shape
+from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
 from service.config import DB_NAME
 
-COASTLINE_FILE = "world_coastlines_10m.geojson"
-# Mappa ad alta risoluzione 10m (molto più precisa per baie e promontori)
-COASTLINE_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_coastline.geojson"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COASTLINE_FILE = os.path.join(PROJECT_ROOT, "world_coastlines_10m.geojson")
 
 _COASTLINE_TREE = None
 _COASTLINE_GEOMS = None
@@ -29,39 +27,34 @@ def _haversine_distance_m(lat1, lon1, lat2, lon2):
     return R * c
 
 
-def _scarica_coste_alta_risoluzione():
-    if not os.path.exists(COASTLINE_FILE):
-        try:
-            print("Download linea di costa ad ALTA RISOLUZIONE (Natural Earth 10m)...")
-            urllib.request.urlretrieve(COASTLINE_URL, COASTLINE_FILE)
-            print("Download completato.")
-        except Exception as e:
-            print(f"Errore download coste 10m: {e}")
-
-
 def _inizializza_motore_costa():
     global _COASTLINE_TREE, _COASTLINE_GEOMS
     if _COASTLINE_TREE is not None:
         return
 
-    _scarica_coste_alta_risoluzione()
+    if not os.path.isfile(COASTLINE_FILE):
+        raise FileNotFoundError(
+            f"Dataset locale della linea costiera non trovato: {COASTLINE_FILE}"
+        )
 
     lines = []
-    if os.path.exists(COASTLINE_FILE):
-        try:
-            with open(COASTLINE_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                for feature in data.get('features', []):
-                    geom = shape(feature['geometry'])
-                    if geom.geom_type == 'LineString':
-                        lines.append(geom)
-                    elif geom.geom_type == 'MultiLineString':
-                        lines.extend(list(geom.geoms))
-        except Exception as e:
-            print(f"Errore caricamento GeoJSON coste: {e}")
-
+    try:
+        with open(COASTLINE_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            for feature in data.get('features', []):
+                geom = shape(feature['geometry'])
+                if geom.geom_type == 'LineString':
+                    lines.append(geom)
+                elif geom.geom_type == 'MultiLineString':
+                    lines.extend(list(geom.geoms))
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as errore:
+        raise RuntimeError(
+            f"Impossibile caricare il dataset locale della costa: {COASTLINE_FILE}"
+        ) from errore
     if not lines:
-        lines = [LineString([(-180, 0), (180, 0)])]
+        raise ValueError(
+            f"Il dataset locale della costa non contiene linee valide: {COASTLINE_FILE}"
+        )
 
     _COASTLINE_GEOMS = lines
     _COASTLINE_TREE = STRtree(lines)

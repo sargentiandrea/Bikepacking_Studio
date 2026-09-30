@@ -1,21 +1,22 @@
 {
   "meta": {
-    "data_analisi": "2026-09-30T15:20:41.473287",
+    "data_analisi": "2026-09-30T23:10:14.322805",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 19,
+    "totale_moduli": 21,
     "totale_classi": 19,
-    "totale_funzioni": 240,
+    "totale_funzioni": 250,
     "totale_rotte_flask": 7,
-    "totale_tabelle": 15,
+    "totale_tabelle": 18,
     "tabelle_create": [
       "allarmi_percorso",
       "anagrafica_paesi",
       "blocchi_stagione",
       "cache_nomi_luoghi",
       "dogane_progetto",
+      "geonames",
       "progetti",
       "progetto_stagione",
       "superfici_tappa",
@@ -30,6 +31,9 @@
       "blocchi_stagione",
       "cache_nomi_luoghi",
       "dogane_progetto",
+      "geonames",
+      "geonames_names",
+      "geonames_names_fts",
       "metadata",
       "progetti",
       "progetto_stagione",
@@ -50,6 +54,7 @@
       "argparse",
       "collections",
       "contextlib",
+      "csv",
       "datetime",
       "flask",
       "flask_cors",
@@ -72,6 +77,7 @@
       "shapely.geometry",
       "shapely.strtree",
       "shutil",
+      "socket",
       "sqlite3",
       "statistics",
       "subprocess",
@@ -82,7 +88,8 @@
       "urllib.request",
       "uuid",
       "webbrowser",
-      "xml.etree.ElementTree"
+      "xml.etree.ElementTree",
+      "zipfile"
     ]
   },
   "architettura": {
@@ -105,6 +112,7 @@
         "service/config.py",
         "service/dogane_service.py",
         "service/geocodifica_offline_service.py",
+        "service/geonames_service.py",
         "service/map_manager_service.py",
         "service/stats_service.py",
         "service/superfici_service.py"
@@ -112,6 +120,7 @@
       "altro": [
         "app_desktop.py",
         "backup.py",
+        "installa_geonames.py",
         "misura_prestazioni.py",
         "resources/genera_catalogo_sprite.py",
         "static/aggiorna_sprite.py"
@@ -205,12 +214,12 @@
         "file": "app_desktop.py"
       },
       {
-        "simbolo": "determina_blocco_da_nome_file",
-        "tipo": "funzione",
+        "simbolo": "BikepackingStudioApp",
+        "tipo": "classe",
         "file": "app_desktop.py"
       },
       {
-        "simbolo": "ottieni_nome_localita",
+        "simbolo": "determina_blocco_da_nome_file",
         "tipo": "funzione",
         "file": "app_desktop.py"
       },
@@ -310,6 +319,11 @@
         "file": "gui/mappa.py"
       },
       {
+        "simbolo": "nome_luogo",
+        "tipo": "funzione",
+        "file": "gui/mappa.py"
+      },
+      {
         "simbolo": "WizardNuovoPercorso",
         "tipo": "classe",
         "file": "gui/wizard_percorso.py"
@@ -361,6 +375,11 @@
       },
       {
         "simbolo": "log_output",
+        "tipo": "funzione",
+        "file": "service/map_server.py"
+      },
+      {
+        "simbolo": "start_brouter_server",
         "tipo": "funzione",
         "file": "service/map_server.py"
       },
@@ -552,16 +571,16 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
-      "service/stats_service.py": [
-        "app_desktop"
-      ],
       "database/database_setup.py": [
         "app_desktop"
       ],
       "service/clima_service.py": [
+        "app_desktop"
+      ],
+      "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "service/stats_service.py": [
         "app_desktop"
       ]
     }
@@ -578,7 +597,6 @@
       "funzioni": [
         "determina_blocco_da_nome_file",
         "calcola_distanza_haversine",
-        "ottieni_nome_localita",
         "__init__",
         "dragEnterEvent",
         "dropEvent",
@@ -655,7 +673,6 @@
         "json",
         "math",
         "os",
-        "requests",
         "shutil",
         "sqlite3",
         "sys",
@@ -796,7 +813,6 @@
         "item",
         "items",
         "join",
-        "json",
         "len",
         "load",
         "lower",
@@ -944,12 +960,15 @@
       ],
       "anomalie": [],
       "chiamate_funzioni": [
+        "add",
         "close",
         "commit",
         "connect",
         "cursor",
         "execute",
+        "fetchall",
         "inizializza_database",
+        "items",
         "print"
       ]
     },
@@ -1212,12 +1231,15 @@
         "_profilo_brouter",
         "run",
         "__init__",
-        "run"
+        "run",
+        "nome_luogo"
       ],
       "import_interni": [
         "service.config.BASE_DIR",
+        "service.config.BROUTER_URL",
         "service.config.DB_NAME",
         "service.geocodifica_offline_service.nome_luogo_da_coordinate",
+        "service.geonames_service.cerca_coordinate_luogo",
         "service.map_manager_service.DownloadWorker",
         "service.map_manager_service.MapManagerService",
         "service.stats_service.analizza_dati_rotta_brouter",
@@ -1239,10 +1261,10 @@
         "requests",
         "sqlite3",
         "threading",
-        "time",
         "uuid"
       ],
       "tabelle_usate": [
+        "cache_nomi_luoghi",
         "tappe",
         "trasferimenti"
       ],
@@ -1274,7 +1296,6 @@
         "QVBoxLayout",
         "QWebEngineView",
         "QWidget",
-        "Session",
         "Signal",
         "Thread",
         "ValueError",
@@ -1320,6 +1341,7 @@
         "_ripulisci_worker_superfici",
         "_salvataggio_percorso_completato",
         "_valida_pianificazione",
+        "abs",
         "abspath",
         "activate",
         "addItem",
@@ -1342,6 +1364,7 @@
         "callable",
         "callback_worker_pianificazione",
         "casefold",
+        "cerca_coordinate_luogo",
         "chr",
         "clear",
         "close",
@@ -1409,6 +1432,7 @@
         "mostra_anteprima_percorso",
         "move",
         "next",
+        "nome_luogo",
         "nome_luogo_da_coordinate",
         "open",
         "ord",
@@ -1482,7 +1506,6 @@
         "sincronizza_stato_percorso",
         "singleShot",
         "sizeHint",
-        "sleep",
         "spacing",
         "sqrt",
         "start",
@@ -1553,6 +1576,96 @@
         "strip",
         "super",
         "text"
+      ]
+    },
+    "installa_geonames.py": {
+      "classi": [],
+      "funzioni": [
+        "_scarica_archivio",
+        "_apri_riga_zip",
+        "_salva_blocco",
+        "_carica_luoghi",
+        "_carica_nomi_alternativi",
+        "_crea_indice",
+        "installa_geonames",
+        "main"
+      ],
+      "import_interni": [
+        "service.config.GEONAMES_DB",
+        "service.config.GEONAMES_HOME"
+      ],
+      "import_esterni": [
+        "argparse",
+        "csv",
+        "datetime",
+        "io",
+        "os",
+        "pathlib",
+        "sqlite3",
+        "sys",
+        "urllib.request",
+        "zipfile"
+      ],
+      "tabelle_usate": [
+        "geonames",
+        "geonames_names",
+        "geonames_names_fts",
+        "metadata"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ArgumentParser",
+        "IOError",
+        "Path",
+        "Request",
+        "TextIOWrapper",
+        "ValueError",
+        "ZipFile",
+        "_apri_riga_zip",
+        "_carica_luoghi",
+        "_carica_nomi_alternativi",
+        "_crea_indice",
+        "_salva_blocco",
+        "_scarica_archivio",
+        "add_argument",
+        "append",
+        "casefold",
+        "clear",
+        "close",
+        "commit",
+        "connect",
+        "execute",
+        "executemany",
+        "executescript",
+        "exists",
+        "fetchone",
+        "fileno",
+        "float",
+        "flush",
+        "fsync",
+        "get",
+        "installa_geonames",
+        "int",
+        "is_file",
+        "isfile",
+        "isoformat",
+        "len",
+        "main",
+        "mkdir",
+        "namelist",
+        "now",
+        "open",
+        "parse_args",
+        "print",
+        "read",
+        "reader",
+        "remove",
+        "replace",
+        "str",
+        "strip",
+        "urlopen",
+        "with_suffix",
+        "write"
       ]
     },
     "misura_prestazioni.py": {
@@ -1710,6 +1823,7 @@
         "genera_raccordo_gpx"
       ],
       "import_interni": [
+        "service.config.BROUTER_URL",
         "service.config.DB_NAME",
         "service.superfici_service.carica_superfici_tappa"
       ],
@@ -1825,6 +1939,8 @@
       "chiamate_funzioni": [
         "abspath",
         "dirname",
+        "expanduser",
+        "get",
         "join"
       ]
     },
@@ -1929,6 +2045,44 @@
         "str"
       ]
     },
+    "service/geonames_service.py": {
+      "classi": [],
+      "funzioni": [
+        "cerca_coordinate_luogo"
+      ],
+      "import_interni": [
+        "service.config.GEONAMES_DB"
+      ],
+      "import_esterni": [
+        "contextlib",
+        "os",
+        "pathlib",
+        "re",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "geonames_names_fts"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "Path",
+        "RuntimeError",
+        "ValueError",
+        "as_uri",
+        "closing",
+        "connect",
+        "execute",
+        "fetchone",
+        "findall",
+        "float",
+        "isfile",
+        "join",
+        "resolve",
+        "split",
+        "str",
+        "strip"
+      ]
+    },
     "service/map_manager_service.py": {
       "classi": [
         "DownloadWorker",
@@ -1984,6 +2138,8 @@
         "serve_sprite",
         "start_martin_server",
         "log_output",
+        "start_brouter_server",
+        "log_output",
         "serve_fonts",
         "set_gpx_data",
         "get_gpx_data",
@@ -1994,14 +2150,21 @@
         "run_server",
         "start_local_map_server"
       ],
-      "import_interni": [],
+      "import_interni": [
+        "service.config.BROUTER_HOME",
+        "service.config.BROUTER_HOST",
+        "service.config.BROUTER_PORT"
+      ],
       "import_esterni": [
         "collections",
         "flask",
         "flask_cors",
         "os",
+        "shutil",
+        "socket",
         "subprocess",
         "threading",
+        "time",
         "urllib.parse"
       ],
       "tabelle_usate": [],
@@ -2016,15 +2179,20 @@
         "abspath",
         "append",
         "copy",
+        "create_connection",
+        "decode",
         "deque",
         "dirname",
+        "encode",
         "endswith",
         "exists",
         "float",
         "get",
         "get_json",
+        "getattr",
         "int",
         "isdir",
+        "isfile",
         "join",
         "jsonify",
         "len",
@@ -2032,27 +2200,31 @@
         "lower",
         "makedirs",
         "max",
+        "monotonic",
+        "poll",
         "print",
         "render_template",
         "route",
         "run",
         "run_server",
         "send_from_directory",
+        "sleep",
         "split",
         "splitext",
         "start",
+        "start_brouter_server",
         "start_martin_server",
         "startswith",
         "str",
         "strip",
-        "unquote"
+        "unquote",
+        "which"
       ]
     },
     "service/stats_service.py": {
       "classi": [],
       "funzioni": [
         "_haversine_distance_m",
-        "_scarica_coste_alta_risoluzione",
         "_inizializza_motore_costa",
         "calcola_distanza_mare_m",
         "assegna_fascia_costiera_metri",
@@ -2075,7 +2247,6 @@
         "shapely.geometry",
         "shapely.strtree",
         "sqlite3",
-        "urllib.request",
         "xml.etree.ElementTree"
       ],
       "tabelle_usate": [
@@ -2084,16 +2255,18 @@
       ],
       "anomalie": [],
       "chiamate_funzioni": [
-        "LineString",
+        "FileNotFoundError",
         "Point",
+        "RuntimeError",
         "STRtree",
+        "ValueError",
         "_estrai_altimetria_da_gpx",
         "_estrai_punti_gpx",
         "_haversine_distance_m",
         "_inizializza_motore_costa",
-        "_scarica_coste_alta_risoluzione",
         "_trova_percorso_gpx",
         "abs",
+        "abspath",
         "add",
         "append",
         "assegna_fascia_costiera_metri",
@@ -2105,6 +2278,7 @@
         "connect",
         "cos",
         "cursor",
+        "dirname",
         "endswith",
         "enumerate",
         "execute",
@@ -2119,6 +2293,7 @@
         "index",
         "int",
         "interpolate",
+        "isfile",
         "isfinite",
         "items",
         "iter",
@@ -2147,7 +2322,6 @@
         "strip",
         "sum",
         "upper",
-        "urlretrieve",
         "values"
       ]
     },
@@ -8221,7 +8395,7 @@
       },
       {
         "nome": "cache_nomi_luoghi",
-        "righe": 983,
+        "righe": 993,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8433,7 +8607,7 @@
       },
       {
         "nome": "progetti",
-        "righe": 2,
+        "righe": 3,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8508,7 +8682,7 @@
       },
       {
         "nome": "superfici_tappa",
-        "righe": 935,
+        "righe": 992,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8557,7 +8731,7 @@
       },
       {
         "nome": "tappe",
-        "righe": 983,
+        "righe": 993,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8796,18 +8970,18 @@
       "http://127.0.0.1:8080/api/set-gpx-data",
       "http://127.0.0.1:8080/map",
       "http://localhost:3000",
-      "http://router.project-osrm.org/route/v1/biking/",
       "http://www.topografix.com/GPX/1/1",
+      "http://{BROUTER_HOST}:{BROUTER_PORT}",
+      "http://{BROUTER_HOST}:{BROUTER_PORT}/brouter",
       "http://{host}:{port}",
-      "https://brouter.de/brouter",
-      "https://brouter.de/brouter?",
-      "https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=it",
-      "https://nominatim.openstreetmap.org/search",
+      "https://creativecommons.org/licenses/by/4.0/\\n",
+      "https://download.geonames.org/export/dump/allCountries.zip",
+      "https://download.geonames.org/export/dump/alternateNamesV2.zip",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles",
-      "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_coastline.geojson",
+      "https://www.geonames.org/\\n",
       "martin",
       "redis"
     ],
@@ -8822,17 +8996,8 @@
         "contesto": "\"nota\": \"Elenco dei 193 Stati membri ONU più Santa Sede e Stato di Palestina. Le condizioni di ingresso possono cambiare: per un viaggio reale verificare sempre le fonti ufficiali prima della partenza. Versione 2.0: aggiunti campi anagra..."
       },
       {
-        "file": "app_desktop.py",
-        "riga": 98,
-        "termini": [],
-        "url": [
-          "https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=it"
-        ],
-        "contesto": "url = f\"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=it\""
-      },
-      {
         "file": "gui/mappa.py",
-        "riga": 1358,
+        "riga": 1395,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -8841,7 +9006,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1424,
+        "riga": 1461,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -8850,7 +9015,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1561,
+        "riga": 1598,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -8859,25 +9024,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1781,
-        "termini": [],
-        "url": [
-          "https://nominatim.openstreetmap.org/search"
-        ],
-        "contesto": "\"https://nominatim.openstreetmap.org/search\","
-      },
-      {
-        "file": "gui/mappa.py",
-        "riga": 1819,
-        "termini": [],
-        "url": [
-          "https://brouter.de/brouter"
-        ],
-        "contesto": "\"https://brouter.de/brouter\","
-      },
-      {
-        "file": "gui/mappa.py",
-        "riga": 1996,
+        "riga": 2093,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -8885,22 +9032,49 @@
         "contesto": "requests.post(\"http://127.0.0.1:8080/api/set-gpx-data\", json=payload, timeout=10)"
       },
       {
-        "file": "service/audit_service.py",
-        "riga": 196,
+        "file": "installa_geonames.py",
+        "riga": 20,
         "termini": [],
         "url": [
-          "https://brouter.de/brouter?"
+          "https://download.geonames.org/export/dump/allCountries.zip"
         ],
-        "contesto": "f\"https://brouter.de/brouter?\""
+        "contesto": "\"https://download.geonames.org/export/dump/allCountries.zip\","
       },
       {
-        "file": "service/audit_service.py",
-        "riga": 213,
+        "file": "installa_geonames.py",
+        "riga": 25,
         "termini": [],
         "url": [
-          "http://router.project-osrm.org/route/v1/biking/"
+          "https://download.geonames.org/export/dump/alternateNamesV2.zip"
         ],
-        "contesto": "f\"http://router.project-osrm.org/route/v1/biking/\""
+        "contesto": "\"https://download.geonames.org/export/dump/alternateNamesV2.zip\","
+      },
+      {
+        "file": "installa_geonames.py",
+        "riga": 325,
+        "termini": [],
+        "url": [
+          "https://creativecommons.org/licenses/by/4.0/\\n"
+        ],
+        "contesto": "\"https://creativecommons.org/licenses/by/4.0/\\n\""
+      },
+      {
+        "file": "installa_geonames.py",
+        "riga": 326,
+        "termini": [],
+        "url": [
+          "https://www.geonames.org/\\n"
+        ],
+        "contesto": "\"https://www.geonames.org/\\n\""
+      },
+      {
+        "file": "service/config.py",
+        "riga": 9,
+        "termini": [],
+        "url": [
+          "http://{BROUTER_HOST}:{BROUTER_PORT}/brouter"
+        ],
+        "contesto": "BROUTER_URL = f\"http://{BROUTER_HOST}:{BROUTER_PORT}/brouter\""
       },
       {
         "file": "service/map_manager_service.py",
@@ -8940,7 +9114,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 16,
+        "riga": 27,
         "termini": [
           "martin"
         ],
@@ -8949,7 +9123,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 40,
+        "riga": 53,
         "termini": [
           "martin"
         ],
@@ -8958,7 +9132,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 44,
+        "riga": 57,
         "termini": [
           "martin"
         ],
@@ -8967,7 +9141,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 47,
+        "riga": 60,
         "termini": [
           "martin"
         ],
@@ -8976,7 +9150,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 67,
+        "riga": 80,
         "termini": [
           "martin"
         ],
@@ -8987,7 +9161,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 74,
+        "riga": 87,
         "termini": [
           "martin"
         ],
@@ -8996,7 +9170,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 79,
+        "riga": 92,
         "termini": [
           "martin"
         ],
@@ -9005,7 +9179,16 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 199,
+        "riga": 168,
+        "termini": [],
+        "url": [
+          "http://{BROUTER_HOST}:{BROUTER_PORT}"
+        ],
+        "contesto": "f\"http://{BROUTER_HOST}:{BROUTER_PORT}\""
+      },
+      {
+        "file": "service/map_server.py",
+        "riga": 320,
         "termini": [],
         "url": [
           "http://{host}:{port}"
@@ -9014,16 +9197,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "riga": 14,
-        "termini": [],
-        "url": [
-          "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_coastline.geojson"
-        ],
-        "contesto": "COASTLINE_URL = \"https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_coastline.geojson\""
-      },
-      {
-        "file": "service/stats_service.py",
-        "riga": 127,
+        "riga": 120,
         "termini": [],
         "url": [
           "http://www.topografix.com/GPX/1/1"
@@ -9034,23 +9208,23 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 19,
+    "totale_moduli": 21,
     "totale_classi": 19,
-    "totale_funzioni": 240,
+    "totale_funzioni": 250,
     "endpoint_flask": 7,
-    "tabelle_rilevate": 15,
-    "simboli_orfani": 50,
+    "tabelle_rilevate": 18,
+    "simboli_orfani": 52,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
       "gui/dashboard.py",
       "service/superfici_service.py",
       "misura_prestazioni.py",
-      "service/stats_service.py",
       "service/map_server.py",
+      "service/stats_service.py",
+      "installa_geonames.py",
       "service/map_manager_service.py",
-      "service/audit_service.py",
-      "service/geocodifica_offline_service.py"
+      "service/audit_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -9061,16 +9235,16 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 450,
+        "score": 453,
         "classi": 9,
-        "funzioni": 83,
+        "funzioni": 84,
         "anomalie": 0
       },
       {
         "file": "app_desktop.py",
-        "score": 334,
+        "score": 331,
         "classi": 5,
-        "funzioni": 53,
+        "funzioni": 52,
         "anomalie": 0
       },
       {
@@ -9082,9 +9256,9 @@
       },
       {
         "file": "service/stats_service.py",
-        "score": 91,
+        "score": 92,
         "classi": 0,
-        "funzioni": 13,
+        "funzioni": 12,
         "anomalie": 0
       },
       {
@@ -9109,15 +9283,15 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 19,
+      "moduli": 21,
       "classi": 19,
-      "funzioni": 240,
+      "funzioni": 250,
       "rotte": 7,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 50",
+      "Simboli orfani: 52",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -9132,7 +9306,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 19 moduli, 19 classi, 240 funzioni, 7 endpoint Flask, 50 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 21 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 52 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 19 moduli, 19 classi, 240 funzioni, 7 endpoint Flask, 50 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 21 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 52 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

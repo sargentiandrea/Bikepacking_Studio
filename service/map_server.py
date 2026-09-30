@@ -1,10 +1,15 @@
 import os
+import shutil
+import socket
 import subprocess
 import threading
+import time
 import urllib.parse
 from collections import deque
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory, send_file
 from flask_cors import CORS
+
+from service.config import BROUTER_HOME, BROUTER_HOST, BROUTER_PORT
 
 # --- 1. CONFIGURAZIONE E PERCORSI GLOBALI ---
 SERVICE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,10 +17,18 @@ PROJECT_ROOT = os.path.abspath(os.path.join(SERVICE_DIR, '..'))
 MAPS_DIR = os.path.abspath(os.path.join(PROJECT_ROOT, 'data', 'maps'))
 BIN_DIR = os.path.abspath(os.path.join(PROJECT_ROOT, 'bin'))
 FONTS_DIR = os.path.abspath(os.path.join(PROJECT_ROOT, 'fonts'))
+BROUTER_SEGMENTS_DIR = os.path.join(BROUTER_HOME, "segments4")
+BROUTER_DATA_MARKER = os.path.join(BROUTER_SEGMENTS_DIR, ".world-data-complete")
+BROUTER_JAR = os.path.join(BROUTER_HOME, "brouter-1.7.10-all.jar")
+BROUTER_PROFILES_DIR = os.path.join(BROUTER_HOME, "profiles2")
+BROUTER_LIB_DIR = os.path.join(BROUTER_HOME, "lib")
+BROUTER_CUSTOM_PROFILES_DIR = os.path.join(BROUTER_HOME, "customprofiles")
 
 # Memoria globale per le tracce GPX e il processo di Martin
 current_gpx_geojson = {"type": "FeatureCollection", "features": []}
 martin_process = None
+brouter_process = None
+brouter_start_lock = threading.Lock()
 map_interaction_events = deque(maxlen=200)
 map_interaction_lock = threading.Lock()
 map_interaction_sequence = 0
@@ -77,6 +90,112 @@ def start_martin_server():
         threading.Thread(target=log_output, args=(martin_process,), daemon=True).start()
     except Exception as e:
         print(f"❌ [Martin] Errore durante l'avvio del processo: {e}")
+
+
+def start_brouter_server():
+    """Avvia il routing BRouter locale usando i segmenti già installati."""
+    global brouter_process
+    with brouter_start_lock:
+        if brouter_process is not None and brouter_process.poll() is None:
+            return brouter_process
+
+        try:
+            with socket.create_connection((BROUTER_HOST, BROUTER_PORT), timeout=0.2):
+                print(f"[BRouter] Servizio locale già attivo su {BROUTER_HOST}:{BROUTER_PORT}")
+                return None
+        except OSError:
+            pass
+
+        java_exe = shutil.which("java")
+        if not java_exe:
+            print("[BRouter] ERRORE: Java non trovato; necessario per il routing offline.")
+            return None
+        if not os.path.isfile(BROUTER_JAR):
+            print(f"[BRouter] ERRORE: programma non trovato: {BROUTER_JAR}")
+            return None
+        if not os.path.isfile(BROUTER_DATA_MARKER):
+            print(
+                "[BRouter] ERRORE: dati routing globali assenti o incompleti; "
+                "manca il marcatore di installazione verificata."
+            )
+            return None
+        if (
+            not os.path.isdir(BROUTER_LIB_DIR)
+            or not os.path.isfile(os.path.join(BROUTER_PROFILES_DIR, "trekking.brf"))
+            or not os.path.isfile(os.path.join(BROUTER_PROFILES_DIR, "fastbike.brf"))
+        ):
+            print(f"[BRouter] ERRORE: profili o librerie mancanti in: {BROUTER_HOME}")
+            return None
+
+        os.makedirs(BROUTER_CUSTOM_PROFILES_DIR, exist_ok=True)
+        classpath = os.pathsep.join((
+            BROUTER_JAR,
+            os.path.join(BROUTER_LIB_DIR, "*"),
+        ))
+        comando = [
+            java_exe,
+            "-Xmx512M",
+            "-DmaxRunningTime=300",
+            "-cp",
+            classpath,
+            "btools.server.RouteServer",
+            BROUTER_SEGMENTS_DIR,
+            BROUTER_PROFILES_DIR,
+            BROUTER_CUSTOM_PROFILES_DIR,
+            str(BROUTER_PORT),
+            "2",
+            BROUTER_HOST,
+        ]
+
+        try:
+            brouter_process = subprocess.Popen(
+                comando,
+                cwd=BROUTER_HOME,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+        except OSError as errore:
+            print(f"[BRouter] ERRORE: avvio del router locale non riuscito: {errore}")
+            brouter_process = None
+            return None
+
+        print(
+            f"[BRouter] Routing offline in avvio su "
+            f"http://{BROUTER_HOST}:{BROUTER_PORT}"
+        )
+
+        def log_output(process):
+            for line in process.stdout:
+                riga = line.strip()
+                if riga:
+                    print(f"[BRouter] {riga.encode('ascii', 'replace').decode('ascii')}")
+
+        threading.Thread(
+            target=log_output,
+            args=(brouter_process,),
+            daemon=True,
+        ).start()
+
+        scadenza = time.monotonic() + 15
+        while time.monotonic() < scadenza:
+            if brouter_process.poll() is not None:
+                print("[BRouter] ERRORE: il processo locale si è chiuso durante l'avvio.")
+                return None
+            try:
+                with socket.create_connection(
+                    (BROUTER_HOST, BROUTER_PORT), timeout=0.25
+                ):
+                    print("[BRouter] Router locale pronto.")
+                    return brouter_process
+            except OSError:
+                time.sleep(0.25)
+
+        print("[BRouter] ATTENZIONE: avvio lento; il servizio non risponde ancora.")
+        return brouter_process
                 
 # --- 4. ROTTA PER I FONT LOCAL PBF (100% OFFLINE CON FALLBACK INTELLIGENTE) ---
 
@@ -189,11 +308,13 @@ def show_map():
 
 def run_server(host='127.0.0.1', port=8080):
     start_martin_server()
+    start_brouter_server()
     # threaded=True evita che una richiesta lenta (es. tile o dati GPX) blocchi
     # le altre richieste in coda, causando i "blocchi" temporanei dell'interfaccia.
     app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
 
 def start_local_map_server(host='127.0.0.1', port=8080):
+    start_brouter_server()
     server_thread = threading.Thread(target=run_server, args=(host, port), daemon=True)
     server_thread.start()
     print(f"🚀 [MapServer] Server Flask avviato su http://{host}:{port}")

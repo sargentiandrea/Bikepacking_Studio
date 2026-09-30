@@ -146,7 +146,7 @@ Nessuna chiave esterna.
 
 ## `cache_nomi_luoghi`
 
-- Righe: 983
+- Righe: 993
 
 ### Colonne
 
@@ -243,7 +243,7 @@ Nessun indice.
 
 ## `progetti`
 
-- Righe: 2
+- Righe: 3
 
 ### Colonne
 
@@ -286,7 +286,7 @@ Nessuna chiave esterna.
 
 ## `superfici_tappa`
 
-- Righe: 935
+- Righe: 992
 
 ### Colonne
 
@@ -307,7 +307,7 @@ Nessuna chiave esterna.
 
 ## `tappe`
 
-- Righe: 983
+- Righe: 993
 
 ### Colonne
 

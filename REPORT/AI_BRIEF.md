@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-09-30 15:20*
+*Aggiornato: 2026-09-30 23:10*
 
 ## Come leggere il progetto
 
@@ -15,20 +15,20 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 19
+- Moduli Python: 21
 - Classi: 19
-- Funzioni: 240
+- Funzioni: 250
 - Rotte Flask: 7
-- Tabelle DB: 15
-- Simboli orfani: 50
+- Tabelle DB: 18
+- Simboli orfani: 52
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 450 - 9 classi, 83 funzioni, 0 anomalie
-- `app_desktop.py` - score 334 - 5 classi, 53 funzioni, 0 anomalie
+- `gui/mappa.py` - score 453 - 9 classi, 84 funzioni, 0 anomalie
+- `app_desktop.py` - score 331 - 5 classi, 52 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 161 - 2 classi, 20 funzioni, 0 anomalie
-- `service/stats_service.py` - score 91 - 0 classi, 13 funzioni, 0 anomalie
+- `service/stats_service.py` - score 92 - 0 classi, 12 funzioni, 0 anomalie
 - `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
 
 ## Endpoint Flask
@@ -47,8 +47,8 @@
 - `ClimaSignals` (classe) in `app_desktop.py`
 - `DropAreaGPX` (classe) in `app_desktop.py`
 - `GestoreBlocchiWidget` (classe) in `app_desktop.py`
+- `BikepackingStudioApp` (classe) in `app_desktop.py`
 - `determina_blocco_da_nome_file` (funzione) in `app_desktop.py`
-- `ottieni_nome_localita` (funzione) in `app_desktop.py`
 - `carica_blocchi` (funzione) in `app_desktop.py`
 - `apri_selettore_file` (funzione) in `app_desktop.py`
 - `esegui_backup_progetto` (funzione) in `backup.py`
@@ -58,7 +58,7 @@
 - `MapManagerDialog` (classe) in `gui/mappa.py`
 - `PannelloPianificazioneWidget` (classe) in `gui/mappa.py`
 - `WorkerAnalisiSuperficiOffline` (classe) in `gui/mappa.py`
-- ... e altri 35 (vedi report completo)
+- ... e altri 37 (vedi report completo)
 
 ## Duplicazioni rilevate
 
@@ -89,14 +89,14 @@
 - `blocchi_ordine`: 23 righe
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
-- `cache_nomi_luoghi`: 983 righe
+- `cache_nomi_luoghi`: 993 righe
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
-- `progetti`: 2 righe
+- `progetti`: 3 righe
 - `progetto_stagione`: 1 righe
-- `superfici_tappa`: 935 righe
-- `tappe`: 983 righe
+- `superfici_tappa`: 992 righe
+- `tappe`: 993 righe
 - `trasferimenti`: 28 righe
 
 ## Servizi esterni rilevati
@@ -105,18 +105,18 @@
 - `http://127.0.0.1:8080/api/set-gpx-data`
 - `http://127.0.0.1:8080/map`
 - `http://localhost:3000`
-- `http://router.project-osrm.org/route/v1/biking/`
 - `http://www.topografix.com/GPX/1/1`
+- `http://{BROUTER_HOST}:{BROUTER_PORT}`
+- `http://{BROUTER_HOST}:{BROUTER_PORT}/brouter`
 - `http://{host}:{port}`
-- `https://brouter.de/brouter`
-- `https://brouter.de/brouter?`
-- `https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json&accept-language=it`
-- `https://nominatim.openstreetmap.org/search`
+- `https://creativecommons.org/licenses/by/4.0/\n`
+- `https://download.geonames.org/export/dump/allCountries.zip`
+- `https://download.geonames.org/export/dump/alternateNamesV2.zip`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles`
-- `https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_coastline.geojson`
+- `https://www.geonames.org/\n`
 - `martin`
 - `redis`
 
@@ -132,16 +132,16 @@
 
 ## Moduli principali
 
-- `gui/mappa.py`: 9 classi, 83 funzioni
-- `app_desktop.py`: 5 classi, 53 funzioni
+- `gui/mappa.py`: 9 classi, 84 funzioni
+- `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `misura_prestazioni.py`: 0 classi, 14 funzioni
-- `service/stats_service.py`: 0 classi, 13 funzioni
-- `service/map_server.py`: 0 classi, 12 funzioni
+- `service/map_server.py`: 0 classi, 14 funzioni
+- `service/stats_service.py`: 0 classi, 12 funzioni
+- `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/map_manager_service.py`: 2 classi, 4 funzioni
 - `service/audit_service.py`: 0 classi, 5 funzioni
-- `service/geocodifica_offline_service.py`: 0 classi, 5 funzioni
 
 ## Azioni consigliate
 

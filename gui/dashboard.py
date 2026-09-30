@@ -553,7 +553,8 @@ class DashboardPage(QWidget):
                 conn = sqlite3.connect(DB_NAME)
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO progetti (nome, stato) VALUES (?, ?)", 
+                    "INSERT INTO progetti (nome_progetto, stato, data_creazione) "
+                    "VALUES (?, ?, CURRENT_TIMESTAMP)",
                     (nome_progetto, 'ATTIVO')
                 )
                 id_progetto = cursor.lastrowid

@@ -29,10 +29,41 @@ def inizializza_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS progetti (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            descrizione TEXT
+            nome_progetto TEXT NOT NULL,
+            descrizione TEXT,
+            km_totali REAL DEFAULT 0,
+            stato TEXT DEFAULT 'ATTIVO',
+            data_creazione TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    cursor.execute("PRAGMA table_info(progetti)")
+    colonne_progetti = {riga[1] for riga in cursor.fetchall()}
+
+    if "nome_progetto" not in colonne_progetti:
+        if "nome" in colonne_progetti:
+            cursor.execute("ALTER TABLE progetti RENAME COLUMN nome TO nome_progetto")
+        else:
+            cursor.execute(
+                "ALTER TABLE progetti ADD COLUMN nome_progetto TEXT NOT NULL DEFAULT ''"
+            )
+        colonne_progetti.add("nome_progetto")
+
+    colonne_aggiuntive = {
+        "km_totali": "REAL DEFAULT 0",
+        "stato": "TEXT DEFAULT 'ATTIVO'",
+        "data_creazione": "TEXT",
+    }
+    for nome_colonna, definizione in colonne_aggiuntive.items():
+        if nome_colonna not in colonne_progetti:
+            cursor.execute(
+                f"ALTER TABLE progetti ADD COLUMN {nome_colonna} {definizione}"
+            )
+
+    cursor.execute(
+        "UPDATE progetti SET data_creazione = CURRENT_TIMESTAMP "
+        "WHERE data_creazione IS NULL"
+    )
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS tappe (
