@@ -1886,7 +1886,8 @@ class WorkerCaricamentoMappa(QThread):
         import os
         import gpxpy
         
-        payload = {"type": "FeatureCollection", "features": []}
+        payload = {"type": "FeatureCollection", "features": [], "bbox": None}
+        bbox_progetto = None
         
         try:
             conn = sqlite3.connect(self.db_n)
@@ -1905,12 +1906,32 @@ class WorkerCaricamentoMappa(QThread):
                         with open(filepath, 'r', encoding='utf-8', errors='ignore') as gpx_file:
                             gpx = gpxpy.parse(gpx_file)
                             coords = []
+                            bbox_tappa = None
                             for track in gpx.tracks:
                                 for segment in track.segments:
                                     for point in segment.points:
                                         coords.append([point.longitude, point.latitude])
+                                        if bbox_tappa is None:
+                                            bbox_tappa = [
+                                                point.longitude, point.latitude,
+                                                point.longitude, point.latitude
+                                            ]
+                                        else:
+                                            bbox_tappa[0] = min(bbox_tappa[0], point.longitude)
+                                            bbox_tappa[1] = min(bbox_tappa[1], point.latitude)
+                                            bbox_tappa[2] = max(bbox_tappa[2], point.longitude)
+                                            bbox_tappa[3] = max(bbox_tappa[3], point.latitude)
                             
                             if coords:
+                                if bbox_progetto is None:
+                                    bbox_progetto = bbox_tappa.copy()
+                                else:
+                                    bbox_progetto = [
+                                        min(bbox_progetto[0], bbox_tappa[0]),
+                                        min(bbox_progetto[1], bbox_tappa[1]),
+                                        max(bbox_progetto[2], bbox_tappa[2]),
+                                        max(bbox_progetto[3], bbox_tappa[3])
+                                    ]
                                 payload["features"].append({
                                     "type": "Feature",
                                     "geometry": {"type": "LineString", "coordinates": coords},
@@ -1953,7 +1974,18 @@ class WorkerCaricamentoMappa(QThread):
                             "vettore": str(vettore), "da": str(da), "a": str(a), "nome_file": f"Trasferimento: {mezzo}"
                         }
                     })
+                    for longitudine, latitudine in ((s_lon, s_lat), (e_lon, e_lat)):
+                        if bbox_progetto is None:
+                            bbox_progetto = [
+                                longitudine, latitudine, longitudine, latitudine
+                            ]
+                        else:
+                            bbox_progetto[0] = min(bbox_progetto[0], longitudine)
+                            bbox_progetto[1] = min(bbox_progetto[1], latitudine)
+                            bbox_progetto[2] = max(bbox_progetto[2], longitudine)
+                            bbox_progetto[3] = max(bbox_progetto[3], latitudine)
                     
+            payload["bbox"] = bbox_progetto
             conn.close()
         except Exception as err:
             print(f"Errore database nel worker: {err}")

@@ -112,3 +112,26 @@ Definita in `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`. Da
 2. Allineare `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`
 3. Rimuovere copie morte: `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`
 4. Centralizzare `calcola_distanza_haversine` in `service/geo_utils.py`
+
+## COSA LEGGERE E QUANDO
+
+All'inizio di OGNI richiesta:
+- Leggi `REPORT/AI_BRIEF.md` per lo stato generale del progetto.
+
+Prima di lavorare su DATABASE:
+- Leggi `REPORT/DB_SCHEMA.md` per lo schema completo del database.
+
+Prima di lavorare su CONFIGURAZIONE:
+- Leggi `REPORT/CONFIG_FILES.md` per i file di configurazione.
+
+Prima di lavorare su SERVIZI ESTERNI (Martin, tile server, ecc.):
+- Leggi `REPORT/EXTERNAL_SERVICES.md` per l'elenco dei servizi esterni.
+
+Se ti serve un DETTAGLIO su un modulo specifico:
+- Leggi `REPORT/analisi.json` (dataset completo) oppure
+- Leggi direttamente il file di codice interessato.
+
+NON leggere:
+- `aider_context.md` (specifico per Aider)
+- File con timestamp nel nome (sono storico)
+- `ULTIMO_RUN.json` (serve solo allo script)

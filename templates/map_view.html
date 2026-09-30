@@ -826,29 +826,18 @@
                                     sorgente.setData(gpxGeoJson);
                                     ultimoGeoJsonGpx = gpxGeoJson;
                                     
-                                    const coordinates = [];
-                                    if (gpxGeoJson && gpxGeoJson.features && gpxGeoJson.features.length > 0) {
-                                        gpxGeoJson.features.forEach(f => {
-                                            if (f.geometry && f.geometry.type === 'LineString') {
-                                                f.geometry.coordinates.forEach(c => coordinates.push(c));
-                                            } else if (f.geometry && f.geometry.type === 'Point') {
-                                                coordinates.push(f.geometry.coordinates);
-                                            }
-                                        });
-                                    }
-                                    
-                                    if (coordinates.length === 0) {
+                                    const bbox = gpxGeoJson && gpxGeoJson.bbox;
+                                    if (!Array.isArray(bbox) || bbox.length !== 4 ||
+                                        !bbox.every(Number.isFinite)) {
                                         map.triggerRepaint();
                                         if (loadingScreen) loadingScreen.style.display = 'none';
                                         return;
                                     }
                                     
-                                    // RADDRIZZATO: Ripristinato l'array originale senza indici errati per non far fallire fitBounds
-                                    const primoPunto = coordinates[0];
-                                    const bounds = new maplibregl.LngLatBounds(primoPunto, primoPunto);
-                                    coordinates.forEach(coord => bounds.extend(coord));
-                                    
-                                    map.fitBounds(bounds, { padding: 50, maxZoom: 15, duration: 800 });
+                                    map.fitBounds(
+                                        [[bbox[0], bbox[1]], [bbox[2], bbox[3]]],
+                                        { padding: 50, maxZoom: 15, duration: 800 }
+                                    );
                                     map.triggerRepaint();
 
                                     // IL LAVORO È FINITO: Nascondiamo il ciclista e sblocchiamo lo schermo

@@ -9,8 +9,9 @@
 #   3. Analizza anche HTML, JS, CSS
 #   4. Trova simboli "orfani" (definiti ma mai usati) - senza falsi positivi
 #   5. Calcola un livello di rischio e propone un piano d'azione
-#   6. Scrive tutto nella cartella REPORT/ con data e ora nel nome
-#   7. Confronta con l'esecuzione precedente e scrive un CHANGELOG
+#   6. Aggiorna i report correnti nella cartella REPORT/
+#   7. Salva ULTIMO_RUN.json per le analisi successive
+#   8. Analizza database, configurazioni e servizi esterni
 #
 # Come si usa:
 #   Doppio click su analisi_profonda.bat (sul Desktop)
@@ -22,9 +23,11 @@ import ast
 import json
 import os
 import re
+import sqlite3
 import sys
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 # Forza stdout/stderr in UTF-8 (evita problemi con lettere accentate)
 if sys.stdout.encoding != 'utf-8':
@@ -44,6 +47,35 @@ CARTELLE_ESCLUSE = {
     "basemap-styles-master",                        # cartella esterna pesante
     "data", "fonts", "gpx",                         # dati, non codice
 }
+
+NOMI_FILE_CONFIGURAZIONE = {
+    "requirements.txt", "package.json", "pyproject.toml",
+    "setup.py", "setup.cfg",
+}
+
+ESTENSIONI_CONFIGURAZIONE = {".json", ".yaml", ".yml", ".ini", ".cfg"}
+DIMENSIONE_MASSIMA_CONFIG = 100_000
+LUNGHEZZA_MASSIMA_ESTRATTO_CONFIG = 20_000
+
+KEYWORD_SERVIZI_ESTERNI = {
+    "martin": r"(?<!\w)martin(?!\w)",
+    "tileserver": r"tileserver",
+    "tile_server": r"tile_server",
+    "osmium": r"(?<!\w)osmium(?!\w)",
+    "ogr2ogr": r"ogr2ogr",
+    "gdal": r"(?<!\w)gdal(?!\w)",
+    "docker": r"docker",
+    "docker-compose": r"docker[-_]compose",
+    "nginx": r"nginx",
+    "apache": r"apache",
+    "uwsgi": r"uwsgi",
+    "gunicorn": r"gunicorn",
+    "redis": r"redis",
+    "postgres": r"postgres",
+    "postgis": r"postgis",
+}
+
+REGEX_URL = re.compile(r"https?://[^\s\"'<>),]+", re.IGNORECASE)
 
 # Prefissi che indicano moduli interni al progetto
 # (usati solo come fallback: la fonte di verità è la lista dei file .py reali)
@@ -85,9 +117,21 @@ SUFFISSI_CALLBACK = (
     "_clicked", "_changed", "_pressed", "_released", "_toggled",
 )
 
-# Nome del file CHANGELOG e dell'ultimo snapshot
-NOME_CHANGELOG = "CHANGELOG.md"
+# Nome dell'ultimo snapshot
 NOME_ULTIMO_SNAPSHOT = "ULTIMO_RUN.json"
+
+FILE_REPORT_SEMPRE_PRESENTI = {
+    "AI_BRIEF.md",
+    "analisi.json",
+    "report.md",
+    "riepilogo.txt",
+    "DB_SCHEMA.md",
+    "CONFIG_FILES.md",
+    "EXTERNAL_SERVICES.md",
+    NOME_ULTIMO_SNAPSHOT,
+}
+
+FILE_REPORT_OBSOLETI = {"CHANGELOG.md", "prompt_agente.md"}
 
 
 # ------------------------------------------------------------
@@ -124,6 +168,284 @@ def timestamp_leggibile():
 def assicura_cartella(percorso):
     """Crea una cartella se non esiste."""
     os.makedirs(percorso, exist_ok=True)
+
+
+def _percorso_relativo(percorso, root_dir):
+    """Restituisce un percorso relativo al progetto con separatori uniformi."""
+    return os.path.relpath(percorso, root_dir).replace("\\", "/")
+
+
+def analizza_database_sqlite(percorso_db):
+    """Legge schema e conteggi del database senza consentire modifiche."""
+    risultato = {"percorso": percorso_db.replace("\\", "/"), "errore": None, "tabelle": []}
+    if not os.path.isfile(percorso_db):
+        risultato["errore"] = f"Database non trovato: {percorso_db}"
+        return risultato
+
+    connessione = None
+    try:
+        uri_lettura = f"{Path(percorso_db).resolve().as_uri()}?mode=ro"
+        connessione = sqlite3.connect(uri_lettura, uri=True)
+        cursore = connessione.cursor()
+        nomi_tabelle = [
+            riga[0] for riga in cursore.execute(
+                "SELECT name FROM sqlite_master "
+                "WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            )
+        ]
+
+        for nome_tabella in nomi_tabelle:
+            nome_sql = nome_tabella.replace('"', '""')
+            tabella = {
+                "nome": nome_tabella,
+                "righe": None,
+                "errore_conteggio": None,
+                "colonne": [],
+                "indici": [],
+                "chiavi_esterne": [],
+            }
+            try:
+                cursore.execute(f'PRAGMA table_info("{nome_sql}")')
+                colonne = cursore.fetchall()
+                indici_unici = set()
+                cursore.execute(f'PRAGMA index_list("{nome_sql}")')
+                for indice in cursore.fetchall():
+                    nome_indice, univoco = indice[1], indice[2]
+                    cursore.execute(f'PRAGMA index_info("{nome_indice.replace(chr(34), chr(34) * 2)}")')
+                    colonne_indice = [dettaglio[2] for dettaglio in cursore.fetchall()]
+                    tabella["indici"].append({
+                        "nome": nome_indice,
+                        "univoco": bool(univoco),
+                        "colonne": colonne_indice,
+                    })
+                    if univoco and len(colonne_indice) == 1:
+                        indici_unici.update(colonna for colonna in colonne_indice if colonna)
+
+                for colonna in colonne:
+                    _, nome, tipo, not_null, valore_default, chiave_primaria = colonna
+                    vincoli = []
+                    if chiave_primaria:
+                        vincoli.append("chiave primaria")
+                    if not_null:
+                        vincoli.append("NOT NULL")
+                    if nome in indici_unici:
+                        vincoli.append("UNIQUE")
+                    if valore_default is not None:
+                        vincoli.append(f"DEFAULT {valore_default}")
+                    tabella["colonne"].append({
+                        "nome": nome,
+                        "tipo": tipo or "non specificato",
+                        "vincoli": vincoli,
+                    })
+
+                cursore.execute(f'PRAGMA foreign_key_list("{nome_sql}")')
+                for chiave in cursore.fetchall():
+                    tabella["chiavi_esterne"].append({
+                        "colonna": chiave[3],
+                        "tabella_riferita": chiave[2],
+                        "colonna_riferita": chiave[4],
+                        "azione_update": chiave[5],
+                        "azione_delete": chiave[6],
+                    })
+
+                cursore.execute(f'SELECT COUNT(*) FROM "{nome_sql}"')
+                tabella["righe"] = cursore.fetchone()[0]
+            except sqlite3.Error as errore:
+                tabella["errore_conteggio"] = str(errore)
+            risultato["tabelle"].append(tabella)
+    except (sqlite3.Error, OSError, ValueError) as errore:
+        risultato["errore"] = f"Impossibile leggere il database in sola lettura: {errore}"
+    finally:
+        if connessione is not None:
+            connessione.close()
+    return risultato
+
+
+def trova_file_configurazione(root_dir):
+    """Trova i file di configurazione non contenuti in cartelle escluse."""
+    trovati = []
+    for root, dirs, files in os.walk(root_dir):
+        dirs[:] = [cartella for cartella in dirs if cartella not in CARTELLE_ESCLUSE]
+        for nome_file in files:
+            nome_lower = nome_file.lower()
+            estensione = os.path.splitext(nome_lower)[1]
+            if nome_lower in NOMI_FILE_CONFIGURAZIONE or estensione in ESTENSIONI_CONFIGURAZIONE:
+                trovati.append(os.path.join(root, nome_file))
+    return sorted(trovati, key=lambda percorso: percorso.lower())
+
+
+def analizza_file_configurazione(root_dir, percorsi=None):
+    """Legge file di configurazione e limita gli estratti dei file grandi."""
+    risultati = []
+    percorsi = percorsi if percorsi is not None else trova_file_configurazione(root_dir)
+    for percorso in percorsi:
+        relativo = _percorso_relativo(percorso, root_dir)
+        nota = ""
+        nome_lower = os.path.basename(percorso).lower()
+        if nome_lower == "requirements.txt":
+            nota = "Dichiara le dipendenze Python."
+        elif nome_lower == "package.json":
+            nota = "Dichiara metadati, script e dipendenze Node.js."
+        elif nome_lower in {"pyproject.toml", "setup.py", "setup.cfg"}:
+            nota = "Contiene configurazione o metadati del progetto Python."
+        elif os.path.splitext(nome_lower)[1] in {".yaml", ".yml", ".ini", ".cfg"}:
+            nota = "File di configurazione strutturato."
+        else:
+            nota = "File JSON: verificare dal contenuto se è configurazione o dato."
+
+        try:
+            dimensione = os.path.getsize(percorso)
+            with open(percorso, "r", encoding="utf-8", errors="replace") as file_config:
+                contenuto = file_config.read(DIMENSIONE_MASSIMA_CONFIG + 1)
+            troncato = dimensione > DIMENSIONE_MASSIMA_CONFIG or len(contenuto) > DIMENSIONE_MASSIMA_CONFIG
+            if troncato:
+                contenuto = contenuto[:LUNGHEZZA_MASSIMA_ESTRATTO_CONFIG]
+                contenuto += "\n\n[Contenuto abbreviato: file oltre il limite di lettura.]"
+            risultati.append({
+                "file": relativo,
+                "nota": nota,
+                "contenuto": contenuto,
+                "errore": None,
+                "troncato": troncato,
+            })
+        except OSError as errore:
+            risultati.append({
+                "file": relativo,
+                "nota": nota,
+                "contenuto": "",
+                "errore": f"Impossibile leggere il file: {errore}",
+                "troncato": False,
+            })
+    return risultati
+
+
+def rileva_servizi_esterni(root_dir, file_python, file_configurazione):
+    """Cerca riferimenti a servizi esterni nel codice Python e nelle configurazioni."""
+    percorsi = set(file_python)
+    percorsi.update(file_configurazione)
+    riferimenti = []
+    servizi = set()
+
+    for percorso in sorted(percorsi):
+        if os.path.basename(percorso).lower() == "analisi_profonda.py":
+            continue
+        contenuto = leggi_file(percorso)
+        if contenuto is None:
+            continue
+        relativo = _percorso_relativo(percorso, root_dir)
+        for numero_riga, riga in enumerate(contenuto.splitlines(), start=1):
+            termini = [
+                nome for nome, pattern in KEYWORD_SERVIZI_ESTERNI.items()
+                if re.search(pattern, riga, re.IGNORECASE)
+            ]
+            urls = REGEX_URL.findall(riga)
+            if not termini and not urls:
+                continue
+            servizi.update(termini)
+            servizi.update(urls)
+            contesto = riga.strip()
+            if len(contesto) > 240:
+                contesto = contesto[:237] + "..."
+            riferimenti.append({
+                "file": relativo,
+                "riga": numero_riga,
+                "termini": termini,
+                "url": urls,
+                "contesto": contesto,
+            })
+
+    return {"servizi": sorted(servizi, key=str.lower), "riferimenti": riferimenti}
+
+
+def genera_report_database(analisi):
+    """Formatta lo schema SQLite in Markdown."""
+    righe = [
+        "# Schema del database SQLite", "",
+        f"- Percorso: `{analisi['percorso']}`",
+        f"- Tabelle trovate: {len(analisi['tabelle'])}", "",
+    ]
+    if analisi["errore"]:
+        righe.extend([f"> {analisi['errore']}", ""])
+    elif not analisi["tabelle"]:
+        righe.extend(["Nessuna tabella trovata.", ""])
+
+    for tabella in analisi["tabelle"]:
+        totale = tabella["righe"] if tabella["righe"] is not None else "non disponibile"
+        righe.extend([f"## `{tabella['nome']}`", "", f"- Righe: {totale}", ""])
+        if tabella["errore_conteggio"]:
+            righe.extend([f"- Errore durante l'analisi: {tabella['errore_conteggio']}", ""])
+        righe.extend(["### Colonne", "", "| Nome | Tipo | Vincoli |", "|---|---|---|"])
+        for colonna in tabella["colonne"]:
+            vincoli = ", ".join(colonna["vincoli"]) or "—"
+            righe.append(f"| `{colonna['nome']}` | {colonna['tipo']} | {vincoli} |")
+        if not tabella["colonne"]:
+            righe.append("| — | — | Nessuna colonna leggibile |")
+        righe.extend(["", "### Indici", ""])
+        if tabella["indici"]:
+            for indice in tabella["indici"]:
+                univoco = "UNIQUE" if indice["univoco"] else "non univoco"
+                colonne = ", ".join(f"`{colonna}`" for colonna in indice["colonne"]) or "colonne non disponibili"
+                righe.append(f"- `{indice['nome']}` ({univoco}): {colonne}")
+        else:
+            righe.append("Nessun indice.")
+        righe.extend(["", "### Chiavi esterne", ""])
+        if tabella["chiavi_esterne"]:
+            for chiave in tabella["chiavi_esterne"]:
+                righe.append(
+                    f"- `{chiave['colonna']}` → "
+                    f"`{chiave['tabella_riferita']}.{chiave['colonna_riferita']}` "
+                    f"(ON UPDATE {chiave['azione_update']}, ON DELETE {chiave['azione_delete']})"
+                )
+        else:
+            righe.append("Nessuna chiave esterna.")
+        righe.append("")
+    return "\n".join(righe)
+
+
+def genera_report_configurazioni(file_configurazione):
+    """Formatta elenco e contenuti dei file di configurazione in Markdown."""
+    righe = ["# File di configurazione", ""]
+    if not file_configurazione:
+        righe.extend(["Nessun file di configurazione trovato.", ""])
+        return "\n".join(righe)
+
+    righe.extend(["## Elenco", ""])
+    for file_config in file_configurazione:
+        righe.append(f"- `{file_config['file']}` — {file_config['nota']}")
+    righe.append("")
+    for file_config in file_configurazione:
+        righe.extend([
+            f"## `{file_config['file']}`", "",
+            f"Nota: {file_config['nota']}", "",
+        ])
+        if file_config["errore"]:
+            righe.extend([f"> {file_config['errore']}", ""])
+            continue
+        righe.extend(["```text", file_config["contenuto"], "```", ""])
+    return "\n".join(righe)
+
+
+def genera_report_servizi_esterni(analisi):
+    """Formatta i riferimenti a servizi esterni in Markdown."""
+    righe = ["# Servizi esterni rilevati", "", "## Elenco", ""]
+    if analisi["servizi"]:
+        righe.extend(f"- `{servizio}`" for servizio in analisi["servizi"])
+    else:
+        righe.append("Nessun servizio o URL esterno rilevato.")
+    righe.extend(["", "## Riferimenti nel codice e nelle configurazioni", ""])
+    if not analisi["riferimenti"]:
+        righe.append("Nessun riferimento trovato.")
+    else:
+        for riferimento in analisi["riferimenti"]:
+            indicatori = riferimento["termini"] + riferimento["url"]
+            contesto = riferimento["contesto"].replace("`", "\\`")
+            righe.extend([
+                f"### `{riferimento['file']}`:{riferimento['riga']}",
+                f"- Riferimento: {', '.join(f'`{voce}`' for voce in indicatori)}",
+                f"- Contesto: `{contesto}`",
+                "",
+            ])
+    return "\n".join(righe)
 
 
 # ------------------------------------------------------------
@@ -773,6 +1095,18 @@ def genera_ai_brief(dati):
     righe.append(f"*Aggiornato: {datetime.now().strftime('%Y-%m-%d %H:%M')}*")
     righe.append("")
 
+    righe.append("## Come leggere il progetto")
+    righe.append("")
+    righe.append("- All'inizio di ogni richiesta: `REPORT/AI_BRIEF.md`.")
+    righe.append("- Prima di lavorare sul database: `REPORT/DB_SCHEMA.md`.")
+    righe.append("- Prima di lavorare sulla configurazione: `REPORT/CONFIG_FILES.md`.")
+    righe.append("- Prima di lavorare sui servizi esterni: `REPORT/EXTERNAL_SERVICES.md`.")
+    righe.append("- Per dettagli specifici: `REPORT/analisi.json` oppure il file di codice interessato.")
+    righe.append("- Per le persone: `REPORT/report.md` (completo) e `REPORT/riepilogo.txt` (sintesi).")
+    righe.append("- `REPORT/ULTIMO_RUN.json` è riservato allo script.")
+    righe.append("- Non leggere `aider_context.md` né i file con timestamp: sono specifici o storici.")
+    righe.append("")
+
     # --- Numeri essenziali ---
     righe.append("## Numeri essenziali")
     righe.append("")
@@ -825,6 +1159,35 @@ def genera_ai_brief(dati):
             righe.append(f"- ... e altre {len(duplicazioni) - 20}")
         righe.append("")
 
+    database = dati["database_analysis"]
+    righe.append("## Database")
+    righe.append("")
+    righe.append(f"- Percorso: `{database['percorso']}`")
+    righe.append(f"- Numero di tabelle: {len(database['tabelle'])}")
+    if database["errore"]:
+        righe.append(f"- Stato: {database['errore']}")
+    for tabella in database["tabelle"]:
+        righe.append(f"- `{tabella['nome']}`: {tabella['righe']} righe")
+    righe.append("")
+
+    servizi_esterni = dati["external_services_analysis"]["servizi"]
+    righe.append("## Servizi esterni rilevati")
+    righe.append("")
+    if servizi_esterni:
+        righe.extend(f"- `{servizio}`" for servizio in servizi_esterni)
+    else:
+        righe.append("- Nessun servizio o URL esterno rilevato.")
+    righe.append("")
+
+    configurazioni = dati["configuration_analysis"]
+    righe.append("## File di configurazione")
+    righe.append("")
+    if configurazioni:
+        righe.extend(f"- `{file_config['file']}`" for file_config in configurazioni)
+    else:
+        righe.append("- Nessun file di configurazione trovato.")
+    righe.append("")
+
     righe.append("## Moduli principali")
     righe.append("")
     ordinati = sorted(
@@ -841,14 +1204,6 @@ def genera_ai_brief(dati):
     righe.append("")
     for azione in agent["azioni_consigliate"]:
         righe.append(f"- {azione}")
-    righe.append("")
-
-    # --- Prompt pronto ---
-    righe.append("## Prompt pronto per agente")
-    righe.append("")
-    righe.append("```")
-    righe.append(dati["prompt_agente"])
-    righe.append("```")
     righe.append("")
 
     righe.append("---")
@@ -882,6 +1237,57 @@ def genera_report_markdown(dati):
     righe.append(f"- Rotte Flask: **{len(arch['rotte_api'])}**")
     righe.append(f"- Tabelle rilevate: **{s['totale_tabelle']}**")
     righe.append(f"- Simboli orfani: **{len(dep['simboli_orfani'])}**")
+    righe.append("")
+
+    # Database
+    database = dati["database_analysis"]
+    righe.append("## Database")
+    righe.append("")
+    righe.append(f"- Percorso: `{database['percorso']}`")
+    righe.append(f"- Tabelle: {len(database['tabelle'])}")
+    if database["errore"]:
+        righe.append(f"- Stato: {database['errore']}")
+    if database["tabelle"]:
+        righe.extend([
+            "",
+            "| Tabella | Righe | Colonne chiave |",
+            "|---|---:|---|",
+        ])
+        for tabella in database["tabelle"]:
+            colonne_chiave = []
+            for colonna in tabella["colonne"]:
+                if "chiave primaria" in colonna["vincoli"]:
+                    colonne_chiave.append(f"{colonna['nome']} (PK)")
+            for chiave in tabella["chiavi_esterne"]:
+                colonne_chiave.append(
+                    f"{chiave['colonna']} (FK → {chiave['tabella_riferita']}.{chiave['colonna_riferita']})"
+                )
+            righe.append(
+                f"| `{tabella['nome']}` | {tabella['righe'] if tabella['righe'] is not None else 'n/d'} "
+                f"| {', '.join(colonne_chiave) if colonne_chiave else '—'} |"
+            )
+    elif not database["errore"]:
+        righe.append("- Nessuna tabella trovata.")
+    righe.append("")
+
+    # File di configurazione
+    righe.append("## File di configurazione")
+    righe.append("")
+    configurazioni = dati["configuration_analysis"]
+    if configurazioni:
+        righe.extend(f"- `{file_config['file']}`" for file_config in configurazioni)
+    else:
+        righe.append("- Nessun file trovato.")
+    righe.append("")
+
+    # Servizi esterni
+    righe.append("## Servizi esterni")
+    righe.append("")
+    servizi = dati["external_services_analysis"]["servizi"]
+    if servizi:
+        righe.extend(f"- `{servizio}`" for servizio in servizi)
+    else:
+        righe.append("- Nessun servizio o URL rilevato.")
     righe.append("")
 
     righe.append("## 2. Architettura (per strato)")
@@ -962,32 +1368,22 @@ def genera_report_markdown(dati):
         righe.append(f"- {azione}")
     righe.append("")
 
-    righe.append("## 8. Prompt per IA")
-    righe.append("")
-    righe.append("```")
-    righe.append(dati["prompt_agente"])
-    righe.append("```")
-    righe.append("")
-
     return "\n".join(righe)
 
 
 # ------------------------------------------------------------
-# CHANGELOG (confronto con esecuzione precedente)
+# ARCHIVIAZIONE REPORT PRECEDENTI
 # ------------------------------------------------------------
 def archivia_report_precedenti(cartella_report):
     """
     Sposta i file dell'esecuzione precedente in ARCHIVIO/<data_ora>/.
-    Lascia in REPORT/ solo:
-      - i file dell'esecuzione attuale (li scriveremo dopo)
-      - CHANGELOG.md (sempre aggiornato)
-      - ULTIMO_RUN.json (sempre aggiornato)
+    Mantiene nella cartella principale i report correnti e l'ultimo snapshot.
     """
     cartella_archivio = os.path.join(cartella_report, "ARCHIVIO")
     assicura_cartella(cartella_archivio)
 
     # File che NON vanno archiviati (restano sempre nella root di REPORT/)
-    file_da_non_archiviare = {NOME_CHANGELOG, NOME_ULTIMO_SNAPSHOT, "AI_BRIEF.md"}
+    file_da_non_archiviare = FILE_REPORT_SEMPRE_PRESENTI
 
     # Raccogli i file da archiviare, raggruppati per prefisso data-ora
     gruppi = defaultdict(list)
@@ -1009,6 +1405,11 @@ def archivia_report_precedenti(cartella_report):
         if match:
             prefisso = match.group(1)
             gruppi[prefisso].append(nome_file)
+        elif nome_file in FILE_REPORT_OBSOLETI:
+            prefisso = datetime.fromtimestamp(
+                os.path.getmtime(percorso_completo)
+            ).strftime("%Y-%m-%d_%H-%M-%S")
+            gruppi[prefisso].append(nome_file)
         else:
             # File senza prefisso riconoscibile: li lasciamo dove sono
             pass
@@ -1024,98 +1425,6 @@ def archivia_report_precedenti(cartella_report):
                 os.replace(origine, destinazione)
             except Exception as e:
                 print(f"    ATTENZIONE: impossibile archiviare {nome_file}: {e}")
-
-def carica_snapshot_precedente(percorso):
-    """Carica ULTIMO_RUN.json se esiste, altrimenti None."""
-    if not os.path.exists(percorso):
-        return None
-    try:
-        with open(percorso, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return None
-
-
-def genera_changelog(vecchio, nuovo):
-    """Confronta due snapshot e produce un changelog in Markdown."""
-    righe = []
-    righe.append(f"# Changelog analisi")
-    righe.append("")
-    righe.append(f"*Generato il {datetime.now().strftime('%Y-%m-%d alle %H:%M:%S')}*")
-    righe.append("")
-
-    if vecchio is None:
-        righe.append("**Prima esecuzione: nessun confronto disponibile.**")
-        righe.append("")
-        righe.append(f"- Moduli: {nuovo['sintesi']['totale_moduli']}")
-        righe.append(f"- Classi: {nuovo['sintesi']['totale_classi']}")
-        righe.append(f"- Funzioni: {nuovo['sintesi']['totale_funzioni']}")
-        righe.append(f"- Simboli orfani: {len(nuovo['dipendenze']['simboli_orfani'])}")
-        righe.append("")
-        righe.append("Dalla prossima esecuzione vedrai qui le differenze.")
-        return "\n".join(righe)
-
-    v = vecchio["sintesi"]
-    n = nuovo["sintesi"]
-
-    righe.append("## Differenze numeriche")
-    righe.append("")
-    righe.append(f"| Metrica | Prima | Adesso | Delta |")
-    righe.append(f"|---|---|---|---|")
-    righe.append(f"| Moduli | {v['totale_moduli']} | {n['totale_moduli']} | {n['totale_moduli'] - v['totale_moduli']:+d} |")
-    righe.append(f"| Classi | {v['totale_classi']} | {n['totale_classi']} | {n['totale_classi'] - v['totale_classi']:+d} |")
-    righe.append(f"| Funzioni | {v['totale_funzioni']} | {n['totale_funzioni']} | {n['totale_funzioni'] - v['totale_funzioni']:+d} |")
-    righe.append(f"| Tabelle | {v['totale_tabelle']} | {n['totale_tabelle']} | {n['totale_tabelle'] - v['totale_tabelle']:+d} |")
-    righe.append("")
-
-    # Simboli orfani: quali sono nuovi, quali risolti
-    orfani_vecchi = {o["simbolo"] for o in vecchio["dipendenze"]["simboli_orfani"]}
-    orfani_nuovi = {o["simbolo"] for o in nuovo["dipendenze"]["simboli_orfani"]}
-
-    nuovi_orfani = orfani_nuovi - orfani_vecchi
-    orfani_risolti = orfani_vecchi - orfani_nuovi
-
-    righe.append("## Simboli orfani")
-    righe.append("")
-    if nuovi_orfani:
-        righe.append(f"**Nuovi simboli orfani ({len(nuovi_orfani)}):**")
-        for s in sorted(nuovi_orfani):
-            righe.append(f"- `{s}`")
-        righe.append("")
-    if orfani_risolti:
-        righe.append(f"**Simboli orfani risolti ({len(orfani_risolti)}):**")
-        for s in sorted(orfani_risolti):
-            righe.append(f"- `{s}`")
-        righe.append("")
-    if not nuovi_orfani and not orfani_risolti:
-        righe.append("Nessun cambiamento nei simboli orfani.")
-        righe.append("")
-
-    # File nuovi e scomparsi
-    files_vecchi = set(vecchio["moduli"].keys())
-    files_nuovi = set(nuovo["moduli"].keys())
-
-    nuovi_files = files_nuovi - files_vecchi
-    files_scomparsi = files_vecchi - files_nuovi
-
-    righe.append("## File Python")
-    righe.append("")
-    if nuovi_files:
-        righe.append(f"**File aggiunti ({len(nuovi_files)}):**")
-        for f in sorted(nuovi_files):
-            righe.append(f"- `{f}`")
-        righe.append("")
-    if files_scomparsi:
-        righe.append(f"**File rimossi ({len(files_scomparsi)}):**")
-        for f in sorted(files_scomparsi):
-            righe.append(f"- `{f}`")
-        righe.append("")
-    if not nuovi_files and not files_scomparsi:
-        righe.append("Nessun file aggiunto o rimosso.")
-        righe.append("")
-
-    return "\n".join(righe)
-
 
 # ------------------------------------------------------------
 # FUNZIONE PRINCIPALE
@@ -1206,8 +1515,30 @@ def esegui_analisi():
     print(f"    Trovate {len(duplicazioni)} funzioni/metodi duplicati.")
     print()
 
+    # 7c. Analisi aggiuntive: database, configurazioni e servizi esterni
+    print("7c. Analisi database SQLite in sola lettura...")
+    analisi_database = analizza_database_sqlite(
+        os.path.join("data", "bikepacking_app.db")
+    )
+    if analisi_database["errore"]:
+        print(f"    {analisi_database['errore']}")
+    else:
+        print(f"    Trovate {len(analisi_database['tabelle'])} tabelle.")
+
+    print("7d. Scansione file di configurazione...")
+    percorsi_configurazione = trova_file_configurazione(".")
+    file_configurazione = analizza_file_configurazione(".", percorsi_configurazione)
+    print(f"    Trovati {len(file_configurazione)} file.")
+
+    print("7e. Rilevamento servizi esterni...")
+    analisi_servizi_esterni = rileva_servizi_esterni(
+        ".", file_python, percorsi_configurazione
+    )
+    print(f"    Trovati {len(analisi_servizi_esterni['riferimenti'])} riferimenti.")
+    print()
+
     # 7c. Costruisci mappa delle dipendenze
-    print("7c. Costruzione mappa dipendenze...")
+    print("7f. Costruzione mappa dipendenze...")
     mappa_dipendenze = costruisci_mappa_dipendenze(moduli)
     print(f"    Mappati {len(mappa_dipendenze)} moduli con importatori.")
     print()
@@ -1246,6 +1577,9 @@ def esegui_analisi():
         },
         "moduli": {},
         "non_python_signals": non_python,
+        "database_analysis": analisi_database,
+        "configuration_analysis": file_configurazione,
+        "external_services_analysis": analisi_servizi_esterni,
     }
 
     for percorso, modulo in moduli.items():
@@ -1276,12 +1610,10 @@ def esegui_analisi():
     archivia_report_precedenti(cartella_report)
 
     ts = timestamp_leggibile()
-    percorso_json = os.path.join(cartella_report, f"{ts}_analisi.json")
-    percorso_md = os.path.join(cartella_report, f"{ts}_report.md")
-    percorso_prompt = os.path.join(cartella_report, f"{ts}_prompt_agente.md")
+    percorso_json = os.path.join(cartella_report, "analisi.json")
+    percorso_md = os.path.join(cartella_report, "report.md")
     percorso_aider = os.path.join(cartella_report, f"{ts}_aider_context.md")
-    percorso_riepilogo = os.path.join(cartella_report, f"{ts}_riepilogo.txt")
-    percorso_changelog = os.path.join(cartella_report, NOME_CHANGELOG)
+    percorso_riepilogo = os.path.join(cartella_report, "riepilogo.txt")
     percorso_ultimo = os.path.join(cartella_report, NOME_ULTIMO_SNAPSHOT)
 
     # 11. Scrivi il JSON completo
@@ -1294,12 +1626,7 @@ def esegui_analisi():
         f.write(genera_report_markdown(dati))
     print(f"    Scritto: {percorso_md}")
 
-    # 13. Scrivi il prompt agente
-    with open(percorso_prompt, "w", encoding="utf-8") as f:
-        f.write(dati["prompt_agente"] + "\n")
-    print(f"    Scritto: {percorso_prompt}")
-
-    # 14. Scrivi il context Aider
+    # 13. Scrivi il context Aider
     with open(percorso_aider, "w", encoding="utf-8") as f:
         f.write("# Aider context\n\n")
         f.write("```json\n")
@@ -1308,15 +1635,23 @@ def esegui_analisi():
     print(f"    Scritto: {percorso_aider}")
 
     # 14b. Scrivi l'AI Brief (file compatto per Copilot)
-    percorso_brief = os.path.join(cartella_report, f"{ts}_ai_brief.md")
     percorso_brief_ultimo = os.path.join(cartella_report, "AI_BRIEF.md")
     contenuto_brief = genera_ai_brief(dati)
-    with open(percorso_brief, "w", encoding="utf-8") as f:
-        f.write(contenuto_brief)
     with open(percorso_brief_ultimo, "w", encoding="utf-8") as f:
         f.write(contenuto_brief)
-    print(f"    Scritto: {percorso_brief}")
     print(f"    Scritto: {percorso_brief_ultimo}")
+
+    # 14c. Scrivi i report di database, configurazioni e servizi esterni
+    percorsi_report_aggiuntivi = {
+        "DB_SCHEMA.md": genera_report_database(analisi_database),
+        "CONFIG_FILES.md": genera_report_configurazioni(file_configurazione),
+        "EXTERNAL_SERVICES.md": genera_report_servizi_esterni(analisi_servizi_esterni),
+    }
+    for nome_report, contenuto_report in percorsi_report_aggiuntivi.items():
+        percorso_report = os.path.join(cartella_report, nome_report)
+        with open(percorso_report, "w", encoding="utf-8") as f:
+            f.write(contenuto_report)
+        print(f"    Scritto: {percorso_report}")
 
     # 15. Scrivi riepilogo testuale
     riepilogo = []
@@ -1339,13 +1674,7 @@ def esegui_analisi():
         f.write("\n".join(riepilogo))
     print(f"    Scritto: {percorso_riepilogo}")
 
-    # 16. Changelog (confronto con ultimo snapshot)
-    vecchio = carica_snapshot_precedente(percorso_ultimo)
-    with open(percorso_changelog, "w", encoding="utf-8") as f:
-        f.write(genera_changelog(vecchio, dati))
-    print(f"    Scritto: {percorso_changelog}")
-
-    # 17. Salva snapshot corrente per il prossimo confronto
+    # 16. Salva lo snapshot corrente per lo script
     with open(percorso_ultimo, "w", encoding="utf-8") as f:
         json.dump(dati, f, indent=2, ensure_ascii=False)
     print(f"    Scritto: {percorso_ultimo}")
