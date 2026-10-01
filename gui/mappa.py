@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtCore import QUrl, Qt, QTimer, QThread, Signal
-from PySide6.QtGui import QColor, QPainter
+from PySide6.QtGui import QColor, QDesktopServices, QPainter
 
 from service.config import BASE_DIR, BROUTER_URL, DB_NAME
 from service.geometria_service import (
@@ -1419,6 +1419,11 @@ class MappaWidget(QWidget):
         btn_refresh.clicked.connect(self.reload_map)
         toolbar.addWidget(btn_refresh)
 
+        btn_apri_browser = QPushButton("🌐 Apri nel browser")
+        btn_apri_browser.setStyleSheet("background-color: #262626; color: #e2e8f0; border: 1px solid #404040; padding: 6px 12px; border-radius: 4px; font-weight: 500;")
+        btn_apri_browser.clicked.connect(self.apri_mappa_nel_browser)
+        toolbar.addWidget(btn_apri_browser)
+
         self.btn_toggle_pannello = QPushButton("🗂️ Pianificatore")
         self.btn_toggle_pannello.setStyleSheet("background-color: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold;")
         self.btn_toggle_pannello.clicked.connect(self.toggle_pannello)
@@ -1448,6 +1453,15 @@ class MappaWidget(QWidget):
         self.pannello_pianificazione.btn_chiudi_pannello.clicked.connect(self.toggle_pannello)
 
         main_layout.addWidget(container_mappa)
+
+    def apri_mappa_nel_browser(self):
+        """Apre la stessa pagina locale visualizzata nella WebView."""
+        if not QDesktopServices.openUrl(self.web_view.url()):
+            QMessageBox.warning(
+                self,
+                "Impossibile aprire il browser",
+                "Windows non è riuscito ad aprire la pagina della mappa.",
+            )
 
     def _gestisci_permessi_gps(self, url, feature):
         feature_enum = getattr(QWebEnginePage, "Feature", None)
