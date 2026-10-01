@@ -1,15 +1,15 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-02 alle 00:31:19*
+*Generato il 2026-10-02 alle 01:24:18*
 
 ## 1. Sintesi
 
-- Moduli Python: **34**
-- Classi: **19**
-- Funzioni globali: **293**
+- Moduli Python: **35**
+- Classi: **20**
+- Funzioni globali: **306**
 - Rotte Flask: **8**
 - Tabelle rilevate: **23**
-- Simboli orfani: **56**
+- Simboli orfani: **59**
 
 ## Database
 
@@ -18,10 +18,10 @@
 
 | Tabella | Righe | Colonne chiave |
 |---|---:|---|
-| `allarmi_percorso` | 27 | id (PK), id_progetto (FK → progetti.id) |
+| `allarmi_percorso` | 28 | id (PK), id_progetto (FK → progetti.id) |
 | `anagrafica_paesi` | 198 | codice_iso2 (PK) |
 | `anagrafica_paesi_mondo` | 12 | codice_iso2 (PK) |
-| `blocchi_ordine` | 23 | id (PK), id_progetto (FK → progetti.id) |
+| `blocchi_ordine` | 24 | id (PK), id_progetto (FK → progetti.id) |
 | `blocchi_stagione` | 18 | id (PK) |
 | `cache_geo_paesi` | 2 | lat_griglia (PK), lon_griglia (PK) |
 | `cache_nomi_luoghi` | 995 | lat_arrotondata (PK), lon_arrotondata (PK) |
@@ -83,16 +83,16 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (19 file)
+**core** (20 file)
 - `service/__init__.py`
 - `service/audit_service.py`
+- `service/catena_stagionale_service.py`
 - `service/clima_service.py`
 - `service/config.py`
 - `service/costa_service.py`
 - `service/dogane_service.py`
 - `service/geocodifica_offline_service.py`
-- `service/geometria_service.py`
-- ... e altri 11
+- ... e altri 12
 
 **altro** (9 file)
 - `app_desktop.py`
@@ -130,14 +130,16 @@
 
 ## 5. Simboli orfani
 
-*56 simboli definiti ma mai citati altrove:*
+*59 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
 - **classe** `DropAreaGPX` in `app_desktop.py`
+- **classe** `TimelineCatenaWidget` in `app_desktop.py`
 - **classe** `GestoreBlocchiWidget` in `app_desktop.py`
 - **classe** `BikepackingStudioApp` in `app_desktop.py`
 - **funzione** `determina_blocco_da_nome_file` in `app_desktop.py`
+- **funzione** `imposta_righe` in `app_desktop.py`
 - **funzione** `carica_blocchi` in `app_desktop.py`
 - **funzione** `apri_selettore_file` in `app_desktop.py`
 - **funzione** `esegui_backup_progetto` in `backup.py`
@@ -160,14 +162,12 @@
 - **funzione** `request_stop` in `gui/mappa.py`
 - **funzione** `nome_luogo` in `gui/mappa.py`
 - **classe** `WizardNuovoPercorso` in `gui/wizard_percorso.py`
-- **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
-- **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
-- ... e altri 26
+- ... e altri 29
 
 ## 6. Moduli con più contenuto
 
 - `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 5 classi, 52 funzioni
+- `app_desktop.py`: 6 classi, 58 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni

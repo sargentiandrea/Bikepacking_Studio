@@ -5,7 +5,7 @@
 
 ## `allarmi_percorso`
 
-- Righe: 27
+- Righe: 28
 
 ### Colonne
 
@@ -81,7 +81,7 @@ Nessuna chiave esterna.
 
 ## `blocchi_ordine`
 
-- Righe: 23
+- Righe: 24
 
 ### Colonne
 

@@ -3,8 +3,10 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sqlite3
+from contextlib import closing
 import folium
 import service.audit_service
+import service.catena_stagionale_service
 import service.clima_service
 import gpxpy
 import gpxpy.gpx
@@ -38,9 +40,18 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout,
                              QFrame, QFileDialog, QTableWidget, QTableWidgetItem,
                              QHeaderView, QMessageBox, QDialog, QFormLayout, 
                              QLineEdit, QListWidget, QListWidgetItem, QComboBox, QTextEdit, QSizePolicy,
-                             QDateEdit, QSpinBox, QTabWidget)
+                             QDateEdit, QSpinBox, QTabWidget, QScrollArea)
 from PySide6.QtCore import Qt, Signal, QUrl
-from PySide6.QtGui import QFont, QDragEnterEvent, QDropEvent, QPixmap, QIcon
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QDragEnterEvent,
+    QDropEvent,
+    QIcon,
+    QPainter,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 # --- FORZATURA ACCELERAZIONE HARDWARE (ANTI-SCHERMO BIANCO) ---
 os.environ["QT_WEBENGINE_DISABLE_GPU"] = "0"
@@ -118,6 +129,79 @@ class DropAreaGPX(QFrame):
         filepaths = [u.toLocalFile() for u in urls if u.toLocalFile().lower().endswith('.gpx')]
         if filepaths:
             self.files_dropped.emit(filepaths)
+
+
+class TimelineCatenaWidget(QWidget):
+    """Disegna una timeline compatta delle date previste per i blocchi."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._righe = []
+        self._altezza_riga = 26
+        self.setMinimumWidth(520)
+        self.setMinimumHeight(70)
+        self.setStyleSheet("background-color: #252526;")
+
+    def imposta_righe(self, righe):
+        self._righe = list(righe)
+        self.setMinimumHeight(44 + max(1, len(self._righe)) * self._altezza_riga)
+        self.update()
+
+    def paintEvent(self, _event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(_event.rect(), QColor("#252526"))
+
+        if not self._righe:
+            painter.setPen(QColor("#aaaaaa"))
+            painter.drawText(12, 30, "La timeline apparirà dopo il calcolo della catena.")
+            return
+
+        date_ingressi = [
+            datetime.strptime(riga["data_ingresso"], "%Y-%m-%d").date()
+            for riga in self._righe
+        ]
+        date_uscite = [
+            datetime.strptime(riga["data_uscita"], "%Y-%m-%d").date()
+            for riga in self._righe
+        ]
+        data_iniziale = min(date_ingressi)
+        data_finale = max(date_uscite)
+        intervallo_giorni = max(1, (data_finale - data_iniziale).days + 1)
+
+        margine_sinistro = 205
+        margine_destro = 12
+        larghezza_traccia = max(1, self.width() - margine_sinistro - margine_destro)
+        painter.setPen(QPen(QColor("#aaaaaa")))
+        painter.drawText(margine_sinistro, 18, data_iniziale.strftime("%d/%m/%Y"))
+        painter.drawText(
+            self.width() - margine_destro - 82,
+            18,
+            data_finale.strftime("%d/%m/%Y"),
+        )
+
+        for indice, riga in enumerate(self._righe):
+            y = 28 + indice * self._altezza_riga
+            data_riga = datetime.strptime(
+                riga["data_ingresso"], "%Y-%m-%d"
+            ).date()
+            offset_giorni = (data_riga - data_iniziale).days
+            durata = max(0, int(riga["giorni_totali"]))
+            x = margine_sinistro + round(
+                offset_giorni / intervallo_giorni * larghezza_traccia
+            )
+            larghezza = max(
+                4,
+                round(durata / intervallo_giorni * larghezza_traccia),
+            )
+
+            nome = f"{riga['nome_blocco']} ({durata} gg)"
+            painter.setPen(QColor("#eeeeee"))
+            painter.drawText(8, y + 16, nome[:28])
+            painter.setPen(QPen(QColor("#1677a8")))
+            painter.setBrush(QColor("#0e639c"))
+            painter.drawRoundedRect(x, y + 5, larghezza, 14, 4, 4)
+
 
 class GestoreBlocchiWidget(QWidget):
     def __init__(self, parent_app):
@@ -268,6 +352,10 @@ class BikepackingStudioApp(QMainWindow):
         self.current_progetto_id = None
         self.current_progetto_nome = ""
         self.mappa_necessita_aggiornamento = True
+        self._clima_progetto_id = None
+        self._clima_ordine_base = []
+        self._clima_ordine_scenario = None
+        self._clima_risultati_correnti = []
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -567,17 +655,58 @@ class BikepackingStudioApp(QMainWindow):
         controls.addWidget(btn_salva)
         layout.addLayout(controls)
 
-        self.lbl_stato_clima = QLabel("Seleziona un percorso per calcolare la finestra stagionale.")
+        controlli_scenario = QHBoxLayout()
+        controlli_scenario.addWidget(QLabel("Sposta nello scenario"))
+        self.combo_blocco_scenario = QComboBox()
+        self.combo_blocco_scenario.setMinimumWidth(180)
+        controlli_scenario.addWidget(self.combo_blocco_scenario)
+        controlli_scenario.addWidget(QLabel("nuova posizione"))
+        self.combo_posizione_scenario = QComboBox()
+        controlli_scenario.addWidget(self.combo_posizione_scenario)
+        self.btn_applica_scenario = QPushButton("Prova spostamento")
+        self.btn_applica_scenario.clicked.connect(self.sposta_blocco_scenario)
+        controlli_scenario.addWidget(self.btn_applica_scenario)
+        self.btn_ripristina_scenario = QPushButton("Ripristina ordine")
+        self.btn_ripristina_scenario.clicked.connect(self.ripristina_ordine_scenario)
+        controlli_scenario.addWidget(self.btn_ripristina_scenario)
+        layout.addLayout(controlli_scenario)
+
+        self.lbl_stato_clima = QLabel(
+            "Stima con margini: la proiezione non è una probabilità matematica."
+        )
         layout.addWidget(self.lbl_stato_clima)
+        self.lbl_regole_clima = QLabel(
+            "1 tappa = 1 giorno; 1 riposo ogni 5 tappe; buffer: 5 giorni per "
+            "mese di calendario attraversato e 7 giorni ogni 4 mesi. "
+            "I buffer non ne generano altri."
+        )
+        self.lbl_regole_clima.setWordWrap(True)
+        layout.addWidget(self.lbl_regole_clima)
+
+        lbl_timeline = QLabel("Timeline del viaggio")
+        lbl_timeline.setStyleSheet("font-weight: bold; color: #cccccc;")
+        layout.addWidget(lbl_timeline)
+        self.timeline_clima = TimelineCatenaWidget()
+        self.area_timeline_clima = QScrollArea()
+        self.area_timeline_clima.setWidgetResizable(True)
+        self.area_timeline_clima.setMaximumHeight(190)
+        self.area_timeline_clima.setWidget(self.timeline_clima)
+        layout.addWidget(self.area_timeline_clima)
+
+        lbl_tabella = QLabel("Dettaglio per blocco")
+        lbl_tabella.setStyleSheet("font-weight: bold; color: #cccccc;")
+        layout.addWidget(lbl_tabella)
         self.table_clima = QTableWidget()
-        self.table_clima.setColumnCount(12)
+        self.table_clima.setColumnCount(10)
         self.table_clima.setHorizontalHeaderLabels([
-            "#", "Blocco", "Tappe", "Km", "Pedalata", "Riposo", "Extra",
-            "Totale giorni", "Ingresso", "Uscita", "Mesi ideali", "Esito"
+            "Blocco", "Tappe", "Km", "Pedalata", "Riposo", "Buffer",
+            "Totale giorni", "Ingresso", "Uscita", "Nota"
         ])
         self.table_clima.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table_clima.horizontalHeader().setStretchLastSection(True)
+        self.table_clima.setMaximumHeight(300)
         layout.addWidget(self.table_clima)
+        self._aggiorna_controlli_scenario([])
         self._stile_pagina_servizio(widget)
         return widget
 
@@ -849,20 +978,37 @@ class BikepackingStudioApp(QMainWindow):
 
     def aggiorna_pagina_clima(self):
         if not self.current_progetto_id:
-            self.lbl_stato_clima.setText("Apri un percorso per calcolare la finestra stagionale.")
+            self._clima_progetto_id = None
+            self._clima_ordine_base = []
+            self._clima_ordine_scenario = None
+            self._clima_risultati_correnti = []
+            self.lbl_stato_clima.setText("Apri un percorso per calcolare la catena.")
             self._imposta_righe_tabella(self.table_clima, [])
+            self.timeline_clima.imposta_righe([])
+            self._aggiorna_controlli_scenario([])
             return
 
         try:
+            self._clima_progetto_id = self.current_progetto_id
+            self._clima_ordine_base = []
+            self._clima_ordine_scenario = None
+            self._clima_risultati_correnti = []
             service.clima_service.assicura_tabelle_clima()
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT data_partenza, modificatore_riposo FROM progetto_stagione WHERE id_progetto = ?",
-                (self.current_progetto_id,)
-            )
-            impostazioni = cursor.fetchone()
-            conn.close()
+            with closing(sqlite3.connect(DB_NAME)) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT data_partenza, modificatore_riposo
+                    FROM progetto_stagione
+                    WHERE id_progetto = ?
+                    """,
+                    (self.current_progetto_id,),
+                )
+                impostazioni = cursor.fetchone()
+
+            data_corrente = QDate.currentDate()
+            self.input_data_partenza.setDate(data_corrente)
+            self.input_riposo.setValue(0)
             if impostazioni:
                 if impostazioni[0]:
                     data = datetime.strptime(impostazioni[0], "%Y-%m-%d").date()
@@ -876,28 +1022,129 @@ class BikepackingStudioApp(QMainWindow):
         if not self.current_progetto_id:
             return
         data = self.input_data_partenza.date()
-        data_partenza = datetime(data.year(), data.month(), data.day())
+        data_partenza = datetime(data.year(), data.month(), data.day()).date()
         try:
-            risultati = service.clima_service.calcola_catena_stagionale(
+            risultati_base = service.catena_stagionale_service.calcola_catena(
                 self.current_progetto_id,
-                data_partenza_dt=data_partenza,
-                modificatore_riposo=self.input_riposo.value()
+                data_partenza,
+                self.input_riposo.value(),
             )
-            colonne = [
-                "ordine", "blocco", "tappe", "km_totali", "giorni_pedalata",
-                "giorni_riposo", "giorni_extra", "giorni_totali", "data_ingresso",
-                "data_uscita", "mesi_ideali", "semaforo"
+            ordine_base = [
+                risultato["nome_blocco"] for risultato in risultati_base
             ]
+
+            if (
+                self._clima_ordine_scenario is None
+                or self._clima_ordine_scenario == self._clima_ordine_base
+            ):
+                self._clima_ordine_base = ordine_base
+                self._clima_ordine_scenario = list(ordine_base)
+                risultati = risultati_base
+            else:
+                risultati = service.catena_stagionale_service.proponi_scenario(
+                    self.current_progetto_id,
+                    self._clima_ordine_scenario,
+                    data_partenza,
+                    self.input_riposo.value(),
+                )
+
+            self._clima_risultati_correnti = risultati
             self._imposta_righe_tabella(
                 self.table_clima,
-                [[risultato.get(colonna) for colonna in colonne] for risultato in risultati]
+                [
+                    [
+                        risultato["nome_blocco"],
+                        risultato["numero_tappe"],
+                        f"{risultato['km_totali']:.1f}",
+                        risultato["giorni_pedalata"],
+                        risultato["giorni_riposo"],
+                        risultato["giorni_extra"],
+                        risultato["giorni_totali"],
+                        datetime.strptime(
+                            risultato["data_ingresso"], "%Y-%m-%d"
+                        ).strftime("%d/%m/%Y"),
+                        datetime.strptime(
+                            risultato["data_uscita"], "%Y-%m-%d"
+                        ).strftime("%d/%m/%Y"),
+                        risultato["avviso"] or "—",
+                    ]
+                    for risultato in risultati
+                ],
             )
-            self.lbl_stato_clima.setText(
-                f"Catena calcolata per {len(risultati)} blocchi."
-                if risultati else "Il percorso non contiene tappe attive da pianificare."
+            self.timeline_clima.imposta_righe(risultati)
+            ordine_attivo = [
+                risultato["nome_blocco"] for risultato in risultati
+            ]
+            self._aggiorna_controlli_scenario(ordine_attivo)
+
+            scenario_attivo = ordine_attivo != self._clima_ordine_base
+            avvisi = sum(
+                bool(risultato["avviso"]) for risultato in risultati
             )
+            descrizione = (
+                f"Stima con margini per {len(risultati)} blocchi."
+                if risultati
+                else "Il percorso non contiene blocchi con tappe attive."
+            )
+            if scenario_attivo:
+                descrizione += " Scenario non salvato."
+            if avvisi:
+                descrizione += f" Attenzione: {avvisi} blocchi richiedono verifica."
+            self.lbl_stato_clima.setText(descrizione)
         except Exception as errore:
+            self._imposta_righe_tabella(self.table_clima, [])
+            self.timeline_clima.imposta_righe([])
             self.lbl_stato_clima.setText(f"Errore durante il calcolo stagionale: {errore}")
+
+    def _aggiorna_controlli_scenario(self, ordine_blocchi):
+        nome_selezionato = self.combo_blocco_scenario.currentData()
+        self.combo_blocco_scenario.clear()
+        self.combo_posizione_scenario.clear()
+
+        for nome_blocco in ordine_blocchi:
+            self.combo_blocco_scenario.addItem(nome_blocco, nome_blocco)
+        for posizione, nome_blocco in enumerate(ordine_blocchi, start=1):
+            self.combo_posizione_scenario.addItem(
+                f"{posizione}. {nome_blocco}", posizione
+            )
+
+        indice_selezionato = self.combo_blocco_scenario.findData(nome_selezionato)
+        if indice_selezionato >= 0:
+            self.combo_blocco_scenario.setCurrentIndex(indice_selezionato)
+
+        ci_sono_blocchi = len(ordine_blocchi) > 1
+        self.combo_blocco_scenario.setEnabled(ci_sono_blocchi)
+        self.combo_posizione_scenario.setEnabled(ci_sono_blocchi)
+        self.btn_applica_scenario.setEnabled(ci_sono_blocchi)
+        self.btn_ripristina_scenario.setEnabled(
+            ci_sono_blocchi
+            and self._clima_ordine_scenario != self._clima_ordine_base
+        )
+
+    def sposta_blocco_scenario(self):
+        ordine_corrente = [
+            risultato["nome_blocco"]
+            for risultato in self._clima_risultati_correnti
+        ]
+        nome_blocco = self.combo_blocco_scenario.currentData()
+        nuova_posizione = self.combo_posizione_scenario.currentData()
+        if (
+            not ordine_corrente
+            or nome_blocco not in ordine_corrente
+            or nuova_posizione is None
+        ):
+            return
+
+        ordine_proposto = list(ordine_corrente)
+        indice_corrente = ordine_proposto.index(nome_blocco)
+        blocco = ordine_proposto.pop(indice_corrente)
+        ordine_proposto.insert(int(nuova_posizione) - 1, blocco)
+        self._clima_ordine_scenario = ordine_proposto
+        self.calcola_pagina_clima()
+
+    def ripristina_ordine_scenario(self):
+        self._clima_ordine_scenario = list(self._clima_ordine_base)
+        self.calcola_pagina_clima()
 
     def salva_impostazioni_clima(self):
         if not self.current_progetto_id:
@@ -910,7 +1157,9 @@ class BikepackingStudioApp(QMainWindow):
                 self.current_progetto_id, data_partenza, self.input_riposo.value()
             )
             self.calcola_pagina_clima()
-            self.lbl_stato_clima.setText("Impostazioni salvate. " + self.lbl_stato_clima.text())
+            self.lbl_stato_clima.setText(
+                "Data e riposo salvati. " + self.lbl_stato_clima.text()
+            )
         except Exception as errore:
             self.lbl_stato_clima.setText(f"Errore durante il salvataggio clima: {errore}")
 

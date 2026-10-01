@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-02T00:31:19.938787",
+    "data_analisi": "2026-10-02T01:24:18.220855",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 34,
-    "totale_classi": 19,
-    "totale_funzioni": 293,
+    "totale_moduli": 35,
+    "totale_classi": 20,
+    "totale_funzioni": 306,
     "totale_rotte_flask": 8,
     "totale_tabelle": 23,
     "tabelle_create": [
@@ -121,6 +121,7 @@
       "core": [
         "service/__init__.py",
         "service/audit_service.py",
+        "service/catena_stagionale_service.py",
         "service/clima_service.py",
         "service/config.py",
         "service/costa_service.py",
@@ -241,6 +242,11 @@
         "file": "app_desktop.py"
       },
       {
+        "simbolo": "TimelineCatenaWidget",
+        "tipo": "classe",
+        "file": "app_desktop.py"
+      },
+      {
         "simbolo": "GestoreBlocchiWidget",
         "tipo": "classe",
         "file": "app_desktop.py"
@@ -252,6 +258,11 @@
       },
       {
         "simbolo": "determina_blocco_da_nome_file",
+        "tipo": "funzione",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "imposta_righe",
         "tipo": "funzione",
         "file": "app_desktop.py"
       },
@@ -382,6 +393,11 @@
       },
       {
         "simbolo": "determina_mesi_ideali_automatici",
+        "tipo": "funzione",
+        "file": "service/clima_service.py"
+      },
+      {
+        "simbolo": "calcola_catena_stagionale",
         "tipo": "funzione",
         "file": "service/clima_service.py"
       },
@@ -547,6 +563,14 @@
         "numero_copie": 3
       },
       {
+        "nome": "paintEvent",
+        "file": [
+          "app_desktop.py",
+          "gui/mappa.py"
+        ],
+        "numero_copie": 2
+      },
+      {
         "nome": "carica_lista_percorsi",
         "file": [
           "app_desktop.py",
@@ -644,16 +668,19 @@
       }
     ],
     "mappa_dipendenze": {
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
       "service/clima_service.py": [
         "app_desktop"
       ],
       "service/stats_service.py": [
+        "app_desktop"
+      ],
+      "service/catena_stagionale_service.py": [
+        "app_desktop"
+      ],
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
+      "service/audit_service.py": [
         "app_desktop"
       ]
     }
@@ -664,6 +691,7 @@
         "DoganeSignals",
         "ClimaSignals",
         "DropAreaGPX",
+        "TimelineCatenaWidget",
         "GestoreBlocchiWidget",
         "BikepackingStudioApp"
       ],
@@ -673,6 +701,9 @@
         "__init__",
         "dragEnterEvent",
         "dropEvent",
+        "__init__",
+        "imposta_righe",
+        "paintEvent",
         "__init__",
         "init_ui",
         "carica_blocchi",
@@ -697,6 +728,9 @@
         "aggiorna_pagina_dogane",
         "aggiorna_pagina_clima",
         "calcola_pagina_clima",
+        "_aggiorna_controlli_scenario",
+        "sposta_blocco_scenario",
+        "ripristina_ordine_scenario",
         "salva_impostazioni_clima",
         "aggiorna_pagina_statistiche",
         "crea_pagina_placeholder",
@@ -726,6 +760,7 @@
         "gui.dashboard.DashboardPage",
         "gui.mappa.MappaWidget",
         "service.audit_service",
+        "service.catena_stagionale_service",
         "service.clima_service",
         "service.config.DB_NAME",
         "service.dogane_service.analizza_dogane_progetto",
@@ -738,6 +773,7 @@
         "PySide6.QtGui",
         "PySide6.QtWebEngineWidgets",
         "PySide6.QtWidgets",
+        "contextlib",
         "datetime",
         "folium",
         "gpxpy",
@@ -767,6 +803,7 @@
         "GestoreBlocchiWidget",
         "MappaWidget",
         "QApplication",
+        "QColor",
         "QComboBox",
         "QDate",
         "QDateEdit",
@@ -780,8 +817,11 @@
         "QLineEdit",
         "QListWidget",
         "QListWidgetItem",
+        "QPainter",
+        "QPen",
         "QPixmap",
         "QPushButton",
+        "QScrollArea",
         "QSize",
         "QSpinBox",
         "QStackedWidget",
@@ -791,7 +831,9 @@
         "QVBoxLayout",
         "QWidget",
         "Signal",
+        "TimelineCatenaWidget",
         "__init__",
+        "_aggiorna_controlli_scenario",
         "_imposta_righe_tabella",
         "_stile_pagina_servizio",
         "abs",
@@ -821,7 +863,8 @@
         "availableGeometry",
         "avvia_wizard_trasferimento",
         "basename",
-        "calcola_catena_stagionale",
+        "bool",
+        "calcola_catena",
         "calcola_distanza_haversine",
         "calcola_pagina_clima",
         "cambia_pagina",
@@ -829,6 +872,7 @@
         "carica_lista_percorsi",
         "clear",
         "close",
+        "closing",
         "commit",
         "connect",
         "copy",
@@ -842,6 +886,7 @@
         "crea_pagina_placeholder",
         "crea_pagina_statistiche",
         "crea_pagina_trasporti",
+        "currentData",
         "currentDate",
         "currentRow",
         "currentText",
@@ -852,6 +897,8 @@
         "datetime",
         "day",
         "dirname",
+        "drawRoundedRect",
+        "drawText",
         "elabora_files_gpx",
         "emit",
         "endswith",
@@ -863,7 +910,9 @@
         "exit",
         "fetchall",
         "fetchone",
+        "fillRect",
         "findChildren",
+        "findData",
         "genera_raccordo_gpx",
         "get",
         "getOpenFileNames",
@@ -874,6 +923,8 @@
         "height",
         "horizontalHeader",
         "icon",
+        "imposta_righe",
+        "index",
         "information",
         "init_ui",
         "inizializza_database",
@@ -887,21 +938,27 @@
         "items",
         "join",
         "len",
+        "list",
         "load",
         "lower",
+        "max",
         "mimeData",
+        "min",
         "month",
         "mostra_mappa_gap",
         "open",
         "ottieni_kpi_totali_progetto",
         "ottieni_ripartizione_fasce_mare",
         "ottieni_statistiche_per_blocco",
+        "pop",
         "primaryScreen",
         "print",
+        "proponi_scenario",
         "question",
         "raccorda_traccia_istantaneo",
         "radians",
         "range",
+        "rect",
         "remove",
         "replace",
         "resize",
@@ -915,6 +972,7 @@
         "setAlignment",
         "setAlternatingRowColors",
         "setAttribute",
+        "setBrush",
         "setCalendarPopup",
         "setCellWidget",
         "setCentralWidget",
@@ -928,6 +986,7 @@
         "setDefaultSectionSize",
         "setDisplayFormat",
         "setEditTriggers",
+        "setEnabled",
         "setFieldGrowthPolicy",
         "setFixedWidth",
         "setFont",
@@ -936,10 +995,14 @@
         "setIcon",
         "setIconSize",
         "setItem",
+        "setMaximumHeight",
         "setMaximumWidth",
         "setMinimumHeight",
+        "setMinimumWidth",
+        "setPen",
         "setPlaceholderText",
         "setRange",
+        "setRenderHint",
         "setRowCount",
         "setSectionResizeMode",
         "setSpacing",
@@ -949,7 +1012,10 @@
         "setTextAlignment",
         "setToolTip",
         "setValue",
+        "setWidget",
+        "setWidgetResizable",
         "setWindowTitle",
+        "setWordWrap",
         "show",
         "sin",
         "split",
@@ -957,12 +1023,15 @@
         "start_local_map_server",
         "startswith",
         "str",
+        "strftime",
         "strip",
         "strptime",
+        "sum",
         "super",
         "takeItem",
         "text",
         "toLocalFile",
+        "update",
         "upper",
         "urls",
         "value",
@@ -1901,6 +1970,72 @@
         "sum",
         "to_xml",
         "write"
+      ]
+    },
+    "service/catena_stagionale_service.py": {
+      "classi": [],
+      "funzioni": [
+        "_connetti_sola_lettura",
+        "_colonne_tabella",
+        "_carica_blocchi",
+        "_normalizza_data",
+        "_calcola_da_blocchi",
+        "calcola_catena",
+        "proponi_scenario"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "__future__",
+        "collections",
+        "contextlib",
+        "datetime",
+        "pathlib",
+        "sqlite3",
+        "urllib.parse"
+      ],
+      "tabelle_usate": [
+        "blocchi_ordine",
+        "sqlite_master"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "Counter",
+        "Path",
+        "RuntimeError",
+        "TypeError",
+        "ValueError",
+        "_calcola_da_blocchi",
+        "_carica_blocchi",
+        "_colonne_tabella",
+        "_connetti_sola_lettura",
+        "_normalizza_data",
+        "append",
+        "as_posix",
+        "casefold",
+        "closing",
+        "connect",
+        "date",
+        "enumerate",
+        "execute",
+        "fetchall",
+        "get",
+        "isinstance",
+        "isoformat",
+        "join",
+        "len",
+        "list",
+        "max",
+        "quote",
+        "resolve",
+        "set",
+        "setdefault",
+        "sorted",
+        "str",
+        "sum",
+        "timedelta",
+        "today"
       ]
     },
     "service/clima_service.py": {
@@ -9197,7 +9332,7 @@
     "tabelle": [
       {
         "nome": "allarmi_percorso",
-        "righe": 27,
+        "righe": 28,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -9383,7 +9518,7 @@
       },
       {
         "nome": "blocchi_ordine",
-        "righe": 23,
+        "righe": 24,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10764,12 +10899,12 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 34,
-    "totale_classi": 19,
-    "totale_funzioni": 293,
+    "totale_moduli": 35,
+    "totale_classi": 20,
+    "totale_funzioni": 306,
     "endpoint_flask": 8,
     "tabelle_rilevate": 23,
-    "simboli_orfani": 56,
+    "simboli_orfani": 59,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
@@ -10798,9 +10933,9 @@
       },
       {
         "file": "app_desktop.py",
-        "score": 330,
-        "classi": 5,
-        "funzioni": 52,
+        "score": 378,
+        "classi": 6,
+        "funzioni": 58,
         "anomalie": 0
       },
       {
@@ -10839,15 +10974,15 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 34,
-      "classi": 19,
-      "funzioni": 293,
+      "moduli": 35,
+      "classi": 20,
+      "funzioni": 306,
       "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 56",
+      "Simboli orfani: 59",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -10862,7 +10997,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 19 classi, 293 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 20 classi, 306 funzioni, 8 endpoint Flask, 59 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 19 classi, 293 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 20 classi, 306 funzioni, 8 endpoint Flask, 59 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

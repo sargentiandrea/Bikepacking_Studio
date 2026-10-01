@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-02 00:31*
+*Aggiornato: 2026-10-02 01:24*
 
 ## Come leggere il progetto
 
@@ -15,18 +15,18 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 34
-- Classi: 19
-- Funzioni: 293
+- Moduli Python: 35
+- Classi: 20
+- Funzioni: 306
 - Rotte Flask: 8
 - Tabelle DB: 23
-- Simboli orfani: 56
+- Simboli orfani: 59
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
 - `gui/mappa.py` - score 473 - 9 classi, 87 funzioni, 0 anomalie
-- `app_desktop.py` - score 330 - 5 classi, 52 funzioni, 0 anomalie
+- `app_desktop.py` - score 378 - 6 classi, 58 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
 - `service/stats_service.py` - score 110 - 0 classi, 14 funzioni, 0 anomalie
 - `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
@@ -47,9 +47,11 @@
 - `DoganeSignals` (classe) in `app_desktop.py`
 - `ClimaSignals` (classe) in `app_desktop.py`
 - `DropAreaGPX` (classe) in `app_desktop.py`
+- `TimelineCatenaWidget` (classe) in `app_desktop.py`
 - `GestoreBlocchiWidget` (classe) in `app_desktop.py`
 - `BikepackingStudioApp` (classe) in `app_desktop.py`
 - `determina_blocco_da_nome_file` (funzione) in `app_desktop.py`
+- `imposta_righe` (funzione) in `app_desktop.py`
 - `carica_blocchi` (funzione) in `app_desktop.py`
 - `apri_selettore_file` (funzione) in `app_desktop.py`
 - `esegui_backup_progetto` (funzione) in `backup.py`
@@ -57,18 +59,17 @@
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
 - `BarraSuperfici` (classe) in `gui/mappa.py`
 - `MapManagerDialog` (classe) in `gui/mappa.py`
-- `PannelloPianificazioneWidget` (classe) in `gui/mappa.py`
-- `WorkerAnalisiSuperficiOffline` (classe) in `gui/mappa.py`
-- ... e altri 41 (vedi report completo)
+- ... e altri 44 (vedi report completo)
 
 ## Duplicazioni rilevate
 
-*16 funzioni/metodi definiti in più file:*
+*17 funzioni/metodi definiti in più file:*
 
 - `calcola_distanza_haversine` (4 copie) → `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`, `service/gpx_metrics_service.py`
 - `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `esegui_migrazione` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `init_ui` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/wizard_percorso.py`
+- `paintEvent` (2 copie) → `app_desktop.py`, `gui/mappa.py`
 - `carica_lista_percorsi` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `apri_percorso_selezionato` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `crea_nuovo_progetto_dialog` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
@@ -86,10 +87,10 @@
 
 - Percorso: `data/bikepacking_app.db`
 - Numero di tabelle: 19
-- `allarmi_percorso`: 27 righe
+- `allarmi_percorso`: 28 righe
 - `anagrafica_paesi`: 198 righe
 - `anagrafica_paesi_mondo`: 12 righe
-- `blocchi_ordine`: 23 righe
+- `blocchi_ordine`: 24 righe
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
 - `cache_nomi_luoghi`: 995 righe
@@ -140,7 +141,7 @@
 ## Moduli principali
 
 - `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 5 classi, 52 funzioni
+- `app_desktop.py`: 6 classi, 58 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
