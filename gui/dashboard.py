@@ -108,7 +108,8 @@ class DashboardPage(QWidget):
         btn_back.clicked.connect(lambda: (
             self.stack_archivio.setCurrentIndex(0),
             setattr(self.window(), 'current_progetto_id', None),
-            self.window().rigenera_mappa(force=True) if hasattr(self.window(), 'rigenera_mappa') else None
+            self.window().page_mappa.rigenera_mappa(None, DB_NAME, force=True)
+            if hasattr(self.window(), 'page_mappa') else None
         ))
 
         self.lbl_nome_percorso_attivo = QLabel("Percorso: Non Selezionato")

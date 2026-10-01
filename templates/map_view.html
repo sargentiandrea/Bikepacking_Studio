@@ -138,7 +138,7 @@
 
         // Evidenzia una tappa e centra la mappa; ripetere il click o passare null
         // ripristina il colore normale e permette di deselezionare.
-        window.evidenziaTappa = function(tappaId) {
+        window.evidenziaTappa = async function(tappaId) {
             if (!map || !mappaPronta || !map.getLayer('gpx-line-layer')) return;
 
             const idNumerico = tappaId === null || tappaId === undefined
@@ -161,13 +161,40 @@
             ]);
 
             if (!ultimoGeoJsonGpx || !ultimoGeoJsonGpx.features) return;
-            const tratto = ultimoGeoJsonGpx.features.find(
-                f => f.geometry && f.geometry.type === 'LineString' && Number(f.properties && f.properties.tappa_id) === idNumerico
+            let tratto = ultimoGeoJsonGpx.features.find(
+                f => f.properties && f.properties.tipo === 'tappa' &&
+                    Number(f.properties.tappa_id) === idNumerico
             );
-            if (tratto && tratto.geometry.coordinates.length) {
-                const primoPunto = tratto.geometry.coordinates[0];
+            if (tratto && !tratto.properties.geometria_completa) {
+                try {
+                    const response = await fetch(
+                        `/api/tappe/${idNumerico}/geometria-completa`
+                    );
+                    if (response.ok) {
+                        const risultato = await response.json();
+                        if (tappaEvidenziataId !== idNumerico) return;
+                        tratto.geometry = risultato.geometry;
+                        tratto.properties.geometria_completa = true;
+                        const source = map.getSource('gpx-track');
+                        if (source) source.setData(ultimoGeoJsonGpx);
+                    }
+                } catch (err) {
+                    console.warn(
+                        `Geometria completa non caricata per la tappa ${idNumerico}:`,
+                        err
+                    );
+                }
+            }
+            if (tappaEvidenziataId !== idNumerico) return;
+            const coordinateTratto = tratto && tratto.geometry
+                ? (tratto.geometry.type === 'MultiLineString'
+                    ? tratto.geometry.coordinates.flat()
+                    : tratto.geometry.coordinates)
+                : [];
+            if (coordinateTratto.length) {
+                const primoPunto = coordinateTratto[0];
                 const bounds = new maplibregl.LngLatBounds(primoPunto, primoPunto);
-                tratto.geometry.coordinates.forEach(punto => bounds.extend(punto));
+                coordinateTratto.forEach(punto => bounds.extend(punto));
                 map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 600 });
             }
         };
@@ -678,7 +705,10 @@
 
                     // Se c'erano dati arrivati in anticipo mentre la mappa nasceva, li disegna ora
                     if (datiInCoda) {
-                        window.aggiornaMappaGeoJSON(datiInCoda);
+                        window.aggiornaMappaGeoJSON(
+                            datiInCoda.geojson,
+                            datiInCoda.adattaVisuale
+                        );
                         datiInCoda = null;
                     } else {
                         // Altrimenti va a vedere se c'è un percorso iniziale memorizzato
@@ -823,18 +853,19 @@
                 });
 
                 // --- 2. IL RICEVITORE FLUIDO CON ACCENSIONE PRIORITARIA DEL CICLISTA ---
-                window.aggiornaMappaGeoJSON = function(gpxGeoJson) {
+                window.aggiornaMappaGeoJSON = function(gpxGeoJson, adattaVisuale = true) {
                     const loadingScreen = document.getElementById('loading-screen');
                     datiPercorsoPresenti = Boolean(
                         gpxGeoJson && gpxGeoJson.features &&
-                        gpxGeoJson.features.some(feature => feature.geometry && feature.geometry.type === 'LineString')
+                        gpxGeoJson.features.some(feature => feature.geometry &&
+                            ['LineString', 'MultiLineString'].includes(feature.geometry.type))
                     );
                     
                     // ACCENDIAMO IMMEDIATAMENTE IL CICLISTA SULLO SCHERMO
                     if (loadingScreen) loadingScreen.style.display = 'flex';
 
                     if (!mappaPronta) {
-                        datiInCoda = gpxGeoJson;
+                        datiInCoda = { geojson: gpxGeoJson, adattaVisuale };
                         return;
                     }
 
@@ -851,7 +882,7 @@
                                     window.evidenziaTappa(null);
                                     
                                     const bbox = gpxGeoJson && gpxGeoJson.bbox;
-                                    if (!Array.isArray(bbox) || bbox.length !== 4 ||
+                                    if (!adattaVisuale || !Array.isArray(bbox) || bbox.length !== 4 ||
                                         !bbox.every(Number.isFinite)) {
                                         map.triggerRepaint();
                                         if (loadingScreen) loadingScreen.style.display = 'none';

@@ -1,20 +1,20 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 09:24:20*
+*Generato il 2026-10-01 alle 13:18:24*
 
 ## 1. Sintesi
 
-- Moduli Python: **23**
+- Moduli Python: **33**
 - Classi: **19**
-- Funzioni globali: **252**
-- Rotte Flask: **7**
-- Tabelle rilevate: **21**
-- Simboli orfani: **57**
+- Funzioni globali: **286**
+- Rotte Flask: **8**
+- Tabelle rilevate: **23**
+- Simboli orfani: **56**
 
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle: 17
+- Tabelle: 19
 
 | Tabella | Righe | Colonne chiave |
 |---|---:|---|
@@ -24,15 +24,17 @@
 | `blocchi_ordine` | 23 | id (PK), id_progetto (FK → progetti.id) |
 | `blocchi_stagione` | 18 | id (PK) |
 | `cache_geo_paesi` | 2 | lat_griglia (PK), lon_griglia (PK) |
-| `cache_nomi_luoghi` | 993 | lat_arrotondata (PK), lon_arrotondata (PK) |
+| `cache_nomi_luoghi` | 995 | lat_arrotondata (PK), lon_arrotondata (PK) |
 | `confini_box` | 11 | id (PK) |
 | `dogane_percorso` | 0 | id (PK) |
 | `dogane_progetto` | 67 | id (PK), id_progetto (FK → progetti.id) |
 | `progetti` | 4 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
-| `superfici_tappa` | 992 | id (PK), tappa_id (FK → tappe.id) |
-| `tappa_analisi` | 1 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_segmenti` | 1 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
+| `superfici_tappa` | 993 | id (PK), tappa_id (FK → tappe.id) |
+| `tappa_analisi` | 993 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_costa_riepilogo` | 992 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_geometrie` | 992 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_segmenti` | 994 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
 | `tappe` | 994 | id (PK), id_progetto (FK → progetti.id) |
 | `trasferimenti` | 28 | id (PK), id_progetto (FK → progetti.id) |
 
@@ -69,7 +71,8 @@
 
 ## 2. Architettura (per strato)
 
-**ui** (3 file)
+**ui** (4 file)
+- `esegui_batch.py`
 - `gui/dashboard.py`
 - `gui/mappa.py`
 - `gui/wizard_percorso.py`
@@ -80,23 +83,27 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (13 file)
+**core** (18 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/clima_service.py`
 - `service/config.py`
+- `service/costa_service.py`
 - `service/dogane_service.py`
 - `service/geocodifica_offline_service.py`
-- `service/geonames_service.py`
-- `service/gpx_metrics_service.py`
-- ... e altri 5
+- `service/geometria_service.py`
+- ... e altri 10
 
-**altro** (5 file)
+**altro** (9 file)
 - `app_desktop.py`
 - `backup.py`
 - `installa_geonames.py`
 - `resources/genera_catalogo_sprite.py`
 - `static/aggiorna_sprite.py`
+- `test_batch.py`
+- `verifica_precalcolo.py`
+- `verifica_stato.py`
+- ... e altri 1
 
 ## 3. Endpoint Flask
 
@@ -104,6 +111,7 @@
 - `/fonts/<path:fontstack>/<range_pbf>` → `serve_fonts()` [GET] in `service/map_server.py`
 - `/api/set-gpx-data` → `set_gpx_data()` [POST] in `service/map_server.py`
 - `/api/get-gpx-data` → `get_gpx_data()` [GET] in `service/map_server.py`
+- `/api/tappe/<int:tappa_id>/geometria-completa` → `get_geometria_completa_tappa()` [GET] in `service/map_server.py`
 - `/api/map-interactions` → `leggi_interazioni_mappa()` [GET] in `service/map_server.py`
 - `/api/maps/list` → `list_maps()` [GET] in `service/map_server.py`
 - `/map` → `show_map()` [GET] in `service/map_server.py`
@@ -122,7 +130,7 @@
 
 ## 5. Simboli orfani
 
-*57 simboli definiti ma mai citati altrove:*
+*56 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -154,20 +162,20 @@
 - **classe** `WizardNuovoPercorso` in `gui/wizard_percorso.py`
 - **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
 - **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
-- ... e altri 27
+- ... e altri 26
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 84 funzioni
+- `gui/mappa.py`: 9 classi, 85 funzioni
 - `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
+- `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
-- `service/map_server.py`: 0 classi, 14 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
+- `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
-- `service/gpx_metrics_service.py`: 0 classi, 7 funzioni
-- `service/map_manager_service.py`: 2 classi, 4 funzioni
-- `service/audit_service.py`: 0 classi, 5 funzioni
+- `service/precalcolo_service.py`: 0 classi, 8 funzioni
+- `service/geometria_service.py`: 0 classi, 7 funzioni
 
 ## 7. Livello di rischio e file critici
 

@@ -1,7 +1,7 @@
 # Schema del database SQLite
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle trovate: 17
+- Tabelle trovate: 19
 
 ## `allarmi_percorso`
 
@@ -146,7 +146,7 @@ Nessuna chiave esterna.
 
 ## `cache_nomi_luoghi`
 
-- Righe: 993
+- Righe: 995
 
 ### Colonne
 
@@ -286,7 +286,7 @@ Nessuna chiave esterna.
 
 ## `superfici_tappa`
 
-- Righe: 992
+- Righe: 993
 
 ### Colonne
 
@@ -307,7 +307,7 @@ Nessuna chiave esterna.
 
 ## `tappa_analisi`
 
-- Righe: 1
+- Righe: 993
 
 ### Colonne
 
@@ -339,9 +339,69 @@ Nessun indice.
 
 - `tappa_id` → `tappe.id` (ON UPDATE NO ACTION, ON DELETE CASCADE)
 
+## `tappa_costa_riepilogo`
+
+- Righe: 992
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `tappa_id` | INTEGER | chiave primaria |
+| `gpx_sha256` | TEXT | NOT NULL |
+| `versione_algoritmo_costa` | TEXT | NOT NULL |
+| `versione_dataset_costa` | TEXT | NOT NULL |
+| `fascia_0_500m_km` | REAL | NOT NULL, DEFAULT 0 |
+| `fascia_500_2500m_km` | REAL | NOT NULL, DEFAULT 0 |
+| `fascia_2500_5000m_km` | REAL | NOT NULL, DEFAULT 0 |
+| `fascia_oltre_5000m_km` | REAL | NOT NULL, DEFAULT 0 |
+| `tappe_coinvolte_0_500m` | INTEGER | NOT NULL, DEFAULT 0 |
+| `tappe_coinvolte_500_2500m` | INTEGER | NOT NULL, DEFAULT 0 |
+| `tappe_coinvolte_2500_5000m` | INTEGER | NOT NULL, DEFAULT 0 |
+| `tappe_coinvolte_oltre_5000m` | INTEGER | NOT NULL, DEFAULT 0 |
+| `totale_km` | REAL | NOT NULL, DEFAULT 0 |
+| `calcolato_il` | TEXT | NOT NULL |
+
+### Indici
+
+Nessun indice.
+
+### Chiavi esterne
+
+- `tappa_id` → `tappe.id` (ON UPDATE NO ACTION, ON DELETE CASCADE)
+
+## `tappa_geometrie`
+
+- Righe: 992
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `tappa_id` | INTEGER | chiave primaria |
+| `gpx_sha256` | TEXT | NOT NULL |
+| `versione_algoritmo` | TEXT | NOT NULL |
+| `geometria_completa` | BLOB | NOT NULL |
+| `geometria_semplificata` | BLOB | NOT NULL |
+| `bbox_min_lat` | REAL | NOT NULL |
+| `bbox_min_lon` | REAL | NOT NULL |
+| `bbox_max_lat` | REAL | NOT NULL |
+| `bbox_max_lon` | REAL | NOT NULL |
+| `numero_punti_originali` | INTEGER | NOT NULL |
+| `numero_punti_semplificati` | INTEGER | NOT NULL |
+| `aggiornato_il` | TEXT | NOT NULL |
+
+### Indici
+
+Nessun indice.
+
+### Chiavi esterne
+
+- `tappa_id` → `tappe.id` (ON UPDATE NO ACTION, ON DELETE CASCADE)
+
 ## `tappa_segmenti`
 
-- Righe: 1
+- Righe: 994
 
 ### Colonne
 

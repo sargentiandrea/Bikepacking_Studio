@@ -4,13 +4,30 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import logging
 import sqlite3
 from typing import Any
 
+from shapely.errors import ShapelyError
+
 from service.gpx_metrics_service import analizza_gpx
+from service.geometria_service import (
+    VERSIONE_ALGORITMO_GEOMETRIA,
+    calcola_geometria_gpx,
+)
+from service.costa_service import (
+    calcola_costa_tappa,
+    riepilogo_costa_aggiornato,
+    salva_riepilogo_costa,
+)
 
 
 VERSIONE_ALGORITMI = "gpx_metrics_v1"
+_LOGGER = logging.getLogger(__name__)
+_ANOMALIE_GESTITE = (
+    "misure di pendenza scartate come anomale",
+    "punti duplicati rimossi",
+)
 
 
 def calcola_sha256(percorso_file: str) -> str:
@@ -24,6 +41,131 @@ def calcola_sha256(percorso_file: str) -> str:
 
 def _ora_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _geometria_aggiornata(
+    connessione: sqlite3.Connection,
+    tappa_id: int,
+    gpx_sha256: str,
+) -> bool:
+    try:
+        record = connessione.execute(
+            """
+            SELECT 1 FROM tappa_geometrie
+            WHERE tappa_id = ? AND gpx_sha256 = ?
+              AND versione_algoritmo = ?
+            """,
+            (tappa_id, gpx_sha256, VERSIONE_ALGORITMO_GEOMETRIA),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return False
+    return record is not None
+
+
+def _salva_costa_se_necessario(
+    connessione: sqlite3.Connection,
+    tappa_id: int,
+    percorso_file: str,
+    gpx_sha256: str,
+) -> str | None:
+    """Salva la costa se manca o se il GPX/dataset è cambiato."""
+    try:
+        if riepilogo_costa_aggiornato(connessione, tappa_id, gpx_sha256):
+            return None
+        dati_costa = calcola_costa_tappa(
+            tappa_id,
+            percorso_file,
+            connessione=connessione,
+            gpx_sha256=gpx_sha256,
+        )
+        salva_riepilogo_costa(connessione, dati_costa)
+        return None
+    except (
+        OSError,
+        ValueError,
+        RuntimeError,
+        sqlite3.Error,
+        ShapelyError,
+    ) as errore:
+        _LOGGER.exception("Precalcolo costa fallito per la tappa %s", tappa_id)
+        return str(errore)
+
+
+def _salva_geometria(
+    connessione: sqlite3.Connection,
+    tappa_id: int,
+    percorso_file: str,
+    gpx_sha256: str,
+) -> bool:
+    """Salva i due livelli geometrici senza invalidare le metriche se fallisce."""
+    try:
+        geometria = calcola_geometria_gpx(percorso_file)
+        connessione.execute(
+            """
+            INSERT INTO tappa_geometrie (
+                tappa_id, gpx_sha256, versione_algoritmo,
+                geometria_completa, geometria_semplificata,
+                bbox_min_lat, bbox_min_lon, bbox_max_lat, bbox_max_lon,
+                numero_punti_originali, numero_punti_semplificati,
+                aggiornato_il
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(tappa_id) DO UPDATE SET
+                gpx_sha256 = excluded.gpx_sha256,
+                versione_algoritmo = excluded.versione_algoritmo,
+                geometria_completa = excluded.geometria_completa,
+                geometria_semplificata = excluded.geometria_semplificata,
+                bbox_min_lat = excluded.bbox_min_lat,
+                bbox_min_lon = excluded.bbox_min_lon,
+                bbox_max_lat = excluded.bbox_max_lat,
+                bbox_max_lon = excluded.bbox_max_lon,
+                numero_punti_originali = excluded.numero_punti_originali,
+                numero_punti_semplificati = excluded.numero_punti_semplificati,
+                aggiornato_il = excluded.aggiornato_il
+            """,
+            (
+                tappa_id,
+                gpx_sha256,
+                geometria["versione_algoritmo"],
+                geometria["geometria_completa"],
+                geometria["geometria_semplificata"],
+                geometria["bbox_min_lat"],
+                geometria["bbox_min_lon"],
+                geometria["bbox_max_lat"],
+                geometria["bbox_max_lon"],
+                geometria["numero_punti_originali"],
+                geometria["numero_punti_semplificati"],
+                _ora_utc(),
+            ),
+        )
+        return True
+    except (OSError, ValueError, sqlite3.Error):
+        _LOGGER.exception("Salvataggio geometria fallito per la tappa %s", tappa_id)
+        return False
+
+
+def _anomalie_bloccanti(anomalie: list[str]) -> list[str]:
+    """Separa i filtri gestiti dalle anomalie che rendono incompleti i dati."""
+    anomalie_gestite = [
+        anomalia
+        for anomalia in anomalie
+        if any(tipo in anomalia.casefold() for tipo in _ANOMALIE_GESTITE)
+    ]
+    if anomalie_gestite:
+        _LOGGER.info("Filtri GPX gestiti: %s", anomalie_gestite)
+
+    anomalie_bloccanti = [
+        anomalia
+        for anomalia in anomalie
+        if not any(tipo in anomalia.casefold() for tipo in _ANOMALIE_GESTITE)
+    ]
+    if anomalie_bloccanti:
+        _LOGGER.warning(
+            "Anomalie GPX che rendono parziale l'analisi: %s",
+            anomalie_bloccanti,
+        )
+
+    return anomalie_bloccanti
 
 
 def _salva_errore(
@@ -70,7 +212,18 @@ def precalcola_tappa(
         ).fetchone()
         if record and record[0] == gpx_sha256 and record[1] == VERSIONE_ALGORITMI:
             if record[2] == "COMPLETO":
-                return {"stato": "COMPLETO", "saltato": True}
+                if not _geometria_aggiornata(connessione, tappa_id, gpx_sha256):
+                    _salva_geometria(
+                        connessione, tappa_id, percorso_file, gpx_sha256
+                    )
+                errore_costa = _salva_costa_se_necessario(
+                    connessione, tappa_id, percorso_file, gpx_sha256
+                )
+                return {
+                    "stato": "COMPLETO",
+                    "saltato": True,
+                    "costa_errore": errore_costa,
+                }
 
         analisi_esistente = connessione.execute(
             """
@@ -148,7 +301,18 @@ def precalcola_tappa(
                 """,
                 (tappa_id, tappa_id),
             )
-            return {"stato": "COMPLETO", "saltato": True}
+            if not _geometria_aggiornata(connessione, tappa_id, gpx_sha256):
+                _salva_geometria(
+                    connessione, tappa_id, percorso_file, gpx_sha256
+                )
+            errore_costa = _salva_costa_se_necessario(
+                connessione, tappa_id, percorso_file, gpx_sha256
+            )
+            return {
+                "stato": "COMPLETO",
+                "saltato": True,
+                "costa_errore": errore_costa,
+            }
 
         connessione.execute(
             """
@@ -185,7 +349,9 @@ def precalcola_tappa(
                 )
                 return risultato
 
-            stato = "PARZIALE" if risultato["anomalie"] else "COMPLETO"
+            anomalie = risultato.get("anomalie", [])
+            stato = "PARZIALE" if _anomalie_bloccanti(anomalie) else "COMPLETO"
+            risultato["stato"] = stato
             bbox = risultato["bbox"] or {}
             connessione.execute(
                 """
@@ -244,6 +410,13 @@ def precalcola_tappa(
                 "UPDATE tappe SET distanza_km = ? WHERE id = ?",
                 (risultato["distanza_km"], tappa_id),
             )
+            _salva_geometria(
+                connessione, tappa_id, percorso_file, gpx_sha256
+            )
+            errore_costa = _salva_costa_se_necessario(
+                connessione, tappa_id, percorso_file, gpx_sha256
+            )
+            risultato["costa_errore"] = errore_costa
             return risultato
         except Exception as exc:
             _salva_errore(connessione, tappa_id, gpx_sha256, str(exc))

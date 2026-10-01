@@ -3,6 +3,7 @@ import json
 import sqlite3
 import threading
 import math
+import hashlib
 import uuid
 import re
 from contextlib import closing
@@ -22,6 +23,11 @@ from PySide6.QtCore import QUrl, Qt, QTimer, QThread, Signal
 from PySide6.QtGui import QColor, QPainter
 
 from service.config import BASE_DIR, BROUTER_URL, DB_NAME
+from service.geometria_service import (
+    VERSIONE_ALGORITMO_GEOMETRIA,
+    decomprimi_segmenti,
+    geometria_geojson,
+)
 from service.geonames_service import cerca_coordinate_luogo
 from service.map_manager_service import MapManagerService, DownloadWorker
 from service.precalcolo_service import precalcola_tappa
@@ -1346,7 +1352,12 @@ class PannelloPianificazioneWidget(QFrame):
             self.firma_ultima_anteprima = None
             self.btn_salva.setText("Salva Percorso")
             self.mappa_widget.ultimo_progetto_id_caricato = None
-            self.mappa_widget.rigenera_mappa(id_progetto_corrente, DB_NAME, force=True)
+            self.mappa_widget.rigenera_mappa(
+                id_progetto_corrente,
+                DB_NAME,
+                force=True,
+                adatta_visuale=False,
+            )
 
             QMessageBox.information(
                 self,
@@ -1382,6 +1393,7 @@ class MappaWidget(QWidget):
         self._token_caricamento_mappa = 0
         self._mappa_workers_attivi = []  # tiene in vita i worker finché non finiscono davvero (vedi rigenera_mappa)
         self.ultimo_progetto_id_caricato = None
+        self._firma_dati_mappa_caricati = None
         self._ultimo_evento_mappa_id = 0
         self._poll_interazioni_timer = QTimer(self)
         self._poll_interazioni_timer.setInterval(300)
@@ -1601,25 +1613,57 @@ class MappaWidget(QWidget):
         if finestra_principale and hasattr(finestra_principale, 'current_progetto_id'):
             p_id = finestra_principale.current_progetto_id
             if p_id:
-                print(f"🚀 Mappa aperta. Avvio caricamento asincrono per percorso ID: {p_id}")
                 from service.config import DB_NAME
-                QTimer.singleShot(100, lambda: self.rigenera_mappa(p_id, DB_NAME, force=True))
+                firma_corrente = self._firma_dati_mappa(p_id, DB_NAME)
+                progetto_cambiato = self.ultimo_progetto_id_caricato != p_id
+                dati_cambiati = (
+                    getattr(finestra_principale, "mappa_necessita_aggiornamento", True)
+                    or firma_corrente is None
+                    or firma_corrente != self._firma_dati_mappa_caricati
+                )
+                if progetto_cambiato or dati_cambiati:
+                    if progetto_cambiato:
+                        print(f"🚀 Mappa aperta. Avvio caricamento asincrono per percorso ID: {p_id}")
+                    QTimer.singleShot(
+                        100,
+                        lambda: self.rigenera_mappa(
+                            p_id,
+                            DB_NAME,
+                            force=True,
+                            adatta_visuale=progetto_cambiato,
+                            firma_dati=firma_corrente,
+                        ),
+                    )
                 QTimer.singleShot(400, lambda: self.pannello_pianificazione.show() if hasattr(self, 'pannello_pianificazione') else None)
                 QTimer.singleShot(450, lambda: self.pannello_pianificazione.sincronizza_stato_percorso() if hasattr(self, 'pannello_pianificazione') else None)
                 QTimer.singleShot(500, lambda: self.web_view.setZoomFactor(1.0))
                 return
 
+        from service.config import DB_NAME
+        # Se non c'è un progetto attivo, svuota sia la mappa visibile sia i dati in Flask.
+        self.rigenera_mappa(None, DB_NAME)
         QTimer.singleShot(100, lambda: self.pannello_pianificazione.show() if hasattr(self, 'pannello_pianificazione') else None)
         QTimer.singleShot(150, lambda: self.pannello_pianificazione.sincronizza_stato_percorso() if hasattr(self, 'pannello_pianificazione') else None)
         QTimer.singleShot(0, self._ridimensiona_mappa)
         QTimer.singleShot(300, lambda: self.web_view.setZoomFactor(1.0))
 
-    def rigenera_mappa(self, current_progetto_id, db_name, force=False, mappa_necessita_aggiornamento=True):
+    def rigenera_mappa(
+        self,
+        current_progetto_id,
+        db_name,
+        force=False,
+        mappa_necessita_aggiornamento=True,
+        adatta_visuale=True,
+        firma_dati=None,
+    ):
         # Se l'utente esce dal percorso o non c'è un progetto attivo, puliamo lo schermo
         if not current_progetto_id:
+            # Invalida i worker ancora in esecuzione per evitare invii di dati vecchi.
+            self._token_caricamento_mappa += 1
             # Resettiamo la memoria del flag della cache
             if hasattr(self, 'ultimo_progetto_id_caricato'):
                 self.ultimo_progetto_id_caricato = None
+            self._firma_dati_mappa_caricati = None
             vuoto = {"type": "FeatureCollection", "features": []}
             # Invio in background: una richiesta di rete sincrona qui bloccherebbe
             # l'interfaccia se il server Flask locale è occupato con un'altra richiesta.
@@ -1643,6 +1687,9 @@ class MappaWidget(QWidget):
             print(f"ℹ️ Cache Mappa: Il percorso ID {current_progetto_id} è già presente. Calcolo in background saltato.")
             return True
 
+        if firma_dati is None:
+            firma_dati = self._firma_dati_mappa(current_progetto_id, db_name)
+
         # NOTA: in precedenza qui si forzava la chiusura del worker precedente con
         # terminate()+wait(), un'operazione pericolosa che può bloccare l'interfaccia
         # per tempi imprevedibili. Ora lasciamo che il vecchio worker finisca da solo
@@ -1655,13 +1702,18 @@ class MappaWidget(QWidget):
         js_accendi = "if(document.getElementById('loading-screen')) { document.getElementById('loading-screen').style.display = 'flex'; }"
         self.web_view.page().runJavaScript(js_accendi)
 
-        # Salviamo l'ID corrente come ultimo caricato
-        self.ultimo_progetto_id_caricato = current_progetto_id
-
-        self.mappa_worker = WorkerCaricamentoMappa(current_progetto_id, db_name)
+        self.mappa_worker = WorkerCaricamentoMappa(
+            current_progetto_id,
+            db_name,
+            token_corrente,
+            lambda: self._token_caricamento_mappa,
+        )
         self._mappa_workers_attivi.append(self.mappa_worker)
         self.mappa_worker.elaborazione_completata.connect(
-            lambda payload, token=token_corrente: self._fine_caricamento_asincrono(payload, token)
+            lambda payload, token=token_corrente, pid=current_progetto_id,
+            firma=firma_dati, adatta=adatta_visuale: self._fine_caricamento_asincrono(
+                payload, token, pid, firma, adatta
+            )
         )
         self.mappa_worker.finished.connect(
             lambda worker=self.mappa_worker: self._ripulisci_mappa_worker(worker)
@@ -1669,23 +1721,73 @@ class MappaWidget(QWidget):
         self.mappa_worker.start()
         return True
 
+    def _firma_dati_mappa(self, id_progetto, db_name):
+        """Crea una firma rapida dei campi DB usati per disegnare il progetto."""
+        try:
+            with closing(sqlite3.connect(db_name)) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT id, nome_file, sequenza, stato, blocco,
+                           start_lat, start_lon, end_lat, end_lon
+                    FROM tappe
+                    WHERE id_progetto = ?
+                    ORDER BY sequenza ASC, id ASC
+                    """,
+                    (id_progetto,),
+                )
+                tappe = cursor.fetchall()
+                cursor.execute(
+                    """
+                    SELECT tipo_mezzo, vettore, da_luogo, a_luogo,
+                           start_lat, start_lon, end_lat, end_lon
+                    FROM trasferimenti
+                    WHERE id_progetto = ?
+                    ORDER BY id ASC
+                    """,
+                    (id_progetto,),
+                )
+                trasferimenti = cursor.fetchall()
+            contenuto = repr((tappe, trasferimenti)).encode("utf-8")
+            return hashlib.sha256(contenuto).hexdigest()
+        except sqlite3.Error as errore:
+            print(f"Impossibile verificare la cache della mappa: {errore}")
+            return None
+
     def _ripulisci_mappa_worker(self, worker):
         """Rimuove dalla lista di sopravvivenza un worker di caricamento mappa che ha finito, e lo elimina."""
         if worker in self._mappa_workers_attivi:
             self._mappa_workers_attivi.remove(worker)
         worker.deleteLater()
     
-    def _fine_caricamento_asincrono(self, geojson_payload, token=None):
+    def _fine_caricamento_asincrono(
+        self,
+        geojson_payload,
+        token=None,
+        id_progetto=None,
+        firma_dati=None,
+        adatta_visuale=True,
+    ):
         if token is not None and token != self._token_caricamento_mappa:
             print("ℹ️ Cache Mappa: risultato di caricamento superato da una richiesta più recente, scartato.")
+            return
+        if id_progetto != getattr(self.parent_app, "current_progetto_id", None):
+            print("Cache Mappa: risultato ignorato perché il progetto attivo è cambiato.")
             return
         import json
         # NOTA: l'invio dati al server Flask (requests.post) è stato spostato dentro
         # WorkerCaricamentoMappa, così questa funzione, eseguita sul thread
         # dell'interfaccia, non fa più chiamate di rete bloccanti.
         stringa_geojson = json.dumps(geojson_payload)
-        js_code = f"if(window.aggiornaMappaGeoJSON) {{ window.aggiornaMappaGeoJSON({stringa_geojson}); }}"
+        js_code = (
+            "if(window.aggiornaMappaGeoJSON) "
+            f"{{ window.aggiornaMappaGeoJSON({stringa_geojson}, "
+            f"{str(adatta_visuale).lower()}); }}"
+        )
         self.web_view.page().runJavaScript(js_code)
+        self.ultimo_progetto_id_caricato = id_progetto
+        self._firma_dati_mappa_caricati = firma_dati
+        setattr(self.parent_app, "mappa_necessita_aggiornamento", False)
         print("✅ Caricamento asincrono completato ed iniettato con successo.")
 
     def open_map_manager(self):
@@ -1924,10 +2026,12 @@ class PianificazionePercorsoWorker(QThread):
 class WorkerCaricamentoMappa(QThread):
     elaborazione_completata = Signal(dict)
 
-    def __init__(self, p_id, db_n):
+    def __init__(self, p_id, db_n, token_caricamento, leggi_token_corrente):
         super().__init__()
         self.p_id = p_id
         self.db_n = db_n
+        self.token_caricamento = token_caricamento
+        self.leggi_token_corrente = leggi_token_corrente
 
     def run(self):
         import sqlite3
@@ -1953,6 +2057,33 @@ class WorkerCaricamentoMappa(QThread):
                 (self.p_id,),
             )
             tappe = cursor.fetchall()
+            geometrie_precalcolate = {}
+            try:
+                cursor.execute(
+                    """
+                    SELECT geometria.tappa_id, geometria.geometria_semplificata,
+                           geometria.bbox_min_lon, geometria.bbox_min_lat,
+                           geometria.bbox_max_lon, geometria.bbox_max_lat
+                    FROM tappe
+                    JOIN tappa_geometrie AS geometria
+                      ON geometria.tappa_id = tappe.id
+                    JOIN tappa_analisi AS analisi
+                      ON analisi.tappa_id = geometria.tappa_id
+                     AND analisi.gpx_sha256 = geometria.gpx_sha256
+                    WHERE tappe.id_progetto = ?
+                      AND geometria.versione_algoritmo = ?
+                    """,
+                    (self.p_id, VERSIONE_ALGORITMO_GEOMETRIA),
+                )
+                geometrie_precalcolate = {
+                    riga[0]: (riga[1], riga[2], riga[3], riga[4], riga[5])
+                    for riga in cursor.fetchall()
+                }
+            except sqlite3.OperationalError as errore_geometria:
+                print(
+                    "Geometrie precalcolate non disponibili; "
+                    f"uso il fallback GPX: {errore_geometria}"
+                )
 
             cursor.execute(
                 """
@@ -2005,83 +2136,120 @@ class WorkerCaricamentoMappa(QThread):
                 if not nome_file_db: continue
                 solo_nome = os.path.basename(nome_file_db)
                 filepath = os.path.join(GPX_DIR, solo_nome)
-                if os.path.exists(filepath):
+                segmenti_coordinate = None
+                bbox_tappa = None
+
+                geometria_salvata = geometrie_precalcolate.get(tappa_id)
+                if geometria_salvata:
                     try:
-                        with open(filepath, 'r', encoding='utf-8', errors='ignore') as gpx_file:
+                        segmenti_coordinate = decomprimi_segmenti(
+                            geometria_salvata[0]
+                        )
+                        bbox_tappa = list(geometria_salvata[1:])
+                    except (OSError, ValueError, TypeError) as errore:
+                        print(
+                            f"Geometria salvata non valida per la tappa "
+                            f"{tappa_id}; uso il GPX: {errore}"
+                        )
+
+                if segmenti_coordinate is None and os.path.exists(filepath):
+                    try:
+                        with open(
+                            filepath, 'r', encoding='utf-8', errors='ignore'
+                        ) as gpx_file:
                             gpx = gpxpy.parse(gpx_file)
-                            coords = []
-                            bbox_tappa = None
+                            segmenti_coordinate = []
                             for track in gpx.tracks:
                                 for segment in track.segments:
-                                    for point in segment.points:
-                                        coords.append([point.longitude, point.latitude])
-                                        if bbox_tappa is None:
-                                            bbox_tappa = [
-                                                point.longitude, point.latitude,
-                                                point.longitude, point.latitude
-                                            ]
-                                        else:
-                                            bbox_tappa[0] = min(bbox_tappa[0], point.longitude)
-                                            bbox_tappa[1] = min(bbox_tappa[1], point.latitude)
-                                            bbox_tappa[2] = max(bbox_tappa[2], point.longitude)
-                                            bbox_tappa[3] = max(bbox_tappa[3], point.latitude)
-                            
-                            if coords:
-                                nome_partenza = nome_luogo(
-                                    coords[0][1], coords[0][0], start_lat, start_lon
-                                )
-                                nome_arrivo = nome_luogo(
-                                    coords[-1][1], coords[-1][0], end_lat, end_lon
-                                )
-                                if bbox_progetto is None:
-                                    bbox_progetto = bbox_tappa.copy()
-                                else:
-                                    bbox_progetto = [
-                                        min(bbox_progetto[0], bbox_tappa[0]),
-                                        min(bbox_progetto[1], bbox_tappa[1]),
-                                        max(bbox_progetto[2], bbox_tappa[2]),
-                                        max(bbox_progetto[3], bbox_tappa[3])
+                                    coords_segmento = [
+                                        [point.longitude, point.latitude]
+                                        for point in segment.points
                                     ]
-                                payload["features"].append({
-                                    "type": "Feature",
-                                    "geometry": {"type": "LineString", "coordinates": coords},
-                                    "properties": {
-                                        "tipo": "tappa", "tappa_id": tappa_id, "sequenza": seq,
-                                        "blocco": str(blocco), "stato": str(stato),
-                                        "nome_file": solo_nome,
-                                        "nome_luogo_partenza": nome_partenza,
-                                        "nome_luogo_arrivo": nome_arrivo,
-                                    }
-                                })
-                                # --- MARKER INIZIO TAPPA ---
-                                payload["features"].append({
-                                    "type": "Feature",
-                                    "geometry": {"type": "Point", "coordinates": coords[0]},
-                                    "properties": {
-                                        "tipo": "marker_inizio",
-                                        "tappa_id": tappa_id,
-                                        "sequenza": seq,
-                                        "nome": f"Tappa {seq} - inizio",
-                                        "nome_luogo": nome_partenza,
-                                        "nome_file": solo_nome,
-                                    }
-                                })
-                                # --- MARKER FINE TAPPA (NUOVO!) ---
-                                payload["features"].append({
-                                    "type": "Feature",
-                                    "geometry": {"type": "Point", "coordinates": coords[-1]},
-                                    "properties": {
-                                        "tipo": "marker_fine",
-                                        "tappa_id": tappa_id,
-                                        "sequenza": seq,
-                                        "nome": f"Tappa {seq} - fine",
-                                        "nome_luogo": nome_arrivo,
-                                        "nome_file": solo_nome,
-                                    }
-                                })
-                                
-                    except Exception:
-                        pass
+                                    if coords_segmento:
+                                        segmenti_coordinate.append(coords_segmento)
+                    except Exception as errore:
+                        print(
+                            f"Errore lettura GPX per la tappa {tappa_id} "
+                            f"({solo_nome}): {errore}"
+                        )
+
+                punti_tappa = [
+                    punto
+                    for segmento in (segmenti_coordinate or [])
+                    for punto in segmento
+                ]
+                if punti_tappa:
+                    if bbox_tappa is None:
+                        bbox_tappa = [
+                            min(punto[0] for punto in punti_tappa),
+                            min(punto[1] for punto in punti_tappa),
+                            max(punto[0] for punto in punti_tappa),
+                            max(punto[1] for punto in punti_tappa),
+                        ]
+                    coordinate_partenza = punti_tappa[0]
+                    coordinate_arrivo = punti_tappa[-1]
+                    nome_partenza = nome_luogo(
+                        coordinate_partenza[1],
+                        coordinate_partenza[0],
+                        start_lat,
+                        start_lon,
+                    )
+                    nome_arrivo = nome_luogo(
+                        coordinate_arrivo[1],
+                        coordinate_arrivo[0],
+                        end_lat,
+                        end_lon,
+                    )
+                    if bbox_progetto is None:
+                        bbox_progetto = bbox_tappa.copy()
+                    else:
+                        bbox_progetto = [
+                            min(bbox_progetto[0], bbox_tappa[0]),
+                            min(bbox_progetto[1], bbox_tappa[1]),
+                            max(bbox_progetto[2], bbox_tappa[2]),
+                            max(bbox_progetto[3], bbox_tappa[3]),
+                        ]
+                    payload["features"].append({
+                        "type": "Feature",
+                        "geometry": geometria_geojson(segmenti_coordinate),
+                        "properties": {
+                            "tipo": "tappa", "tappa_id": tappa_id, "sequenza": seq,
+                            "blocco": str(blocco), "stato": str(stato),
+                            "nome_file": solo_nome,
+                            "nome_luogo_partenza": nome_partenza,
+                            "nome_luogo_arrivo": nome_arrivo,
+                        }
+                    })
+                    payload["features"].append({
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": coordinate_partenza,
+                        },
+                        "properties": {
+                            "tipo": "marker_inizio",
+                            "tappa_id": tappa_id,
+                            "sequenza": seq,
+                            "nome": f"Tappa {seq} - inizio",
+                            "nome_luogo": nome_partenza,
+                            "nome_file": solo_nome,
+                        }
+                    })
+                    payload["features"].append({
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": coordinate_arrivo,
+                        },
+                        "properties": {
+                            "tipo": "marker_fine",
+                            "tappa_id": tappa_id,
+                            "sequenza": seq,
+                            "nome": f"Tappa {seq} - fine",
+                            "nome_luogo": nome_arrivo,
+                            "nome_file": solo_nome,
+                        }
+                    })
 
             # 2. ESTRAZIONE TRASFERIMENTI MANCANTI (Aereo, Nave, Treno)
             cursor.execute("SELECT id, tipo_mezzo, vettore, da_luogo, a_luogo, start_lat, start_lon, end_lat, end_lon FROM trasferimenti WHERE id_progetto = ?", (self.p_id,))
@@ -2116,11 +2284,17 @@ class WorkerCaricamentoMappa(QThread):
         except Exception as err:
             print(f"Errore database nel worker: {err}")
 
-        # Invio dati al server Flask locale eseguito qui, nel thread in background,
-        # per non bloccare mai l'interfaccia grafica con una chiamata di rete.
-        try:
-            requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)
-        except Exception as errore_rete:
-            print(f"Nota: Sincronizzazione Flask in background bypassata: {errore_rete}")
+        # I worker superati non devono sovrascrivere i dati correnti sul server Flask.
+        if self.leggi_token_corrente() == self.token_caricamento:
+            # La richiesta resta nel thread in background per non bloccare la GUI.
+            try:
+                requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)
+            except Exception as errore_rete:
+                print(f"Nota: Sincronizzazione Flask in background bypassata: {errore_rete}")
+        else:
+            print(
+                f"Cache Mappa: invio Flask del percorso ID {self.p_id} "
+                "saltato perché il worker è superato."
+            )
 
         self.elaborazione_completata.emit(payload)

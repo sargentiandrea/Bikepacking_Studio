@@ -27,19 +27,19 @@
 - Riferimento: `redis`
 - Contesto: `"nota": "Elenco dei 193 Stati membri ONU più Santa Sede e Stato di Palestina. Le condizioni di ingresso possono cambiare: per un viaggio reale verificare sempre le fonti ufficiali prima della partenza. Versione 2.0: aggiunti campi anagra...`
 
-### `gui/mappa.py`:1424
+### `gui/mappa.py`:1436
 - Riferimento: `http://127.0.0.1:8080/map`
 - Contesto: `self.web_view.setUrl("http://127.0.0.1:8080/map")`
 
-### `gui/mappa.py`:1490
+### `gui/mappa.py`:1502
 - Riferimento: `http://127.0.0.1:8080/api/map-interactions`
 - Contesto: `"http://127.0.0.1:8080/api/map-interactions",`
 
-### `gui/mappa.py`:1627
+### `gui/mappa.py`:1671
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `target=lambda: requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=5),`
 
-### `gui/mappa.py`:2122
+### `gui/mappa.py`:2291
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)`
 
@@ -79,42 +79,42 @@
 - Riferimento: `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles`
 - Contesto: `"url": "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles"`
 
-### `service/map_server.py`:27
+### `service/map_server.py`:33
 - Riferimento: `martin`
 - Contesto: `# Memoria globale per le tracce GPX e il processo di Martin`
 
-### `service/map_server.py`:53
+### `service/map_server.py`:59
 - Riferimento: `martin`
 - Contesto: `# --- 3. GESTIONE AUTOMATICA SERVER MARTIN (Rust) ---`
 
-### `service/map_server.py`:57
+### `service/map_server.py`:63
 - Riferimento: `martin`
 - Contesto: `martin_exe = os.path.join(BIN_DIR, 'martin.exe' if os.name == 'nt' else 'martin')`
 
-### `service/map_server.py`:60
+### `service/map_server.py`:66
 - Riferimento: `martin`
 - Contesto: `print(f"❌ [Martin] Eseguibile non trovato in: {martin_exe}")`
 
-### `service/map_server.py`:80
+### `service/map_server.py`:86
 - Riferimento: `martin`, `http://localhost:3000`
 - Contesto: `print("🚀 [Martin] Server di tile vettoriali nativo avviato su http://localhost:3000")`
 
-### `service/map_server.py`:87
+### `service/map_server.py`:93
 - Riferimento: `martin`
 - Contesto: `print(f"🗺️ [Martin] {riga}")`
 
-### `service/map_server.py`:92
+### `service/map_server.py`:98
 - Riferimento: `martin`
 - Contesto: `print(f"❌ [Martin] Errore durante l'avvio del processo: {e}")`
 
-### `service/map_server.py`:168
+### `service/map_server.py`:174
 - Riferimento: `http://{BROUTER_HOST}:{BROUTER_PORT}`
 - Contesto: `f"http://{BROUTER_HOST}:{BROUTER_PORT}"`
 
-### `service/map_server.py`:320
+### `service/map_server.py`:374
 - Riferimento: `http://{host}:{port}`
 - Contesto: `print(f"🚀 [MapServer] Server Flask avviato su http://{host}:{port}")`
 
-### `service/stats_service.py`:120
+### `service/stats_service.py`:122
 - Riferimento: `http://www.topografix.com/GPX/1/1`
 - Contesto: `ns = {'gpx': 'http://www.topografix.com/GPX/1/1'}`

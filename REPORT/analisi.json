@@ -1,15 +1,15 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T09:24:20.782717",
+    "data_analisi": "2026-10-01T13:18:24.527484",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 23,
+    "totale_moduli": 33,
     "totale_classi": 19,
-    "totale_funzioni": 252,
-    "totale_rotte_flask": 7,
-    "totale_tabelle": 21,
+    "totale_funzioni": 286,
+    "totale_rotte_flask": 8,
+    "totale_tabelle": 23,
     "tabelle_create": [
       "allarmi_percorso",
       "anagrafica_paesi",
@@ -21,6 +21,8 @@
       "progetto_stagione",
       "superfici_tappa",
       "tappa_analisi",
+      "tappa_costa_riepilogo",
+      "tappa_geometrie",
       "tappa_segmenti",
       "tappe",
       "trasferimenti",
@@ -42,6 +44,8 @@
       "sqlite_master",
       "superfici_tappa",
       "tappa_analisi",
+      "tappa_costa_riepilogo",
+      "tappa_geometrie",
       "tappa_segmenti",
       "tappe",
       "tiles",
@@ -71,6 +75,7 @@
       "hashlib",
       "io",
       "json",
+      "logging",
       "mapbox_vector_tile",
       "math",
       "os",
@@ -80,6 +85,7 @@
       "reportlab.pdfgen",
       "requests",
       "reverse_geocoder",
+      "shapely.errors",
       "shapely.geometry",
       "shapely.strtree",
       "shutil",
@@ -101,6 +107,7 @@
   "architettura": {
     "strati": {
       "ui": [
+        "esegui_batch.py",
         "gui/dashboard.py",
         "gui/mappa.py",
         "gui/wizard_percorso.py"
@@ -116,12 +123,17 @@
         "service/audit_service.py",
         "service/clima_service.py",
         "service/config.py",
+        "service/costa_service.py",
         "service/dogane_service.py",
         "service/geocodifica_offline_service.py",
+        "service/geometria_service.py",
         "service/geonames_service.py",
         "service/gpx_metrics_service.py",
         "service/map_manager_service.py",
         "service/migrazione_tappa_analisi.py",
+        "service/migrazione_tappa_costa.py",
+        "service/migrazione_tappa_geometrie.py",
+        "service/precalcolo_batch_service.py",
         "service/precalcolo_service.py",
         "service/stats_service.py",
         "service/superfici_service.py"
@@ -131,7 +143,11 @@
         "backup.py",
         "installa_geonames.py",
         "resources/genera_catalogo_sprite.py",
-        "static/aggiorna_sprite.py"
+        "static/aggiorna_sprite.py",
+        "test_batch.py",
+        "verifica_precalcolo.py",
+        "verifica_stato.py",
+        "verifica_stato_tappe.py"
       ]
     },
     "rotte_api": {
@@ -159,6 +175,13 @@
       "/api/get-gpx-data": {
         "file": "service/map_server.py",
         "funzione": "get_gpx_data",
+        "metodi": [
+          "GET"
+        ]
+      },
+      "/api/tappe/<int:tappa_id>/geometria-completa": {
+        "file": "service/map_server.py",
+        "funzione": "get_geometria_completa_tappa",
         "metodi": [
           "GET"
         ]
@@ -372,6 +395,16 @@
         "file": "service/dogane_service.py"
       },
       {
+        "simbolo": "semplifica_segmento_rdp",
+        "tipo": "funzione",
+        "file": "service/geometria_service.py"
+      },
+      {
+        "simbolo": "comprimi_segmenti",
+        "tipo": "funzione",
+        "file": "service/geometria_service.py"
+      },
+      {
         "simbolo": "get_installed_maps",
         "tipo": "funzione",
         "file": "service/map_manager_service.py"
@@ -412,6 +445,11 @@
         "file": "service/map_server.py"
       },
       {
+        "simbolo": "get_geometria_completa_tappa",
+        "tipo": "funzione",
+        "file": "service/map_server.py"
+      },
+      {
         "simbolo": "ricevi_interazione_mappa",
         "tipo": "funzione",
         "file": "service/map_server.py"
@@ -437,29 +475,9 @@
         "file": "service/map_server.py"
       },
       {
-        "simbolo": "crea_backup",
+        "simbolo": "interrompi_batch",
         "tipo": "funzione",
-        "file": "service/migrazione_tappa_analisi.py"
-      },
-      {
-        "simbolo": "esegui_migrazione",
-        "tipo": "funzione",
-        "file": "service/migrazione_tappa_analisi.py"
-      },
-      {
-        "simbolo": "calcola_sha256",
-        "tipo": "funzione",
-        "file": "service/precalcolo_service.py"
-      },
-      {
-        "simbolo": "calcola_distanza_mare_m",
-        "tipo": "funzione",
-        "file": "service/stats_service.py"
-      },
-      {
-        "simbolo": "assegna_fascia_costiera_metri",
-        "tipo": "funzione",
-        "file": "service/stats_service.py"
+        "file": "service/precalcolo_batch_service.py"
       },
       {
         "simbolo": "ottieni_copertura_precalcolo_progetto",
@@ -504,6 +522,24 @@
           "app_desktop.py",
           "gui/dashboard.py",
           "gui/wizard_percorso.py"
+        ],
+        "numero_copie": 3
+      },
+      {
+        "nome": "crea_backup",
+        "file": [
+          "service/migrazione_tappa_analisi.py",
+          "service/migrazione_tappa_costa.py",
+          "service/migrazione_tappa_geometrie.py"
+        ],
+        "numero_copie": 3
+      },
+      {
+        "nome": "esegui_migrazione",
+        "file": [
+          "service/migrazione_tappa_analisi.py",
+          "service/migrazione_tappa_costa.py",
+          "service/migrazione_tappa_geometrie.py"
         ],
         "numero_copie": 3
       },
@@ -605,16 +641,16 @@
       }
     ],
     "mappa_dipendenze": {
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
       "service/clima_service.py": [
         "app_desktop"
       ],
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
       "service/stats_service.py": [
+        "app_desktop"
+      ],
+      "service/audit_service.py": [
         "app_desktop"
       ]
     }
@@ -866,7 +902,6 @@
         "remove",
         "replace",
         "resize",
-        "rigenera_mappa",
         "rileva_gap_progetto",
         "rileva_strade_vietate_progetto",
         "round",
@@ -1004,6 +1039,27 @@
         "inizializza_database",
         "items",
         "print"
+      ]
+    },
+    "esegui_batch.py": {
+      "classi": [],
+      "funzioni": [],
+      "import_interni": [
+        "service.precalcolo_batch_service.precalcola_tutte_le_tappe",
+        "service.precalcolo_batch_service.stima_tempo_precalcolo"
+      ],
+      "import_esterni": [
+        "time"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "input",
+        "len",
+        "precalcola_tutte_le_tappe",
+        "print",
+        "stima_tempo_precalcolo",
+        "time"
       ]
     },
     "gui/dashboard.py": {
@@ -1249,6 +1305,7 @@
         "reload_map",
         "showEvent",
         "rigenera_mappa",
+        "_firma_dati_mappa",
         "_ripulisci_mappa_worker",
         "_fine_caricamento_asincrono",
         "open_map_manager",
@@ -1275,6 +1332,9 @@
         "service.config.BROUTER_URL",
         "service.config.DB_NAME",
         "service.geocodifica_offline_service.nome_luogo_da_coordinate",
+        "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
+        "service.geometria_service.decomprimi_segmenti",
+        "service.geometria_service.geometria_geojson",
         "service.geonames_service.cerca_coordinate_luogo",
         "service.map_manager_service.DownloadWorker",
         "service.map_manager_service.MapManagerService",
@@ -1291,6 +1351,7 @@
         "contextlib",
         "gpxpy",
         "gpxpy.gpx",
+        "hashlib",
         "json",
         "math",
         "os",
@@ -1361,6 +1422,7 @@
         "_fine_analisi_superfici_offline",
         "_fine_caricamento_asincrono",
         "_fine_risoluzione_nomi_luoghi",
+        "_firma_dati_mappa",
         "_firma_pianificazione",
         "_geocodifica",
         "_imposta_pagina_sospesa",
@@ -1416,6 +1478,7 @@
         "currentText",
         "cursor",
         "data",
+        "decomprimi_segmenti",
         "deleteLater",
         "dict",
         "dirname",
@@ -1424,6 +1487,7 @@
         "drawRoundedRect",
         "dumps",
         "emit",
+        "encode",
         "end",
         "enumerate",
         "esegui_audit_automatico",
@@ -1436,6 +1500,7 @@
         "fetchone",
         "float",
         "fullmatch",
+        "geometria_geojson",
         "get",
         "get_available_catalog",
         "get_lifecycle_state",
@@ -1443,6 +1508,7 @@
         "groups",
         "hasattr",
         "height",
+        "hexdigest",
         "hide",
         "hideEvent",
         "imposta_superfici",
@@ -1459,8 +1525,10 @@
         "json",
         "layout",
         "left",
+        "leggi_token_corrente",
         "len",
         "list",
+        "lower",
         "makedirs",
         "map",
         "max",
@@ -1488,6 +1556,7 @@
         "reload_map",
         "remove",
         "removeWidget",
+        "repr",
         "request_stop",
         "resize",
         "resizeEvent",
@@ -1537,7 +1606,9 @@
         "setWordWrap",
         "setZoomFactor",
         "set_lifecycle_state",
+        "setattr",
         "setup_ui",
+        "sha256",
         "show",
         "showEvent",
         "sin",
@@ -1890,6 +1961,71 @@
         "join"
       ]
     },
+    "service/costa_service.py": {
+      "classi": [],
+      "funzioni": [
+        "ottieni_versione_dataset_costa",
+        "calcola_sha256_gpx",
+        "_ottieni_metadati_tappa",
+        "calcola_costa_tappa",
+        "riepilogo_costa_aggiornato",
+        "salva_riepilogo_costa"
+      ],
+      "import_interni": [
+        "service.config.BASE_DIR",
+        "service.config.DB_NAME",
+        "service.stats_service._estrai_punti_gpx",
+        "service.stats_service.assegna_fascia_costiera_metri",
+        "service.stats_service.calcola_distanza_mare_m"
+      ],
+      "import_esterni": [
+        "__future__",
+        "datetime",
+        "hashlib",
+        "logging",
+        "os",
+        "sqlite3",
+        "typing"
+      ],
+      "tabelle_usate": [
+        "SET",
+        "tappa_costa_riepilogo",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ValueError",
+        "_estrai_punti_gpx",
+        "_ottieni_metadati_tappa",
+        "append",
+        "assegna_fascia_costiera_metri",
+        "calcola_distanza_mare_m",
+        "calcola_sha256_gpx",
+        "close",
+        "connect",
+        "execute",
+        "fetchone",
+        "float",
+        "get",
+        "getLogger",
+        "hexdigest",
+        "int",
+        "isoformat",
+        "iter",
+        "join",
+        "len",
+        "max",
+        "now",
+        "open",
+        "ottieni_versione_dataset_costa",
+        "range",
+        "read",
+        "sha256",
+        "stat",
+        "update",
+        "warning"
+      ]
+    },
     "service/dogane_service.py": {
       "classi": [],
       "funzioni": [
@@ -1989,6 +2125,64 @@
         "range",
         "round",
         "str"
+      ]
+    },
+    "service/geometria_service.py": {
+      "classi": [],
+      "funzioni": [
+        "_proietta_coordinate",
+        "_distanza_punto_segmento",
+        "semplifica_segmento_rdp",
+        "comprimi_segmenti",
+        "decomprimi_segmenti",
+        "calcola_geometria_gpx",
+        "geometria_geojson"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "gpxpy",
+        "gzip",
+        "json",
+        "math",
+        "typing"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ValueError",
+        "_distanza_punto_segmento",
+        "_proietta_coordinate",
+        "abs",
+        "acos",
+        "add",
+        "all",
+        "append",
+        "compress",
+        "comprimi_segmenti",
+        "copy",
+        "cos",
+        "decode",
+        "decompress",
+        "dumps",
+        "encode",
+        "float",
+        "hypot",
+        "isfinite",
+        "isinstance",
+        "len",
+        "loads",
+        "max",
+        "min",
+        "open",
+        "parse",
+        "pop",
+        "radians",
+        "range",
+        "semplifica_segmento_rdp",
+        "sin",
+        "sorted",
+        "sum"
       ]
     },
     "service/geonames_service.py": {
@@ -2143,6 +2337,7 @@
         "serve_fonts",
         "set_gpx_data",
         "get_gpx_data",
+        "get_geometria_completa_tappa",
         "ricevi_interazione_mappa",
         "leggi_interazioni_mappa",
         "list_maps",
@@ -2153,7 +2348,11 @@
       "import_interni": [
         "service.config.BROUTER_HOME",
         "service.config.BROUTER_HOST",
-        "service.config.BROUTER_PORT"
+        "service.config.BROUTER_PORT",
+        "service.config.DB_NAME",
+        "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
+        "service.geometria_service.decomprimi_segmenti",
+        "service.geometria_service.geometria_geojson"
       ],
       "import_esterni": [
         "collections",
@@ -2162,12 +2361,15 @@
         "os",
         "shutil",
         "socket",
+        "sqlite3",
         "subprocess",
         "threading",
         "time",
         "urllib.parse"
       ],
-      "tabelle_usate": [],
+      "tabelle_usate": [
+        "tappa_geometrie"
+      ],
       "anomalie": [],
       "chiamate_funzioni": [
         "CORS",
@@ -2178,15 +2380,21 @@
         "Thread",
         "abspath",
         "append",
+        "connect",
         "copy",
         "create_connection",
         "decode",
+        "decomprimi_segmenti",
         "deque",
         "dirname",
         "encode",
         "endswith",
+        "exception",
+        "execute",
         "exists",
+        "fetchone",
         "float",
+        "geometria_geojson",
         "get",
         "get_json",
         "getattr",
@@ -2262,49 +2470,231 @@
         "with_name"
       ]
     },
+    "service/migrazione_tappa_costa.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_backup",
+        "esegui_migrazione",
+        "main"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "datetime",
+        "pathlib",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "sqlite_master",
+        "tappa_costa_riepilogo"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Path",
+        "RuntimeError",
+        "SystemExit",
+        "backup",
+        "close",
+        "connect",
+        "crea_backup",
+        "esegui_migrazione",
+        "execute",
+        "fetchone",
+        "is_file",
+        "main",
+        "now",
+        "print",
+        "resolve",
+        "strftime",
+        "with_name"
+      ]
+    },
+    "service/migrazione_tappa_geometrie.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_backup",
+        "esegui_migrazione",
+        "main"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "datetime",
+        "pathlib",
+        "shutil",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "sqlite_master",
+        "tappa_geometrie"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Path",
+        "RuntimeError",
+        "SystemExit",
+        "connect",
+        "copy2",
+        "crea_backup",
+        "esegui_migrazione",
+        "execute",
+        "fetchone",
+        "is_file",
+        "main",
+        "now",
+        "print",
+        "resolve",
+        "strftime",
+        "with_name"
+      ]
+    },
+    "service/precalcolo_batch_service.py": {
+      "classi": [],
+      "funzioni": [
+        "_percorso_gpx",
+        "_tappe_attive",
+        "_ha_analisi_aggiornata",
+        "_salva_errore_file",
+        "_imposta_stato",
+        "precalcola_tutte_le_tappe",
+        "stima_tempo_precalcolo",
+        "ottieni_stato_batch",
+        "interrompi_batch"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME",
+        "service.costa_service.VERSIONE_ALGORITMO_COSTA",
+        "service.costa_service.calcola_costa_tappa",
+        "service.costa_service.ottieni_versione_dataset_costa",
+        "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
+        "service.gpx_metrics_service.analizza_gpx",
+        "service.precalcolo_service.VERSIONE_ALGORITMI",
+        "service.precalcolo_service.calcola_sha256",
+        "service.precalcolo_service.precalcola_tappa"
+      ],
+      "import_esterni": [
+        "__future__",
+        "os",
+        "sqlite3",
+        "threading",
+        "time",
+        "typing"
+      ],
+      "tabelle_usate": [
+        "SET",
+        "tappa_analisi",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Lock",
+        "_ha_analisi_aggiornata",
+        "_imposta_stato",
+        "_percorso_gpx",
+        "_salva_errore_file",
+        "_tappe_attive",
+        "abspath",
+        "analizza_gpx",
+        "append",
+        "basename",
+        "calcola_costa_tappa",
+        "calcola_sha256",
+        "close",
+        "commit",
+        "connect",
+        "dict",
+        "dirname",
+        "enumerate",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "get",
+        "isfile",
+        "join",
+        "len",
+        "ottieni_versione_dataset_costa",
+        "perf_counter",
+        "precalcola_tappa",
+        "precalcola_tutte_le_tappe",
+        "print",
+        "round",
+        "str",
+        "sum",
+        "update"
+      ]
+    },
     "service/precalcolo_service.py": {
       "classi": [],
       "funzioni": [
         "calcola_sha256",
         "_ora_utc",
+        "_geometria_aggiornata",
+        "_salva_costa_se_necessario",
+        "_salva_geometria",
+        "_anomalie_bloccanti",
         "_salva_errore",
         "precalcola_tappa"
       ],
       "import_interni": [
+        "service.costa_service.calcola_costa_tappa",
+        "service.costa_service.riepilogo_costa_aggiornato",
+        "service.costa_service.salva_riepilogo_costa",
+        "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
+        "service.geometria_service.calcola_geometria_gpx",
         "service.gpx_metrics_service.analizza_gpx"
       ],
       "import_esterni": [
         "__future__",
         "datetime",
         "hashlib",
+        "logging",
+        "shapely.errors",
         "sqlite3",
         "typing"
       ],
       "tabelle_usate": [
         "SET",
         "tappa_analisi",
+        "tappa_geometrie",
         "tappa_segmenti",
         "tappe"
       ],
       "anomalie": [],
       "chiamate_funzioni": [
+        "_anomalie_bloccanti",
+        "_geometria_aggiornata",
         "_ora_utc",
+        "_salva_costa_se_necessario",
         "_salva_errore",
+        "_salva_geometria",
         "analizza_gpx",
+        "any",
+        "calcola_costa_tappa",
+        "calcola_geometria_gpx",
         "calcola_sha256",
+        "casefold",
         "connect",
+        "exception",
         "execute",
         "fetchone",
         "get",
+        "getLogger",
         "hexdigest",
+        "info",
         "isoformat",
         "iter",
         "now",
         "open",
         "read",
+        "riepilogo_costa_aggiornato",
+        "salva_riepilogo_costa",
         "sha256",
         "str",
-        "update"
+        "update",
+        "warning"
       ]
     },
     "service/stats_service.py": {
@@ -2326,10 +2716,17 @@
         "ottieni_copertura_precalcolo_progetto"
       ],
       "import_interni": [
-        "service.config.DB_NAME"
+        "service.config.DB_NAME",
+        "service.costa_service.FASCE_COSTA",
+        "service.costa_service.VERSIONE_ALGORITMO_COSTA",
+        "service.costa_service.calcola_costa_tappa",
+        "service.costa_service.calcola_sha256_gpx",
+        "service.costa_service.ottieni_versione_dataset_costa",
+        "service.costa_service.salva_riepilogo_costa"
       ],
       "import_esterni": [
         "json",
+        "logging",
         "math",
         "os",
         "shapely.geometry",
@@ -2339,7 +2736,9 @@
       ],
       "tabelle_usate": [
         "dogane_progetto",
+        "sqlite_master",
         "tappa_analisi",
+        "tappa_costa_riepilogo",
         "tappe"
       ],
       "anomalie": [],
@@ -2358,9 +2757,10 @@
         "abspath",
         "add",
         "append",
-        "assegna_fascia_costiera_metri",
         "atan2",
-        "calcola_distanza_mare_m",
+        "bool",
+        "calcola_costa_tappa",
+        "calcola_sha256_gpx",
         "casefold",
         "chr",
         "close",
@@ -2371,15 +2771,18 @@
         "dirname",
         "endswith",
         "enumerate",
+        "exception",
         "execute",
         "exists",
         "extend",
         "fetchall",
+        "fetchone",
         "find",
         "findall",
         "float",
         "fromkeys",
         "get",
+        "getLogger",
         "getroot",
         "index",
         "int",
@@ -2397,6 +2800,7 @@
         "nearest",
         "open",
         "ord",
+        "ottieni_versione_dataset_costa",
         "parse",
         "partition",
         "print",
@@ -2404,6 +2808,7 @@
         "radians",
         "range",
         "round",
+        "salva_riepilogo_costa",
         "set",
         "shape",
         "sin",
@@ -2412,8 +2817,10 @@
         "str",
         "strip",
         "sum",
+        "update",
         "upper",
         "values",
+        "warning",
         "zip"
       ]
     },
@@ -2548,6 +2955,109 @@
         "list",
         "load",
         "open",
+        "print"
+      ]
+    },
+    "test_batch.py": {
+      "classi": [],
+      "funzioni": [],
+      "import_interni": [
+        "service.config.DB_NAME",
+        "service.precalcolo_batch_service._percorso_gpx",
+        "service.precalcolo_batch_service._tappe_attive",
+        "service.precalcolo_batch_service.ottieni_stato_batch",
+        "service.precalcolo_batch_service.precalcola_tutte_le_tappe",
+        "service.precalcolo_batch_service.stima_tempo_precalcolo",
+        "service.precalcolo_service.precalcola_tappa"
+      ],
+      "import_esterni": [
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "tappa_analisi",
+        "tappa_segmenti"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "_percorso_gpx",
+        "_tappe_attive",
+        "close",
+        "commit",
+        "connect",
+        "cursor",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "get",
+        "len",
+        "precalcola_tappa",
+        "print",
+        "stima_tempo_precalcolo"
+      ]
+    },
+    "verifica_precalcolo.py": {
+      "classi": [],
+      "funzioni": [],
+      "import_interni": [],
+      "import_esterni": [
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "tappa_analisi",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "close",
+        "connect",
+        "cursor",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "print"
+      ]
+    },
+    "verifica_stato.py": {
+      "classi": [],
+      "funzioni": [],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "tappa_analisi"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "close",
+        "connect",
+        "cursor",
+        "execute",
+        "fetchall",
+        "print"
+      ]
+    },
+    "verifica_stato_tappe.py": {
+      "classi": [],
+      "funzioni": [],
+      "import_interni": [],
+      "import_esterni": [
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "tappa_analisi",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "close",
+        "connect",
+        "cursor",
+        "execute",
+        "fetchall",
+        "fetchone",
         "print"
       ]
     }
@@ -8487,7 +8997,7 @@
       },
       {
         "nome": "cache_nomi_luoghi",
-        "righe": 993,
+        "righe": 995,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8774,7 +9284,7 @@
       },
       {
         "nome": "superfici_tappa",
-        "righe": 992,
+        "righe": 993,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8823,7 +9333,7 @@
       },
       {
         "nome": "tappa_analisi",
-        "righe": 1,
+        "righe": 993,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8932,8 +9442,233 @@
         ]
       },
       {
+        "nome": "tappa_costa_riepilogo",
+        "righe": 992,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "tappa_id",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria"
+            ]
+          },
+          {
+            "nome": "gpx_sha256",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "versione_algoritmo_costa",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "versione_dataset_costa",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "fascia_0_500m_km",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "fascia_500_2500m_km",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "fascia_2500_5000m_km",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "fascia_oltre_5000m_km",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "tappe_coinvolte_0_500m",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "tappe_coinvolte_500_2500m",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "tappe_coinvolte_2500_5000m",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "tappe_coinvolte_oltre_5000m",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "totale_km",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "calcolato_il",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          }
+        ],
+        "indici": [],
+        "chiavi_esterne": [
+          {
+            "colonna": "tappa_id",
+            "tabella_riferita": "tappe",
+            "colonna_riferita": "id",
+            "azione_update": "NO ACTION",
+            "azione_delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "nome": "tappa_geometrie",
+        "righe": 992,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "tappa_id",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria"
+            ]
+          },
+          {
+            "nome": "gpx_sha256",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "versione_algoritmo",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "geometria_completa",
+            "tipo": "BLOB",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "geometria_semplificata",
+            "tipo": "BLOB",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "bbox_min_lat",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "bbox_min_lon",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "bbox_max_lat",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "bbox_max_lon",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "numero_punti_originali",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "numero_punti_semplificati",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "aggiornato_il",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          }
+        ],
+        "indici": [],
+        "chiavi_esterne": [
+          {
+            "colonna": "tappa_id",
+            "tabella_riferita": "tappe",
+            "colonna_riferita": "id",
+            "azione_update": "NO ACTION",
+            "azione_delete": "CASCADE"
+          }
+        ]
+      },
+      {
         "nome": "tappa_segmenti",
-        "righe": 1,
+        "righe": 994,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -9285,7 +10020,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1424,
+        "riga": 1436,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -9294,7 +10029,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1490,
+        "riga": 1502,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -9303,7 +10038,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1627,
+        "riga": 1671,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -9312,7 +10047,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2122,
+        "riga": 2291,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -9402,7 +10137,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 27,
+        "riga": 33,
         "termini": [
           "martin"
         ],
@@ -9411,7 +10146,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 53,
+        "riga": 59,
         "termini": [
           "martin"
         ],
@@ -9420,7 +10155,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 57,
+        "riga": 63,
         "termini": [
           "martin"
         ],
@@ -9429,7 +10164,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 60,
+        "riga": 66,
         "termini": [
           "martin"
         ],
@@ -9438,7 +10173,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 80,
+        "riga": 86,
         "termini": [
           "martin"
         ],
@@ -9449,7 +10184,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 87,
+        "riga": 93,
         "termini": [
           "martin"
         ],
@@ -9458,7 +10193,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 92,
+        "riga": 98,
         "termini": [
           "martin"
         ],
@@ -9467,7 +10202,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 168,
+        "riga": 174,
         "termini": [],
         "url": [
           "http://{BROUTER_HOST}:{BROUTER_PORT}"
@@ -9476,7 +10211,7 @@
       },
       {
         "file": "service/map_server.py",
-        "riga": 320,
+        "riga": 374,
         "termini": [],
         "url": [
           "http://{host}:{port}"
@@ -9485,7 +10220,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "riga": 120,
+        "riga": 122,
         "termini": [],
         "url": [
           "http://www.topografix.com/GPX/1/1"
@@ -9496,23 +10231,23 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 23,
+    "totale_moduli": 33,
     "totale_classi": 19,
-    "totale_funzioni": 252,
-    "endpoint_flask": 7,
-    "tabelle_rilevate": 21,
-    "simboli_orfani": 57,
+    "totale_funzioni": 286,
+    "endpoint_flask": 8,
+    "tabelle_rilevate": 23,
+    "simboli_orfani": 56,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
       "gui/dashboard.py",
-      "service/superfici_service.py",
       "service/map_server.py",
+      "service/superfici_service.py",
       "service/stats_service.py",
+      "service/precalcolo_batch_service.py",
       "installa_geonames.py",
-      "service/gpx_metrics_service.py",
-      "service/map_manager_service.py",
-      "service/audit_service.py"
+      "service/precalcolo_service.py",
+      "service/geometria_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -9523,14 +10258,14 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 454,
+        "score": 466,
         "classi": 9,
-        "funzioni": 84,
+        "funzioni": 85,
         "anomalie": 0
       },
       {
         "file": "app_desktop.py",
-        "score": 331,
+        "score": 330,
         "classi": 5,
         "funzioni": 52,
         "anomalie": 0
@@ -9544,7 +10279,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "score": 99,
+        "score": 107,
         "classi": 0,
         "funzioni": 14,
         "anomalie": 0
@@ -9571,15 +10306,15 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 23,
+      "moduli": 33,
       "classi": 19,
-      "funzioni": 252,
-      "rotte": 7,
+      "funzioni": 286,
+      "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 57",
+      "Simboli orfani: 56",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -9594,7 +10329,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 252 funzioni, 7 endpoint Flask, 57 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 33 moduli, 19 classi, 286 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 252 funzioni, 7 endpoint Flask, 57 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 33 moduli, 19 classi, 286 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

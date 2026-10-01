@@ -373,9 +373,6 @@ class BikepackingStudioApp(QMainWindow):
         self.stacked_widget.setCurrentIndex(indice)
         if indice == 1:
             self.page_blocchi.carica_blocchi()
-        elif indice == 2:
-            if hasattr(self, 'page_mappa') and hasattr(self.page_mappa, 'rigenera_mappa'):
-                self.page_mappa.rigenera_mappa(self.current_progetto_id, DB_NAME, force=True)
         elif indice == 3:
             self.aggiorna_tabella_allarmi()
         elif indice == 4:

@@ -1,6 +1,7 @@
 import os
 import shutil
 import socket
+import sqlite3
 import subprocess
 import threading
 import time
@@ -9,7 +10,12 @@ from collections import deque
 from flask import Flask, Response, jsonify, render_template, request, send_from_directory, send_file
 from flask_cors import CORS
 
-from service.config import BROUTER_HOME, BROUTER_HOST, BROUTER_PORT
+from service.config import BROUTER_HOME, BROUTER_HOST, BROUTER_PORT, DB_NAME
+from service.geometria_service import (
+    VERSIONE_ALGORITMO_GEOMETRIA,
+    decomprimi_segmenti,
+    geometria_geojson,
+)
 
 # --- 1. CONFIGURAZIONE E PERCORSI GLOBALI ---
 SERVICE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -232,6 +238,54 @@ def set_gpx_data():
 def get_gpx_data():
     global current_gpx_geojson
     return jsonify(current_gpx_geojson)
+
+
+@app.route('/api/tappe/<int:tappa_id>/geometria-completa', methods=['GET'])
+def get_geometria_completa_tappa(tappa_id):
+    """Restituisce la geometria completa solo per la tappa richiesta."""
+    try:
+        with sqlite3.connect(DB_NAME) as connessione:
+            record = connessione.execute(
+                """
+                SELECT geometria.geometria_completa,
+                       geometria.bbox_min_lon, geometria.bbox_min_lat,
+                       geometria.bbox_max_lon, geometria.bbox_max_lat
+                FROM tappa_geometrie AS geometria
+                JOIN tappa_analisi AS analisi
+                  ON analisi.tappa_id = geometria.tappa_id
+                 AND analisi.gpx_sha256 = geometria.gpx_sha256
+                WHERE geometria.tappa_id = ?
+                  AND geometria.versione_algoritmo = ?
+                """,
+                (tappa_id, VERSIONE_ALGORITMO_GEOMETRIA),
+            ).fetchone()
+    except sqlite3.Error as errore:
+        app.logger.exception(
+            "Lettura geometria completa fallita per la tappa %s", tappa_id
+        )
+        return jsonify({"status": "error", "message": str(errore)}), 503
+
+    if record is None:
+        return jsonify(
+            {"status": "error", "message": "Geometria completa non disponibile"}
+        ), 404
+
+    try:
+        segmenti = decomprimi_segmenti(record[0])
+        geometria = geometria_geojson(segmenti)
+    except (OSError, ValueError, TypeError) as errore:
+        app.logger.exception(
+            "Geometria completa non valida per la tappa %s", tappa_id
+        )
+        return jsonify({"status": "error", "message": str(errore)}), 500
+
+    return jsonify(
+        {
+            "status": "success",
+            "geometry": geometria,
+            "bbox": [record[1], record[2], record[3], record[4]],
+        }
+    )
 
 
 @app.route('/api/map-interactions', methods=['POST'])

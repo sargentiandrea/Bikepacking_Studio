@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-01 09:24*
+*Aggiornato: 2026-10-01 13:18*
 
 ## Come leggere il progetto
 
@@ -15,20 +15,20 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 23
+- Moduli Python: 33
 - Classi: 19
-- Funzioni: 252
-- Rotte Flask: 7
-- Tabelle DB: 21
-- Simboli orfani: 57
+- Funzioni: 286
+- Rotte Flask: 8
+- Tabelle DB: 23
+- Simboli orfani: 56
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 454 - 9 classi, 84 funzioni, 0 anomalie
-- `app_desktop.py` - score 331 - 5 classi, 52 funzioni, 0 anomalie
+- `gui/mappa.py` - score 466 - 9 classi, 85 funzioni, 0 anomalie
+- `app_desktop.py` - score 330 - 5 classi, 52 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
-- `service/stats_service.py` - score 99 - 0 classi, 14 funzioni, 0 anomalie
+- `service/stats_service.py` - score 107 - 0 classi, 14 funzioni, 0 anomalie
 - `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
 
 ## Endpoint Flask
@@ -37,6 +37,7 @@
 - `/fonts/<path:fontstack>/<range_pbf>` [GET] -> `serve_fonts()` in `service/map_server.py`
 - `/api/set-gpx-data` [POST] -> `set_gpx_data()` in `service/map_server.py`
 - `/api/get-gpx-data` [GET] -> `get_gpx_data()` in `service/map_server.py`
+- `/api/tappe/<int:tappa_id>/geometria-completa` [GET] -> `get_geometria_completa_tappa()` in `service/map_server.py`
 - `/api/map-interactions` [GET] -> `leggi_interazioni_mappa()` in `service/map_server.py`
 - `/api/maps/list` [GET] -> `list_maps()` in `service/map_server.py`
 - `/map` [GET] -> `show_map()` in `service/map_server.py`
@@ -58,14 +59,16 @@
 - `MapManagerDialog` (classe) in `gui/mappa.py`
 - `PannelloPianificazioneWidget` (classe) in `gui/mappa.py`
 - `WorkerAnalisiSuperficiOffline` (classe) in `gui/mappa.py`
-- ... e altri 42 (vedi report completo)
+- ... e altri 41 (vedi report completo)
 
 ## Duplicazioni rilevate
 
-*14 funzioni/metodi definiti in più file:*
+*16 funzioni/metodi definiti in più file:*
 
 - `calcola_distanza_haversine` (4 copie) → `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`, `service/gpx_metrics_service.py`
 - `init_ui` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/wizard_percorso.py`
+- `crea_backup` (3 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_geometrie.py`
+- `esegui_migrazione` (3 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_geometrie.py`
 - `carica_lista_percorsi` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `apri_percorso_selezionato` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `crea_nuovo_progetto_dialog` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
@@ -82,22 +85,24 @@
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Numero di tabelle: 17
+- Numero di tabelle: 19
 - `allarmi_percorso`: 27 righe
 - `anagrafica_paesi`: 198 righe
 - `anagrafica_paesi_mondo`: 12 righe
 - `blocchi_ordine`: 23 righe
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
-- `cache_nomi_luoghi`: 993 righe
+- `cache_nomi_luoghi`: 995 righe
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
 - `progetti`: 4 righe
 - `progetto_stagione`: 1 righe
-- `superfici_tappa`: 992 righe
-- `tappa_analisi`: 1 righe
-- `tappa_segmenti`: 1 righe
+- `superfici_tappa`: 993 righe
+- `tappa_analisi`: 993 righe
+- `tappa_costa_riepilogo`: 992 righe
+- `tappa_geometrie`: 992 righe
+- `tappa_segmenti`: 994 righe
 - `tappe`: 994 righe
 - `trasferimenti`: 28 righe
 
@@ -134,16 +139,16 @@
 
 ## Moduli principali
 
-- `gui/mappa.py`: 9 classi, 84 funzioni
+- `gui/mappa.py`: 9 classi, 85 funzioni
 - `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
+- `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
-- `service/map_server.py`: 0 classi, 14 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
+- `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
-- `service/gpx_metrics_service.py`: 0 classi, 7 funzioni
-- `service/map_manager_service.py`: 2 classi, 4 funzioni
-- `service/audit_service.py`: 0 classi, 5 funzioni
+- `service/precalcolo_service.py`: 0 classi, 8 funzioni
+- `service/geometria_service.py`: 0 classi, 7 funzioni
 
 ## Azioni consigliate
 

@@ -2,6 +2,7 @@ import sqlite3
 import os
 import json
 import math
+import logging
 import xml.etree.ElementTree as ET
 from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
@@ -13,6 +14,7 @@ COASTLINE_FILE = os.path.join(PROJECT_ROOT, "world_coastlines_10m.geojson")
 
 _COASTLINE_TREE = None
 _COASTLINE_GEOMS = None
+_LOGGER = logging.getLogger(__name__)
 
 
 def _haversine_distance_m(lat1, lon1, lat2, lon2):
@@ -313,71 +315,139 @@ def ottieni_statistiche_per_blocco(id_progetto):
 
 
 def ottieni_ripartizione_fasce_mare(id_progetto):
-    """Ripartizione chilometrica esatta basata su campionamento continuo e calcolo Haversine."""
+    """Restituisce la ripartizione costiera, usando la cache quando è valida."""
     if not id_progetto:
         return []
 
     conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
     query = """
-        SELECT distanza_km, start_lat, start_lon, end_lat, end_lon, nome_file 
+        SELECT id, distanza_km, start_lat, start_lon, end_lat, end_lon, nome_file
         FROM tappe 
         WHERE id_progetto = ? AND stato = 'ATTIVA'
     """
-    cursor.execute(query, (id_progetto,))
-    tappe = cursor.fetchall()
-    conn.close()
+    try:
+        tappe = conn.execute(query, (id_progetto,)).fetchall()
+        tabella_cache = conn.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'tappa_costa_riepilogo'
+            """
+        ).fetchone() is not None
+        riepiloghi = {}
+        if tabella_cache:
+            riepiloghi = {
+                riga[0]: riga[1:]
+                for riga in conn.execute(
+                    """
+                    SELECT tappa_id, gpx_sha256, versione_algoritmo_costa,
+                           versione_dataset_costa, fascia_0_500m_km,
+                           fascia_500_2500m_km, fascia_2500_5000m_km,
+                           fascia_oltre_5000m_km, tappe_coinvolte_0_500m,
+                           tappe_coinvolte_500_2500m,
+                           tappe_coinvolte_2500_5000m,
+                           tappe_coinvolte_oltre_5000m, totale_km
+                    FROM tappa_costa_riepilogo
+                    """
+                ).fetchall()
+            }
+    finally:
+        conn.close()
 
     if not tappe:
         return []
+    if not tabella_cache:
+        _LOGGER.warning(
+            "La tabella tappa_costa_riepilogo manca: uso il calcolo costa al volo"
+        )
+
+    from service.costa_service import (
+        FASCE_COSTA,
+        VERSIONE_ALGORITMO_COSTA,
+        calcola_costa_tappa,
+        calcola_sha256_gpx,
+        ottieni_versione_dataset_costa,
+        salva_riepilogo_costa,
+    )
 
     fasce_stat = {
-        "🏖️ Da 0 a 500 metri (0 - 0.5 km)": {"km": 0.0, "tappe_coinvolte": set()},
-        "🌊 Da 501 a 2500 metri (0.51 - 2.5 km)": {"km": 0.0, "tappe_coinvolte": set()},
-        "🏞️ Da 2501 a 5000 metri (2.51 - 5 km)": {"km": 0.0, "tappe_coinvolte": set()},
-        "🏜️ Oltre 5000 metri (> 5 km)": {"km": 0.0, "tappe_coinvolte": set()}
+        etichetta: {"km": 0.0, "tappe_coinvolte": 0}
+        for etichetta, _, _ in FASCE_COSTA
     }
+    versione_dataset = ottieni_versione_dataset_costa()
 
     km_totali_viaggio = 0.0
 
-    for idx, (km_tappa, s_lat, s_lon, e_lat, e_lon, nome_file) in enumerate(tappe):
+    for (
+        tappa_id,
+        km_tappa,
+        s_lat,
+        s_lon,
+        e_lat,
+        e_lon,
+        nome_file,
+    ) in tappe:
         km_val = km_tappa or 0.0
         km_totali_viaggio += km_val
+        percorso_gpx = _trova_percorso_gpx(nome_file)
+        hash_gpx = (
+            calcola_sha256_gpx(percorso_gpx)
+            if percorso_gpx is not None
+            else None
+        )
+        cache = riepiloghi.get(tappa_id)
+        cache_valida = bool(
+            tabella_cache
+            and cache is not None
+            and hash_gpx is not None
+            and cache[0] == hash_gpx
+            and cache[1] == VERSIONE_ALGORITMO_COSTA
+            and cache[2] == versione_dataset
+            and cache[11] == float(km_val)
+        )
 
-        punti = _estrai_punti_gpx(nome_file)
-
-        if len(punti) >= 2:
-            step = max(1, len(punti) // 40)
-            punti_campione = punti[::step]
-            if punti[-1] not in punti_campione:
-                punti_campione.append(punti[-1])
-
-            dist_conteggi = {}
-            for pt in punti_campione:
-                d_m = calcola_distanza_mare_m(pt[0], pt[1])
-                fascia = assegna_fascia_costiera_metri(d_m)
-                dist_conteggi[fascia] = dist_conteggi.get(fascia, 0) + 1
-
-            tot_punti = len(punti_campione)
-            for fascia, count in dist_conteggi.items():
-                quota_km = (count / tot_punti) * km_val
-                fasce_stat[fascia]["km"] += quota_km
-                fasce_stat[fascia]["tappe_coinvolte"].add(idx)
-
+        if cache_valida:
+            dati = {
+                colonna_km: cache[3 + indice]
+                for indice, (_, colonna_km, _) in enumerate(FASCE_COSTA)
+            }
+            dati.update(
+                {
+                    colonna_tappe: cache[7 + indice]
+                    for indice, (_, _, colonna_tappe) in enumerate(FASCE_COSTA)
+                }
+            )
         else:
-            d1 = calcola_distanza_mare_m(s_lat, s_lon)
-            d2 = calcola_distanza_mare_m(e_lat, e_lon)
-            d_media = (d1 + d2) / 2.0
-            fascia = assegna_fascia_costiera_metri(d_media)
-            fasce_stat[fascia]["km"] += km_val
-            fasce_stat[fascia]["tappe_coinvolte"].add(idx)
+            dati = calcola_costa_tappa(
+                tappa_id,
+                percorso_gpx,
+                connessione=None,
+                distanza_km=float(km_val),
+                coordinate_inizio_fine=(s_lat, s_lon, e_lat, e_lon),
+                gpx_sha256=hash_gpx,
+            )
+            if tabella_cache and hash_gpx is not None:
+                conn_salvataggio = sqlite3.connect(DB_NAME)
+                try:
+                    with conn_salvataggio:
+                        salva_riepilogo_costa(conn_salvataggio, dati)
+                except sqlite3.Error:
+                    _LOGGER.exception(
+                        "Impossibile salvare il riepilogo costa della tappa %s",
+                        tappa_id,
+                    )
+                finally:
+                    conn_salvataggio.close()
+
+        for etichetta, colonna_km, colonna_tappe in FASCE_COSTA:
+            fasce_stat[etichetta]["km"] += dati[colonna_km]
+            fasce_stat[etichetta]["tappe_coinvolte"] += dati[colonna_tappe]
 
     tabella_finale = []
     for nome_fascia, dati in fasce_stat.items():
         percentuale = (dati["km"] / km_totali_viaggio * 100) if km_totali_viaggio > 0 else 0.0
         tabella_finale.append([
             nome_fascia,
-            len(dati["tappe_coinvolte"]),
+            dati["tappe_coinvolte"],
             f"{round(dati['km'], 1)} km",
             f"{round(percentuale, 1)} %"
         ])
