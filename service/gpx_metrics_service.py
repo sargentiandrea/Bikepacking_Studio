@@ -59,6 +59,7 @@ def _risultato_errore(messaggio: str) -> dict[str, Any]:
         "numero_segmenti": 0,
         "numero_tracce": 0,
         "anomalie": [],
+        "segmenti": [],
     }
 
 
@@ -114,6 +115,16 @@ def _arrotonda_metriche(risultato: dict[str, Any]) -> dict[str, Any]:
     for chiave in ("dislivello_pos_m", "dislivello_neg_m", "quota_min_m", "quota_max_m"):
         if risultato[chiave] is not None:
             risultato[chiave] = round(float(risultato[chiave]), 3)
+    for segmento in risultato.get("segmenti", []):
+        for chiave in (
+            "distanza_km",
+            "dislivello_pos_m",
+            "dislivello_neg_m",
+            "quota_min_m",
+            "quota_max_m",
+        ):
+            if segmento[chiave] is not None:
+                segmento[chiave] = round(float(segmento[chiave]), 3)
     return risultato
 
 
@@ -150,34 +161,90 @@ def analizza_gpx(percorso_file: str) -> dict[str, Any]:
     incrementi_quota: list[tuple[float, float]] = []
     quote_valide: list[float] = []
     quote_incomplete = False
+    metriche_segmenti: list[dict[str, Any]] = []
     coordinate = [
         (float(punto.latitude), float(punto.longitude)) for punto in punti_puliti
     ]
 
-    for segmento in segmenti_puliti:
-        for precedente, corrente in zip(segmento, segmento[1:]):
-            distanza_km = calcola_distanza_haversine(
-                precedente.latitude,
-                precedente.longitude,
-                corrente.latitude,
-                corrente.longitude,
-            )
-            distanza_totale_km += distanza_km
+    for track_index, traccia in enumerate(tracce):
+        for segment_index, segmento in enumerate(traccia.segments):
+            segmento_pulito = segmenti_puliti[
+                sum(len(traccia_precedente.segments) for traccia_precedente in tracce[:track_index])
+                + segment_index
+            ]
+            distanza_segmento_km = 0.0
+            incrementi_segmento: list[tuple[float, float]] = []
+            quote_segmento: list[float] = []
+            quote_segmento_incomplete = False
 
-            quota_precedente = precedente.elevation
-            quota_corrente = corrente.elevation
-            if _quota_valida(quota_precedente) and _quota_valida(quota_corrente):
-                quota_precedente_float = float(quota_precedente)
-                quota_corrente_float = float(quota_corrente)
-                quote_valide.extend((quota_precedente_float, quota_corrente_float))
-                incrementi_quota.append(
-                    (quota_corrente_float - quota_precedente_float, distanza_km)
+            for precedente, corrente in zip(
+                segmento_pulito, segmento_pulito[1:]
+            ):
+                distanza_km = calcola_distanza_haversine(
+                    precedente.latitude,
+                    precedente.longitude,
+                    corrente.latitude,
+                    corrente.longitude,
                 )
-            else:
-                quote_incomplete = True
+                distanza_totale_km += distanza_km
+                distanza_segmento_km += distanza_km
 
-    if any(not _quota_valida(punto.elevation) for punto in punti_puliti):
-        quote_incomplete = True
+                quota_precedente = precedente.elevation
+                quota_corrente = corrente.elevation
+                if _quota_valida(quota_precedente) and _quota_valida(
+                    quota_corrente
+                ):
+                    quota_precedente_float = float(quota_precedente)
+                    quota_corrente_float = float(quota_corrente)
+                    quote_valide.extend(
+                        (quota_precedente_float, quota_corrente_float)
+                    )
+                    quote_segmento.extend(
+                        (quota_precedente_float, quota_corrente_float)
+                    )
+                    incremento = (
+                        quota_corrente_float - quota_precedente_float,
+                        distanza_km,
+                    )
+                    incrementi_quota.append(incremento)
+                    incrementi_segmento.append(incremento)
+                else:
+                    quote_incomplete = True
+                    quote_segmento_incomplete = True
+
+            if any(
+                not _quota_valida(punto.elevation)
+                for punto in segmento_pulito
+            ):
+                quote_incomplete = True
+                quote_segmento_incomplete = True
+
+            dislivello_pos_segmento = (
+                sum(delta for delta, _ in incrementi_segmento if delta > 0)
+                if not quote_segmento_incomplete
+                else None
+            )
+            dislivello_neg_segmento = (
+                sum(abs(delta) for delta, _ in incrementi_segmento if delta < 0)
+                if not quote_segmento_incomplete
+                else None
+            )
+            metriche_segmenti.append(
+                {
+                    "track_index": track_index,
+                    "segment_index": segment_index,
+                    "punti": len(segmento_pulito),
+                    "distanza_km": distanza_segmento_km,
+                    "dislivello_pos_m": dislivello_pos_segmento,
+                    "dislivello_neg_m": dislivello_neg_segmento,
+                    "quota_min_m": (
+                        min(quote_segmento) if quote_segmento and not quote_segmento_incomplete else None
+                    ),
+                    "quota_max_m": (
+                        max(quote_segmento) if quote_segmento and not quote_segmento_incomplete else None
+                    ),
+                }
+            )
     if quote_incomplete:
         anomalie.append("quote mancanti o inaffidabili")
 
@@ -203,6 +270,7 @@ def analizza_gpx(percorso_file: str) -> dict[str, Any]:
         "numero_segmenti": len(segmenti),
         "numero_tracce": len(tracce),
         "anomalie": anomalie,
+        "segmenti": metriche_segmenti,
     }
 
     if not quote_incomplete and quote_valide:

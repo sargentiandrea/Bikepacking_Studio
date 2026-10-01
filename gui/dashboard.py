@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt, Signal as pyqtSignal
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from service.config import DB_NAME
+from service.precalcolo_service import precalcola_tappa
 try:
     from service.config import calcola_distanza_haversine
 except ImportError:
@@ -284,6 +285,7 @@ class DashboardPage(QWidget):
 
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
+        tappe_da_precalcolare = []
 
         # Controllo file già presenti per evitare duplicati
         cursor.execute("SELECT nome_file FROM tappe WHERE id_progetto = ?", (self.current_progetto_id,))
@@ -304,6 +306,7 @@ class DashboardPage(QWidget):
                 shutil.copy2(path, destinazione)
             except Exception as e:
                 print(f"Errore copia {nome_file}: {e}")
+                continue
 
             blocco_rilevato = "Generale"
 
@@ -327,6 +330,9 @@ class DashboardPage(QWidget):
                             INSERT INTO tappe (id_progetto, sequenza, blocco, nome_file, start_lat, start_lon, end_lat, end_lon, distanza_km, stato)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ATTIVA')
                         ''', (self.current_progetto_id, seq_attuale, blocco_rilevato, nome_file, s_lat, s_lon, e_lat, e_lon, round(dist_km, 2)))
+                        tappe_da_precalcolare.append(
+                            (cursor.lastrowid, destinazione)
+                        )
                         seq_attuale += 1
             except Exception as e:
                 print(f"Errore lettura GPX {nome_file}: {e}")
@@ -346,6 +352,12 @@ class DashboardPage(QWidget):
 
         conn.commit()
         conn.close()
+
+        for tappa_id, percorso_gpx in tappe_da_precalcolare:
+            try:
+                precalcola_tappa(tappa_id, percorso_gpx, DB_NAME)
+            except Exception as e:
+                print(f"Errore precalcolo tappa {tappa_id}: {e}")
 
         # Aggiornamento immediato della vista
         self.aggiorna_tabella_tappe()

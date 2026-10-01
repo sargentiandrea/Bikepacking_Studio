@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T08:13:57.837882",
+    "data_analisi": "2026-10-01T08:42:31.552567",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 22,
+    "totale_moduli": 23,
     "totale_classi": 19,
-    "totale_funzioni": 246,
+    "totale_funzioni": 250,
     "totale_rotte_flask": 7,
     "totale_tabelle": 21,
     "tabelle_create": [
@@ -41,6 +41,8 @@
       "progetto_stagione",
       "sqlite_master",
       "superfici_tappa",
+      "tappa_analisi",
+      "tappa_segmenti",
       "tappe",
       "tiles",
       "trasferimenti",
@@ -66,6 +68,7 @@
       "gpxpy",
       "gpxpy.gpx",
       "gzip",
+      "hashlib",
       "io",
       "json",
       "mapbox_vector_tile",
@@ -119,6 +122,7 @@
         "service/gpx_metrics_service.py",
         "service/map_manager_service.py",
         "service/migrazione_tappa_analisi.py",
+        "service/precalcolo_service.py",
         "service/stats_service.py",
         "service/superfici_service.py"
       ],
@@ -368,11 +372,6 @@
         "file": "service/dogane_service.py"
       },
       {
-        "simbolo": "analizza_gpx",
-        "tipo": "funzione",
-        "file": "service/gpx_metrics_service.py"
-      },
-      {
         "simbolo": "get_installed_maps",
         "tipo": "funzione",
         "file": "service/map_manager_service.py"
@@ -446,6 +445,11 @@
         "simbolo": "esegui_migrazione",
         "tipo": "funzione",
         "file": "service/migrazione_tappa_analisi.py"
+      },
+      {
+        "simbolo": "calcola_sha256",
+        "tipo": "funzione",
+        "file": "service/precalcolo_service.py"
       },
       {
         "simbolo": "calcola_distanza_mare_m",
@@ -599,13 +603,13 @@
       "service/stats_service.py": [
         "app_desktop"
       ],
+      "service/clima_service.py": [
+        "app_desktop"
+      ],
       "service/audit_service.py": [
         "app_desktop"
       ],
       "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/clima_service.py": [
         "app_desktop"
       ]
     }
@@ -1026,7 +1030,8 @@
       ],
       "import_interni": [
         "service.config.DB_NAME",
-        "service.config.calcola_distanza_haversine"
+        "service.config.calcola_distanza_haversine",
+        "service.precalcolo_service.precalcola_tappa"
       ],
       "import_esterni": [
         "PySide6.QtCore",
@@ -1114,6 +1119,7 @@
         "makedirs",
         "open",
         "parse",
+        "precalcola_tappa",
         "print",
         "pyqtSignal",
         "question",
@@ -2048,9 +2054,11 @@
         "asin",
         "calcola_distanza_haversine",
         "cos",
+        "enumerate",
         "extend",
         "float",
         "frozenset",
+        "get",
         "isfinite",
         "isinstance",
         "len",
@@ -2245,6 +2253,51 @@
         "resolve",
         "strftime",
         "with_name"
+      ]
+    },
+    "service/precalcolo_service.py": {
+      "classi": [],
+      "funzioni": [
+        "calcola_sha256",
+        "_ora_utc",
+        "_salva_errore",
+        "precalcola_tappa"
+      ],
+      "import_interni": [
+        "service.gpx_metrics_service.analizza_gpx"
+      ],
+      "import_esterni": [
+        "__future__",
+        "datetime",
+        "hashlib",
+        "sqlite3",
+        "typing"
+      ],
+      "tabelle_usate": [
+        "SET",
+        "tappa_analisi",
+        "tappa_segmenti",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "_ora_utc",
+        "_salva_errore",
+        "analizza_gpx",
+        "calcola_sha256",
+        "connect",
+        "execute",
+        "fetchone",
+        "get",
+        "hexdigest",
+        "isoformat",
+        "iter",
+        "now",
+        "open",
+        "read",
+        "sha256",
+        "str",
+        "update"
       ]
     },
     "service/stats_service.py": {
@@ -9430,9 +9483,9 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 22,
+    "totale_moduli": 23,
     "totale_classi": 19,
-    "totale_funzioni": 246,
+    "totale_funzioni": 250,
     "endpoint_flask": 7,
     "tabelle_rilevate": 21,
     "simboli_orfani": 56,
@@ -9471,7 +9524,7 @@
       },
       {
         "file": "gui/dashboard.py",
-        "score": 161,
+        "score": 162,
         "classi": 2,
         "funzioni": 20,
         "anomalie": 0
@@ -9505,9 +9558,9 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 22,
+      "moduli": 23,
       "classi": 19,
-      "funzioni": 246,
+      "funzioni": 250,
       "rotte": 7,
       "rischio": "alto"
     },
@@ -9528,7 +9581,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 246 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 246 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

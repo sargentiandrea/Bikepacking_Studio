@@ -1,12 +1,12 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 08:13:57*
+*Generato il 2026-10-01 alle 08:42:31*
 
 ## 1. Sintesi
 
-- Moduli Python: **22**
+- Moduli Python: **23**
 - Classi: **19**
-- Funzioni globali: **246**
+- Funzioni globali: **250**
 - Rotte Flask: **7**
 - Tabelle rilevate: **21**
 - Simboli orfani: **56**
@@ -80,7 +80,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (12 file)
+**core** (13 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/clima_service.py`
@@ -89,7 +89,7 @@
 - `service/geocodifica_offline_service.py`
 - `service/geonames_service.py`
 - `service/gpx_metrics_service.py`
-- ... e altri 4
+- ... e altri 5
 
 **altro** (5 file)
 - `app_desktop.py`

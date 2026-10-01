@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-01 08:13*
+*Aggiornato: 2026-10-01 08:42*
 
 ## Come leggere il progetto
 
@@ -15,9 +15,9 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 22
+- Moduli Python: 23
 - Classi: 19
-- Funzioni: 246
+- Funzioni: 250
 - Rotte Flask: 7
 - Tabelle DB: 21
 - Simboli orfani: 56
@@ -27,7 +27,7 @@
 
 - `gui/mappa.py` - score 453 - 9 classi, 84 funzioni, 0 anomalie
 - `app_desktop.py` - score 331 - 5 classi, 52 funzioni, 0 anomalie
-- `gui/dashboard.py` - score 161 - 2 classi, 20 funzioni, 0 anomalie
+- `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
 - `service/stats_service.py` - score 92 - 0 classi, 12 funzioni, 0 anomalie
 - `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
 
