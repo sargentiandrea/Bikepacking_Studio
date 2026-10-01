@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-01 09:04*
+*Aggiornato: 2026-10-01 09:24*
 
 ## Come leggere il progetto
 
@@ -17,10 +17,10 @@
 
 - Moduli Python: 23
 - Classi: 19
-- Funzioni: 250
+- Funzioni: 252
 - Rotte Flask: 7
 - Tabelle DB: 21
-- Simboli orfani: 56
+- Simboli orfani: 57
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
@@ -28,7 +28,7 @@
 - `gui/mappa.py` - score 454 - 9 classi, 84 funzioni, 0 anomalie
 - `app_desktop.py` - score 331 - 5 classi, 52 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
-- `service/stats_service.py` - score 92 - 0 classi, 12 funzioni, 0 anomalie
+- `service/stats_service.py` - score 99 - 0 classi, 14 funzioni, 0 anomalie
 - `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
 
 ## Endpoint Flask
@@ -58,7 +58,7 @@
 - `MapManagerDialog` (classe) in `gui/mappa.py`
 - `PannelloPianificazioneWidget` (classe) in `gui/mappa.py`
 - `WorkerAnalisiSuperficiOffline` (classe) in `gui/mappa.py`
-- ... e altri 41 (vedi report completo)
+- ... e altri 42 (vedi report completo)
 
 ## Duplicazioni rilevate
 
@@ -139,7 +139,7 @@
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/map_server.py`: 0 classi, 14 funzioni
-- `service/stats_service.py`: 0 classi, 12 funzioni
+- `service/stats_service.py`: 0 classi, 14 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/gpx_metrics_service.py`: 0 classi, 7 funzioni
 - `service/map_manager_service.py`: 2 classi, 4 funzioni

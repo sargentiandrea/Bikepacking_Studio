@@ -175,33 +175,59 @@ def ottieni_kpi_totali_progetto(id_progetto):
 
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT distanza_km, nome_file FROM tappe WHERE id_progetto = ? AND stato = 'ATTIVA'", (id_progetto,))
+    cursor.execute(
+        "SELECT id FROM tappe WHERE id_progetto = ? AND stato = 'ATTIVA'",
+        (id_progetto,),
+    )
     righe = cursor.fetchall()
     conn.close()
 
     if not righe:
         return {"km_totali": 0, "dislivello_pos": 0, "dislivello_neg": 0, "quota_max": 0, "pendenza_media": 0.0}
 
-    km_tot = sum(r[0] or 0.0 for r in righe)
-    dpos_tot, dneg_tot, qmax_val = 0, 0, 0
-    pmed_list = []
+    analisi = _leggi_analisi_tappe([riga[0] for riga in righe])
+    km_tot = 0.0
+    dpos_tot = 0.0
+    dneg_tot = 0.0
+    qmax_val = None
+    pendenza_pesata = 0.0
+    distanza_pendenza = 0.0
 
-    for _, nome_file in righe:
-        dpos, dneg, qmax, pmed = _estrai_altimetria_da_gpx(nome_file)
-        dpos_tot += dpos
-        dneg_tot += dneg
-        if qmax > qmax_val:
-            qmax_val = qmax
-        if pmed > 0:
-            pmed_list.append(pmed)
+    for tappa_id in [riga[0] for riga in righe]:
+        dati = analisi.get(tappa_id)
+        if not dati or dati["stato"] == "ERRORE":
+            continue
 
-    pmed_val = (sum(pmed_list) / len(pmed_list)) if pmed_list else 0.0
+        distanza = dati["distanza_km"]
+        if distanza is not None:
+            km_tot += distanza
+        if dati["dislivello_pos_m"] is not None:
+            dpos_tot += dati["dislivello_pos_m"]
+        if dati["dislivello_neg_m"] is not None:
+            dneg_tot += dati["dislivello_neg_m"]
+        if dati["quota_max_m"] is not None:
+            qmax_val = (
+                dati["quota_max_m"]
+                if qmax_val is None
+                else max(qmax_val, dati["quota_max_m"])
+            )
+        if (
+            distanza is not None
+            and distanza > 0
+            and dati["pendenza_media_pct"] is not None
+        ):
+            pendenza_pesata += dati["pendenza_media_pct"] * distanza
+            distanza_pendenza += distanza
+
+    pmed_val = (
+        pendenza_pesata / distanza_pendenza if distanza_pendenza > 0 else 0.0
+    )
 
     return {
         "km_totali": round(km_tot, 1),
-        "dislivello_pos": dpos_tot,
-        "dislivello_neg": dneg_tot,
-        "quota_max": qmax_val,
+        "dislivello_pos": round(dpos_tot),
+        "dislivello_neg": round(dneg_tot),
+        "quota_max": round(qmax_val) if qmax_val is not None else 0,
         "pendenza_media": round(pmed_val, 1)
     }
 
@@ -213,7 +239,7 @@ def ottieni_statistiche_per_blocco(id_progetto):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     query = """
-        SELECT blocco, distanza_km, nome_file 
+        SELECT id, blocco
         FROM tappe 
         WHERE id_progetto = ? AND stato = 'ATTIVA'
         ORDER BY sequenza ASC
@@ -223,39 +249,63 @@ def ottieni_statistiche_per_blocco(id_progetto):
     conn.close()
 
     blocchi_map = {}
-    for blocco_nome, km, nome_file in tappe:
+    for tappa_id, blocco_nome in tappe:
         nome_b = blocco_nome if blocco_nome else "Generale"
         if nome_b not in blocchi_map:
             blocchi_map[nome_b] = []
-        blocchi_map[nome_b].append((km or 0.0, nome_file))
+        blocchi_map[nome_b].append(tappa_id)
 
+    analisi = _leggi_analisi_tappe([tappa[0] for tappa in tappe])
     risultati = []
     for idx, (nome_b, t_lista) in enumerate(blocchi_map.items(), start=1):
         num_tappe = len(t_lista)
-        km_tot = sum(t[0] for t in t_lista)
-        
-        dpos_b, dneg_b, qmax_b = 0, 0, 0
-        pmed_b_list = []
+        km_tot = 0.0
+        dpos_b = 0.0
+        dneg_b = 0.0
+        qmax_b = None
+        pendenza_pesata = 0.0
+        distanza_pendenza = 0.0
 
-        for _, nome_f in t_lista:
-            dp, dn, qm, pm = _estrai_altimetria_da_gpx(nome_f)
-            dpos_b += dp
-            dneg_b += dn
-            if qm > qmax_b:
-                qmax_b = qm
-            if pm > 0:
-                pmed_b_list.append(pm)
+        for tappa_id in t_lista:
+            dati = analisi.get(tappa_id)
+            if not dati or dati["stato"] == "ERRORE":
+                continue
 
-        pmed_val = (sum(pmed_b_list) / len(pmed_b_list)) if pmed_b_list else 0.0
+            distanza = dati["distanza_km"]
+            if distanza is not None:
+                km_tot += distanza
+            if dati["dislivello_pos_m"] is not None:
+                dpos_b += dati["dislivello_pos_m"]
+            if dati["dislivello_neg_m"] is not None:
+                dneg_b += dati["dislivello_neg_m"]
+            if dati["quota_max_m"] is not None:
+                qmax_b = (
+                    dati["quota_max_m"]
+                    if qmax_b is None
+                    else max(qmax_b, dati["quota_max_m"])
+                )
+            if (
+                distanza is not None
+                and distanza > 0
+                and dati["pendenza_media_pct"] is not None
+            ):
+                pendenza_pesata += dati["pendenza_media_pct"] * distanza
+                distanza_pendenza += distanza
+
+        pmed_val = (
+            pendenza_pesata / distanza_pendenza
+            if distanza_pendenza > 0
+            else 0.0
+        )
 
         risultati.append([
             idx,
             nome_b,
             num_tappe,
             f"{round(km_tot, 1)} km",
-            f"{dpos_b} m",
-            f"{dneg_b} m",
-            f"{qmax_b} m",
+            f"{round(dpos_b)} m",
+            f"{round(dneg_b)} m",
+            f"{round(qmax_b) if qmax_b is not None else 0} m",
             f"{round(pmed_val, 1)} %"
         ])
 
@@ -486,3 +536,94 @@ def get_paesi_attraversati_stats(id_progetto):
     stringa_bandiere = f"{totale} Paesi registrati"
     
     return lista_finale, totale, stringa_bandiere
+
+
+def _leggi_analisi_tappe(tappa_ids):
+    """Legge le metriche persistite senza ricalcolare i GPX."""
+    ids = list(dict.fromkeys(tappa_ids))
+    if not ids:
+        return {}
+
+    segnaposto = ", ".join("?" for _ in ids)
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        righe = conn.execute(
+            f"""
+            SELECT tappa_id, stato, distanza_km, dislivello_pos_m,
+                   dislivello_neg_m, quota_min_m, quota_max_m,
+                   pendenza_media_pct, pendenza_max_pct,
+                   bbox_min_lon, bbox_min_lat, bbox_max_lon, bbox_max_lat,
+                   errore
+            FROM tappa_analisi
+            WHERE tappa_id IN ({segnaposto})
+            """,
+            ids,
+        ).fetchall()
+    finally:
+        conn.close()
+
+    campi = (
+        "tappa_id",
+        "stato",
+        "distanza_km",
+        "dislivello_pos_m",
+        "dislivello_neg_m",
+        "quota_min_m",
+        "quota_max_m",
+        "pendenza_media_pct",
+        "pendenza_max_pct",
+        "bbox_min_lon",
+        "bbox_min_lat",
+        "bbox_max_lon",
+        "bbox_max_lat",
+        "errore",
+    )
+    return {
+        riga[0]: dict(zip(campi, riga))
+        for riga in righe
+    }
+
+
+def ottieni_copertura_precalcolo_progetto(id_progetto):
+    """Restituisce lo stato del precalcolo delle tappe attive del progetto."""
+    if not id_progetto:
+        return {
+            "totale_tappe": 0,
+            "tappe_complete": 0,
+            "tappe_parziali": 0,
+            "tappe_precalcolate": 0,
+            "tappe_senza_precalcolo": 0,
+            "tappe_con_errore": 0,
+            "messaggio": "0 tappe su 0 precalcolate",
+        }
+
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        righe = conn.execute(
+            """
+            SELECT ta.stato
+            FROM tappe AS t
+            LEFT JOIN tappa_analisi AS ta ON ta.tappa_id = t.id
+            WHERE t.id_progetto = ? AND t.stato = 'ATTIVA'
+            """,
+            (id_progetto,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    totale = len(righe)
+    complete = sum(riga[0] == "COMPLETO" for riga in righe)
+    parziali = sum(riga[0] == "PARZIALE" for riga in righe)
+    errori = sum(riga[0] == "ERRORE" for riga in righe)
+    precalcolate = complete + parziali
+    senza_precalcolo = totale - precalcolate - errori
+
+    return {
+        "totale_tappe": totale,
+        "tappe_complete": complete,
+        "tappe_parziali": parziali,
+        "tappe_precalcolate": precalcolate,
+        "tappe_senza_precalcolo": senza_precalcolo,
+        "tappe_con_errore": errori,
+        "messaggio": f"{precalcolate} tappe su {totale} precalcolate",
+    }

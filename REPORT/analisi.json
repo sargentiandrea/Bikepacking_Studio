@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T09:04:47.439598",
+    "data_analisi": "2026-10-01T09:24:20.782717",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
     "totale_moduli": 23,
     "totale_classi": 19,
-    "totale_funzioni": 250,
+    "totale_funzioni": 252,
     "totale_rotte_flask": 7,
     "totale_tabelle": 21,
     "tabelle_create": [
@@ -462,6 +462,11 @@
         "file": "service/stats_service.py"
       },
       {
+        "simbolo": "ottieni_copertura_precalcolo_progetto",
+        "tipo": "funzione",
+        "file": "service/stats_service.py"
+      },
+      {
         "simbolo": "analizza_superfici_gpx",
         "tipo": "funzione",
         "file": "service/superfici_service.py"
@@ -600,13 +605,13 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/clima_service.py": [
-        "app_desktop"
-      ],
       "database/database_setup.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "service/clima_service.py": [
         "app_desktop"
       ],
       "service/stats_service.py": [
@@ -2316,7 +2321,9 @@
         "ottieni_statistiche_per_blocco",
         "ottieni_ripartizione_fasce_mare",
         "analizza_dati_rotta_brouter",
-        "get_paesi_attraversati_stats"
+        "get_paesi_attraversati_stats",
+        "_leggi_analisi_tappe",
+        "ottieni_copertura_precalcolo_progetto"
       ],
       "import_interni": [
         "service.config.DB_NAME"
@@ -2332,6 +2339,7 @@
       ],
       "tabelle_usate": [
         "dogane_progetto",
+        "tappa_analisi",
         "tappe"
       ],
       "anomalie": [],
@@ -2341,10 +2349,10 @@
         "RuntimeError",
         "STRtree",
         "ValueError",
-        "_estrai_altimetria_da_gpx",
         "_estrai_punti_gpx",
         "_haversine_distance_m",
         "_inizializza_motore_costa",
+        "_leggi_analisi_tappe",
         "_trova_percorso_gpx",
         "abs",
         "abspath",
@@ -2359,6 +2367,7 @@
         "connect",
         "cos",
         "cursor",
+        "dict",
         "dirname",
         "endswith",
         "enumerate",
@@ -2369,6 +2378,7 @@
         "find",
         "findall",
         "float",
+        "fromkeys",
         "get",
         "getroot",
         "index",
@@ -2403,7 +2413,8 @@
         "strip",
         "sum",
         "upper",
-        "values"
+        "values",
+        "zip"
       ]
     },
     "service/superfici_service.py": {
@@ -9487,10 +9498,10 @@
     "nome_progetto": "Bikepacking_Studio",
     "totale_moduli": 23,
     "totale_classi": 19,
-    "totale_funzioni": 250,
+    "totale_funzioni": 252,
     "endpoint_flask": 7,
     "tabelle_rilevate": 21,
-    "simboli_orfani": 56,
+    "simboli_orfani": 57,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
@@ -9533,9 +9544,9 @@
       },
       {
         "file": "service/stats_service.py",
-        "score": 92,
+        "score": 99,
         "classi": 0,
-        "funzioni": 12,
+        "funzioni": 14,
         "anomalie": 0
       },
       {
@@ -9562,13 +9573,13 @@
     "riepilogo": {
       "moduli": 23,
       "classi": 19,
-      "funzioni": 250,
+      "funzioni": 252,
       "rotte": 7,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 56",
+      "Simboli orfani: 57",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -9583,7 +9594,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 252 funzioni, 7 endpoint Flask, 57 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 23 moduli, 19 classi, 252 funzioni, 7 endpoint Flask, 57 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

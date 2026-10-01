@@ -1,15 +1,15 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 09:04:47*
+*Generato il 2026-10-01 alle 09:24:20*
 
 ## 1. Sintesi
 
 - Moduli Python: **23**
 - Classi: **19**
-- Funzioni globali: **250**
+- Funzioni globali: **252**
 - Rotte Flask: **7**
 - Tabelle rilevate: **21**
-- Simboli orfani: **56**
+- Simboli orfani: **57**
 
 ## Database
 
@@ -122,7 +122,7 @@
 
 ## 5. Simboli orfani
 
-*56 simboli definiti ma mai citati altrove:*
+*57 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -154,7 +154,7 @@
 - **classe** `WizardNuovoPercorso` in `gui/wizard_percorso.py`
 - **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
 - **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
-- ... e altri 26
+- ... e altri 27
 
 ## 6. Moduli con più contenuto
 
@@ -163,7 +163,7 @@
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/map_server.py`: 0 classi, 14 funzioni
-- `service/stats_service.py`: 0 classi, 12 funzioni
+- `service/stats_service.py`: 0 classi, 14 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/gpx_metrics_service.py`: 0 classi, 7 funzioni
 - `service/map_manager_service.py`: 2 classi, 4 funzioni
