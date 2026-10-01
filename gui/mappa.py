@@ -1351,7 +1351,6 @@ class PannelloPianificazioneWidget(QFrame):
             self.ultima_anteprima = None
             self.firma_ultima_anteprima = None
             self.btn_salva.setText("Salva Percorso")
-            self.mappa_widget.ultimo_progetto_id_caricato = None
             self.mappa_widget.rigenera_mappa(
                 id_progetto_corrente,
                 DB_NAME,
@@ -1394,6 +1393,7 @@ class MappaWidget(QWidget):
         self._mappa_workers_attivi = []  # tiene in vita i worker finché non finiscono davvero (vedi rigenera_mappa)
         self.ultimo_progetto_id_caricato = None
         self._firma_dati_mappa_caricati = None
+        self._cache_per_progetto = {}
         self._ultimo_evento_mappa_id = 0
         self._poll_interazioni_timer = QTimer(self)
         self._poll_interazioni_timer.setInterval(300)
@@ -1616,12 +1616,36 @@ class MappaWidget(QWidget):
                 from service.config import DB_NAME
                 firma_corrente = self._firma_dati_mappa(p_id, DB_NAME)
                 progetto_cambiato = self.ultimo_progetto_id_caricato != p_id
-                dati_cambiati = (
-                    getattr(finestra_principale, "mappa_necessita_aggiornamento", True)
-                    or firma_corrente is None
-                    or firma_corrente != self._firma_dati_mappa_caricati
+                aggiornamento_richiesto = getattr(
+                    finestra_principale,
+                    "mappa_necessita_aggiornamento",
+                    True,
                 )
-                if progetto_cambiato or dati_cambiati:
+                cache_progetto = self._cache_per_progetto.get(p_id)
+                firma_in_cache = (
+                    cache_progetto.get("firma")
+                    if cache_progetto is not None
+                    else None
+                )
+                cache_valida = (
+                    firma_corrente is not None
+                    and firma_corrente == firma_in_cache
+                )
+
+                if cache_valida and (not aggiornamento_richiesto or progetto_cambiato):
+                    # La firma uguale dimostra che la richiesta globale di aggiornamento
+                    # deriva solo dal cambio progetto, non da dati mappa modificati.
+                    if aggiornamento_richiesto:
+                        setattr(
+                            finestra_principale,
+                            "mappa_necessita_aggiornamento",
+                            False,
+                        )
+                    if progetto_cambiato:
+                        self._mostra_cache_progetto(p_id, cache_progetto["geojson"])
+                    self.ultimo_progetto_id_caricato = p_id
+                    self._firma_dati_mappa_caricati = firma_corrente
+                else:
                     if progetto_cambiato:
                         print(f"🚀 Mappa aperta. Avvio caricamento asincrono per percorso ID: {p_id}")
                     QTimer.singleShot(
@@ -1660,7 +1684,7 @@ class MappaWidget(QWidget):
         if not current_progetto_id:
             # Invalida i worker ancora in esecuzione per evitare invii di dati vecchi.
             self._token_caricamento_mappa += 1
-            # Resettiamo la memoria del flag della cache
+            # Azzera solo il progetto visualizzato: la cache per progetto resta valida.
             if hasattr(self, 'ultimo_progetto_id_caricato'):
                 self.ultimo_progetto_id_caricato = None
             self._firma_dati_mappa_caricati = None
@@ -1787,8 +1811,26 @@ class MappaWidget(QWidget):
         self.web_view.page().runJavaScript(js_code)
         self.ultimo_progetto_id_caricato = id_progetto
         self._firma_dati_mappa_caricati = firma_dati
+        if firma_dati is not None:
+            self._cache_per_progetto[id_progetto] = {
+                "firma": firma_dati,
+                "geojson": geojson_payload,
+            }
         setattr(self.parent_app, "mappa_necessita_aggiornamento", False)
         print("✅ Caricamento asincrono completato ed iniettato con successo.")
+
+    def _mostra_cache_progetto(self, id_progetto, geojson_payload):
+        """Ripristina nel browser il GeoJSON in memoria senza avviare un worker."""
+        payload = json.dumps(geojson_payload)
+        # Usa il bbox del payload per ricentrare come nel caricamento dal worker.
+        self.web_view.page().runJavaScript(
+            "if(window.aggiornaMappaGeoJSON) "
+            f"{{ window.aggiornaMappaGeoJSON({payload}, true); }}"
+        )
+        print(
+            f"ℹ️ Cache Mappa: dati del progetto {id_progetto} "
+            "ripristinati senza ricalcolo."
+        )
 
     def open_map_manager(self):
         dialog = MapManagerDialog(self)

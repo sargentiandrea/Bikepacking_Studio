@@ -1,12 +1,12 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 13:18:24*
+*Generato il 2026-10-01 alle 18:14:48*
 
 ## 1. Sintesi
 
-- Moduli Python: **33**
+- Moduli Python: **34**
 - Classi: **19**
-- Funzioni globali: **286**
+- Funzioni globali: **292**
 - Rotte Flask: **8**
 - Tabelle rilevate: **23**
 - Simboli orfani: **56**
@@ -83,7 +83,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (18 file)
+**core** (19 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/clima_service.py`
@@ -92,7 +92,7 @@
 - `service/dogane_service.py`
 - `service/geocodifica_offline_service.py`
 - `service/geometria_service.py`
-- ... e altri 10
+- ... e altri 11
 
 **altro** (9 file)
 - `app_desktop.py`
@@ -166,7 +166,7 @@
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 85 funzioni
+- `gui/mappa.py`: 9 classi, 86 funzioni
 - `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
@@ -174,8 +174,8 @@
 - `service/stats_service.py`: 0 classi, 14 funzioni
 - `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
+- `service/costa_service.py`: 0 classi, 8 funzioni
 - `service/precalcolo_service.py`: 0 classi, 8 funzioni
-- `service/geometria_service.py`: 0 classi, 7 funzioni
 
 ## 7. Livello di rischio e file critici
 

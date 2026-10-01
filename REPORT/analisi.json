@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T13:18:24.527484",
+    "data_analisi": "2026-10-01T18:14:48.670922",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 33,
+    "totale_moduli": 34,
     "totale_classi": 19,
-    "totale_funzioni": 286,
+    "totale_funzioni": 292,
     "totale_rotte_flask": 8,
     "totale_tabelle": 23,
     "tabelle_create": [
@@ -132,6 +132,7 @@
         "service/map_manager_service.py",
         "service/migrazione_tappa_analisi.py",
         "service/migrazione_tappa_costa.py",
+        "service/migrazione_tappa_costa_metadati.py",
         "service/migrazione_tappa_geometrie.py",
         "service/precalcolo_batch_service.py",
         "service/precalcolo_service.py",
@@ -517,29 +518,31 @@
         "numero_copie": 4
       },
       {
-        "nome": "init_ui",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py",
-          "gui/wizard_percorso.py"
-        ],
-        "numero_copie": 3
-      },
-      {
         "nome": "crea_backup",
         "file": [
           "service/migrazione_tappa_analisi.py",
           "service/migrazione_tappa_costa.py",
+          "service/migrazione_tappa_costa_metadati.py",
           "service/migrazione_tappa_geometrie.py"
         ],
-        "numero_copie": 3
+        "numero_copie": 4
       },
       {
         "nome": "esegui_migrazione",
         "file": [
           "service/migrazione_tappa_analisi.py",
           "service/migrazione_tappa_costa.py",
+          "service/migrazione_tappa_costa_metadati.py",
           "service/migrazione_tappa_geometrie.py"
+        ],
+        "numero_copie": 4
+      },
+      {
+        "nome": "init_ui",
+        "file": [
+          "app_desktop.py",
+          "gui/dashboard.py",
+          "gui/wizard_percorso.py"
         ],
         "numero_copie": 3
       },
@@ -641,16 +644,16 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/clima_service.py": [
-        "app_desktop"
-      ],
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
       "service/stats_service.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "service/clima_service.py": [
+        "app_desktop"
+      ],
+      "database/database_setup.py": [
         "app_desktop"
       ]
     }
@@ -1308,6 +1311,7 @@
         "_firma_dati_mappa",
         "_ripulisci_mappa_worker",
         "_fine_caricamento_asincrono",
+        "_mostra_cache_progetto",
         "open_map_manager",
         "_distanza_haversine_km",
         "__init__",
@@ -1426,6 +1430,7 @@
         "_firma_pianificazione",
         "_geocodifica",
         "_imposta_pagina_sospesa",
+        "_mostra_cache_progetto",
         "_popola_legenda_superfici",
         "_popola_tappe_intermedie",
         "_prepara_modifica_tappa",
@@ -1966,9 +1971,11 @@
       "funzioni": [
         "ottieni_versione_dataset_costa",
         "calcola_sha256_gpx",
+        "ottieni_metadati_gpx",
         "_ottieni_metadati_tappa",
         "calcola_costa_tappa",
         "riepilogo_costa_aggiornato",
+        "aggiorna_metadati_riepilogo_costa",
         "salva_riepilogo_costa"
       ],
       "import_interni": [
@@ -2004,21 +2011,25 @@
         "close",
         "connect",
         "execute",
+        "extend",
+        "fetchall",
         "fetchone",
         "float",
         "get",
         "getLogger",
         "hexdigest",
         "int",
+        "isfile",
         "isoformat",
+        "issubset",
         "iter",
         "join",
         "len",
         "max",
         "now",
         "open",
+        "ottieni_metadati_gpx",
         "ottieni_versione_dataset_costa",
-        "range",
         "read",
         "sha256",
         "stat",
@@ -2510,6 +2521,47 @@
         "with_name"
       ]
     },
+    "service/migrazione_tappa_costa_metadati.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_backup",
+        "esegui_migrazione",
+        "main"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "datetime",
+        "pathlib",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "sqlite_master"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Path",
+        "RuntimeError",
+        "SystemExit",
+        "backup",
+        "close",
+        "connect",
+        "crea_backup",
+        "esegui_migrazione",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "is_file",
+        "items",
+        "main",
+        "now",
+        "print",
+        "resolve",
+        "strftime",
+        "with_name"
+      ]
+    },
     "service/migrazione_tappa_geometrie.py": {
       "classi": [],
       "funzioni": [
@@ -2639,7 +2691,9 @@
         "precalcola_tappa"
       ],
       "import_interni": [
+        "service.costa_service.aggiorna_metadati_riepilogo_costa",
         "service.costa_service.calcola_costa_tappa",
+        "service.costa_service.ottieni_metadati_gpx",
         "service.costa_service.riepilogo_costa_aggiornato",
         "service.costa_service.salva_riepilogo_costa",
         "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
@@ -2651,13 +2705,16 @@
         "datetime",
         "hashlib",
         "logging",
+        "os",
         "shapely.errors",
         "sqlite3",
         "typing"
       ],
       "tabelle_usate": [
         "SET",
+        "sqlite_master",
         "tappa_analisi",
+        "tappa_costa_riepilogo",
         "tappa_geometrie",
         "tappa_segmenti",
         "tappe"
@@ -2670,8 +2727,10 @@
         "_salva_costa_se_necessario",
         "_salva_errore",
         "_salva_geometria",
+        "aggiorna_metadati_riepilogo_costa",
         "analizza_gpx",
         "any",
+        "basename",
         "calcola_costa_tappa",
         "calcola_geometria_gpx",
         "calcola_sha256",
@@ -2688,6 +2747,7 @@
         "iter",
         "now",
         "open",
+        "ottieni_metadati_gpx",
         "read",
         "riepilogo_costa_aggiornato",
         "salva_riepilogo_costa",
@@ -2721,6 +2781,7 @@
         "service.costa_service.VERSIONE_ALGORITMO_COSTA",
         "service.costa_service.calcola_costa_tappa",
         "service.costa_service.calcola_sha256_gpx",
+        "service.costa_service.ottieni_metadati_gpx",
         "service.costa_service.ottieni_versione_dataset_costa",
         "service.costa_service.salva_riepilogo_costa"
       ],
@@ -2773,6 +2834,7 @@
         "enumerate",
         "exception",
         "execute",
+        "executemany",
         "exists",
         "extend",
         "fetchall",
@@ -2789,6 +2851,7 @@
         "interpolate",
         "isfile",
         "isfinite",
+        "issubset",
         "items",
         "iter",
         "join",
@@ -2800,6 +2863,7 @@
         "nearest",
         "open",
         "ord",
+        "ottieni_metadati_gpx",
         "ottieni_versione_dataset_costa",
         "parse",
         "partition",
@@ -9552,6 +9616,16 @@
             "vincoli": [
               "NOT NULL"
             ]
+          },
+          {
+            "nome": "gpx_size_bytes",
+            "tipo": "INTEGER",
+            "vincoli": []
+          },
+          {
+            "nome": "gpx_mtime",
+            "tipo": "REAL",
+            "vincoli": []
           }
         ],
         "indici": [],
@@ -10038,7 +10112,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1671,
+        "riga": 1695,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -10047,7 +10121,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2291,
+        "riga": 2333,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -10231,9 +10305,9 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 33,
+    "totale_moduli": 34,
     "totale_classi": 19,
-    "totale_funzioni": 286,
+    "totale_funzioni": 292,
     "endpoint_flask": 8,
     "tabelle_rilevate": 23,
     "simboli_orfani": 56,
@@ -10246,8 +10320,8 @@
       "service/stats_service.py",
       "service/precalcolo_batch_service.py",
       "installa_geonames.py",
-      "service/precalcolo_service.py",
-      "service/geometria_service.py"
+      "service/costa_service.py",
+      "service/precalcolo_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -10258,9 +10332,9 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 466,
+        "score": 469,
         "classi": 9,
-        "funzioni": 85,
+        "funzioni": 86,
         "anomalie": 0
       },
       {
@@ -10279,7 +10353,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "score": 107,
+        "score": 110,
         "classi": 0,
         "funzioni": 14,
         "anomalie": 0
@@ -10306,9 +10380,9 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 33,
+      "moduli": 34,
       "classi": 19,
-      "funzioni": 286,
+      "funzioni": 292,
       "rotte": 8,
       "rischio": "alto"
     },
@@ -10329,7 +10403,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 33 moduli, 19 classi, 286 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 19 classi, 292 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 33 moduli, 19 classi, 286 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 19 classi, 292 funzioni, 8 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

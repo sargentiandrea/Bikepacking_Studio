@@ -361,6 +361,8 @@ Nessun indice.
 | `tappe_coinvolte_oltre_5000m` | INTEGER | NOT NULL, DEFAULT 0 |
 | `totale_km` | REAL | NOT NULL, DEFAULT 0 |
 | `calcolato_il` | TEXT | NOT NULL |
+| `gpx_size_bytes` | INTEGER | — |
+| `gpx_mtime` | REAL | — |
 
 ### Indici
 

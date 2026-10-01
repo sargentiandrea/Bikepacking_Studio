@@ -69,6 +69,12 @@ def calcola_sha256_gpx(percorso_gpx: str) -> str:
     return digest.hexdigest()
 
 
+def ottieni_metadati_gpx(percorso_gpx: str) -> tuple[int, float]:
+    """Legge dimensione e data modifica senza aprire o leggere il GPX."""
+    stato_file = os.stat(percorso_gpx)
+    return stato_file.st_size, stato_file.st_mtime
+
+
 def _ottieni_metadati_tappa(
     tappa_id: int, connessione: sqlite3.Connection
 ) -> tuple[float, tuple[float | None, float | None, float | None, float | None]]:
@@ -175,12 +181,19 @@ def calcola_costa_tappa(
             for etichetta, _, colonna_tappe in FASCE_COSTA
         }
 
+    metadati_file = (
+        ottieni_metadati_gpx(percorso_gpx)
+        if percorso_gpx and os.path.isfile(percorso_gpx)
+        else None
+    )
     dati: dict[str, Any] = {
         "tappa_id": tappa_id,
         "gpx_sha256": gpx_sha256,
         "versione_algoritmo_costa": VERSIONE_ALGORITMO_COSTA,
         "versione_dataset_costa": ottieni_versione_dataset_costa(),
         "totale_km": float(distanza_km),
+        "gpx_size_bytes": metadati_file[0] if metadati_file else None,
+        "gpx_mtime": metadati_file[1] if metadati_file else None,
         **riepilogo,
         **coinvolte,
     }
@@ -211,6 +224,33 @@ def riepilogo_costa_aggiornato(
     return record is not None
 
 
+def aggiorna_metadati_riepilogo_costa(
+    connessione: sqlite3.Connection,
+    tappa_id: int,
+    gpx_size_bytes: int,
+    gpx_mtime: float,
+) -> bool:
+    """Aggiorna i metadati rapidi solo se le colonne v4 sono disponibili."""
+    colonne = {
+        riga[1]
+        for riga in connessione.execute(
+            "PRAGMA table_info(tappa_costa_riepilogo)"
+        ).fetchall()
+    }
+    if not {"gpx_size_bytes", "gpx_mtime"}.issubset(colonne):
+        return False
+
+    cursore = connessione.execute(
+        """
+        UPDATE tappa_costa_riepilogo
+        SET gpx_size_bytes = ?, gpx_mtime = ?
+        WHERE tappa_id = ?
+        """,
+        (gpx_size_bytes, gpx_mtime, tappa_id),
+    )
+    return cursore.rowcount > 0
+
+
 def salva_riepilogo_costa(
     connessione: sqlite3.Connection, dati: dict[str, Any]
 ) -> None:
@@ -232,29 +272,60 @@ def salva_riepilogo_costa(
         "tappe_coinvolte_2500_5000m",
         "tappe_coinvolte_oltre_5000m",
     ]
-    connessione.execute(
-        f"""
-        INSERT INTO tappa_costa_riepilogo (
-            tappa_id, gpx_sha256, versione_algoritmo_costa,
-            versione_dataset_costa, {", ".join(colonne)}, totale_km,
-            calcolato_il
+    colonne_tabella = {
+        riga[1]
+        for riga in connessione.execute(
+            "PRAGMA table_info(tappa_costa_riepilogo)"
+        ).fetchall()
+    }
+    metadati_presenti = {
+        "gpx_size_bytes",
+        "gpx_mtime",
+    }.issubset(colonne_tabella)
+    colonne_insert = [
+        "tappa_id",
+        "gpx_sha256",
+        "versione_algoritmo_costa",
+        "versione_dataset_costa",
+        *colonne,
+    ]
+    valori = [
+        dati["tappa_id"],
+        dati["gpx_sha256"],
+        dati["versione_algoritmo_costa"],
+        dati["versione_dataset_costa"],
+        *(dati[colonna] for colonna in colonne),
+    ]
+    aggiornamenti = [
+        "gpx_sha256 = excluded.gpx_sha256",
+        "versione_algoritmo_costa = excluded.versione_algoritmo_costa",
+        "versione_dataset_costa = excluded.versione_dataset_costa",
+        *(f"{colonna} = excluded.{colonna}" for colonna in colonne),
+    ]
+    if metadati_presenti:
+        colonne_insert.extend(("gpx_size_bytes", "gpx_mtime"))
+        valori.extend((dati.get("gpx_size_bytes"), dati.get("gpx_mtime")))
+        aggiornamenti.extend(
+            (
+                "gpx_size_bytes = excluded.gpx_size_bytes",
+                "gpx_mtime = excluded.gpx_mtime",
+            )
         )
-        VALUES ({", ".join("?" for _ in range(14))})
-        ON CONFLICT(tappa_id) DO UPDATE SET
-            gpx_sha256 = excluded.gpx_sha256,
-            versione_algoritmo_costa = excluded.versione_algoritmo_costa,
-            versione_dataset_costa = excluded.versione_dataset_costa,
-            {", ".join(f"{colonna} = excluded.{colonna}" for colonna in colonne)},
-            totale_km = excluded.totale_km,
-            calcolato_il = excluded.calcolato_il
-        """,
+    colonne_insert.append("totale_km")
+    valori.append(dati["totale_km"])
+    colonne_insert.append("calcolato_il")
+    valori.append(datetime.now(timezone.utc).isoformat())
+    aggiornamenti.extend(
         (
-            dati["tappa_id"],
-            dati["gpx_sha256"],
-            dati["versione_algoritmo_costa"],
-            dati["versione_dataset_costa"],
-            *(dati[colonna] for colonna in colonne),
-            dati["totale_km"],
-            datetime.now(timezone.utc).isoformat(),
-        ),
+            "totale_km = excluded.totale_km",
+            "calcolato_il = excluded.calcolato_il",
+        )
+    )
+
+    connessione.execute(
+        f"INSERT INTO tappa_costa_riepilogo ({', '.join(colonne_insert)}) "
+        f"VALUES ({', '.join('?' for _ in valori)}) "
+        "ON CONFLICT(tappa_id) DO UPDATE SET "
+        + ", ".join(aggiornamenti),
+        valori,
     )

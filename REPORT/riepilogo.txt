@@ -1,12 +1,12 @@
 RIEPILOGO ANALISI
 ==================================================
 
-Data: 2026-10-01 13:18:24
+Data: 2026-10-01 18:14:48
 Progetto: Bikepacking_Studio
 
-Moduli Python: 33
+Moduli Python: 34
 Classi: 19
-Funzioni: 286
+Funzioni: 292
 Rotte Flask: 8
 Tabelle: 23
 Simboli orfani: 56

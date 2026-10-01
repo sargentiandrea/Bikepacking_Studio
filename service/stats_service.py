@@ -333,12 +333,31 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
             WHERE type = 'table' AND name = 'tappa_costa_riepilogo'
             """
         ).fetchone() is not None
+        colonne_cache = (
+            {
+                riga[1]
+                for riga in conn.execute(
+                    "PRAGMA table_info(tappa_costa_riepilogo)"
+                ).fetchall()
+            }
+            if tabella_cache
+            else set()
+        )
+        metadati_cache_disponibili = {
+            "gpx_size_bytes",
+            "gpx_mtime",
+        }.issubset(colonne_cache)
         riepiloghi = {}
         if tabella_cache:
+            colonne_metadati = (
+                ", gpx_size_bytes, gpx_mtime"
+                if metadati_cache_disponibili
+                else ""
+            )
             riepiloghi = {
                 riga[0]: riga[1:]
                 for riga in conn.execute(
-                    """
+                    f"""
                     SELECT tappa_id, gpx_sha256, versione_algoritmo_costa,
                            versione_dataset_costa, fascia_0_500m_km,
                            fascia_500_2500m_km, fascia_2500_5000m_km,
@@ -346,6 +365,7 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
                            tappe_coinvolte_500_2500m,
                            tappe_coinvolte_2500_5000m,
                            tappe_coinvolte_oltre_5000m, totale_km
+                           {colonne_metadati}
                     FROM tappa_costa_riepilogo
                     """
                 ).fetchall()
@@ -365,6 +385,7 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
         VERSIONE_ALGORITMO_COSTA,
         calcola_costa_tappa,
         calcola_sha256_gpx,
+        ottieni_metadati_gpx,
         ottieni_versione_dataset_costa,
         salva_riepilogo_costa,
     )
@@ -376,6 +397,7 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
     versione_dataset = ottieni_versione_dataset_costa()
 
     km_totali_viaggio = 0.0
+    aggiornamenti_metadati = []
 
     for (
         tappa_id,
@@ -389,12 +411,35 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
         km_val = km_tappa or 0.0
         km_totali_viaggio += km_val
         percorso_gpx = _trova_percorso_gpx(nome_file)
-        hash_gpx = (
-            calcola_sha256_gpx(percorso_gpx)
-            if percorso_gpx is not None
-            else None
-        )
         cache = riepiloghi.get(tappa_id)
+        metadati_gpx = None
+        if percorso_gpx is not None:
+            try:
+                metadati_gpx = ottieni_metadati_gpx(percorso_gpx)
+            except FileNotFoundError:
+                _LOGGER.warning(
+                    "File GPX non trovato per la tappa %s: %s",
+                    tappa_id,
+                    percorso_gpx,
+                )
+                percorso_gpx = None
+
+        metadati_uguali = bool(
+            metadati_cache_disponibili
+            and cache is not None
+            and metadati_gpx is not None
+            and cache[12] is not None
+            and cache[13] is not None
+            and cache[12] == metadati_gpx[0]
+            and cache[13] == metadati_gpx[1]
+        )
+        hash_gpx = None
+        if percorso_gpx is not None:
+            hash_gpx = (
+                cache[0]
+                if metadati_uguali and cache is not None
+                else calcola_sha256_gpx(percorso_gpx)
+            )
         cache_valida = bool(
             tabella_cache
             and cache is not None
@@ -416,6 +461,14 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
                     for indice, (_, _, colonna_tappe) in enumerate(FASCE_COSTA)
                 }
             )
+            if (
+                metadati_cache_disponibili
+                and metadati_gpx is not None
+                and not metadati_uguali
+            ):
+                aggiornamenti_metadati.append(
+                    (metadati_gpx[0], metadati_gpx[1], tappa_id)
+                )
         else:
             dati = calcola_costa_tappa(
                 tappa_id,
@@ -441,6 +494,25 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
         for etichetta, colonna_km, colonna_tappe in FASCE_COSTA:
             fasce_stat[etichetta]["km"] += dati[colonna_km]
             fasce_stat[etichetta]["tappe_coinvolte"] += dati[colonna_tappe]
+
+    if aggiornamenti_metadati:
+        conn_aggiornamento = sqlite3.connect(DB_NAME)
+        try:
+            with conn_aggiornamento:
+                conn_aggiornamento.executemany(
+                    """
+                    UPDATE tappa_costa_riepilogo
+                    SET gpx_size_bytes = ?, gpx_mtime = ?
+                    WHERE tappa_id = ?
+                    """,
+                    aggiornamenti_metadati,
+                )
+        except sqlite3.Error:
+            _LOGGER.exception(
+                "Impossibile aggiornare i metadati rapidi dei riepiloghi costa"
+            )
+        finally:
+            conn_aggiornamento.close()
 
     tabella_finale = []
     for nome_fascia, dati in fasce_stat.items():

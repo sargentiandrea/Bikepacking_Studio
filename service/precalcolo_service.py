@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 import logging
+import os
 import sqlite3
 from typing import Any
 
@@ -17,6 +18,8 @@ from service.geometria_service import (
 )
 from service.costa_service import (
     calcola_costa_tappa,
+    aggiorna_metadati_riepilogo_costa,
+    ottieni_metadati_gpx,
     riepilogo_costa_aggiornato,
     salva_riepilogo_costa,
 )
@@ -70,7 +73,14 @@ def _salva_costa_se_necessario(
 ) -> str | None:
     """Salva la costa se manca o se il GPX/dataset è cambiato."""
     try:
+        gpx_size_bytes, gpx_mtime = ottieni_metadati_gpx(percorso_file)
         if riepilogo_costa_aggiornato(connessione, tappa_id, gpx_sha256):
+            aggiorna_metadati_riepilogo_costa(
+                connessione,
+                tappa_id,
+                gpx_size_bytes,
+                gpx_mtime,
+            )
             return None
         dati_costa = calcola_costa_tappa(
             tappa_id,
@@ -202,6 +212,30 @@ def precalcola_tappa(
 
     with sqlite3.connect(percorso_database) as connessione:
         connessione.execute("PRAGMA foreign_keys = ON")
+        # Un GPX sostituito invalida i riepiloghi di tutte le tappe che lo condividono.
+        tabella_costa = connessione.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'tappa_costa_riepilogo'
+            """
+        ).fetchone()
+        if tabella_costa is not None:
+            connessione.execute(
+                """
+                DELETE FROM tappa_costa_riepilogo
+                WHERE tappa_id IN (
+                    SELECT id FROM tappe
+                    WHERE nome_file IN (?, ?)
+                )
+                  AND gpx_sha256 != ?
+                """,
+                (
+                    percorso_file,
+                    os.path.basename(percorso_file),
+                    gpx_sha256,
+                ),
+            )
+
         record = connessione.execute(
             """
             SELECT gpx_sha256, versione_algoritmi, stato
