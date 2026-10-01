@@ -1,7 +1,7 @@
 # Schema del database SQLite
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle trovate: 15
+- Tabelle trovate: 17
 
 ## `allarmi_percorso`
 
@@ -304,6 +304,67 @@ Nessuna chiave esterna.
 ### Chiavi esterne
 
 - `tappa_id` → `tappe.id` (ON UPDATE NO ACTION, ON DELETE NO ACTION)
+
+## `tappa_analisi`
+
+- Righe: 0
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `tappa_id` | INTEGER | chiave primaria |
+| `gpx_sha256` | TEXT | NOT NULL |
+| `versione_algoritmi` | TEXT | NOT NULL |
+| `distanza_km` | REAL | — |
+| `dislivello_pos_m` | REAL | — |
+| `dislivello_neg_m` | REAL | — |
+| `quota_min_m` | REAL | — |
+| `quota_max_m` | REAL | — |
+| `pendenza_media_pct` | REAL | — |
+| `pendenza_max_pct` | REAL | — |
+| `bbox_min_lon` | REAL | — |
+| `bbox_min_lat` | REAL | — |
+| `bbox_max_lon` | REAL | — |
+| `bbox_max_lat` | REAL | — |
+| `stato` | TEXT | NOT NULL |
+| `errore` | TEXT | — |
+| `aggiornato_il` | TEXT | — |
+
+### Indici
+
+Nessun indice.
+
+### Chiavi esterne
+
+- `tappa_id` → `tappe.id` (ON UPDATE NO ACTION, ON DELETE CASCADE)
+
+## `tappa_segmenti`
+
+- Righe: 0
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `tappa_id` | INTEGER | chiave primaria, NOT NULL |
+| `track_index` | INTEGER | chiave primaria, NOT NULL |
+| `segment_index` | INTEGER | chiave primaria, NOT NULL |
+| `punti` | INTEGER | — |
+| `distanza_km` | REAL | — |
+| `dislivello_pos_m` | REAL | — |
+| `dislivello_neg_m` | REAL | — |
+| `quota_min_m` | REAL | — |
+| `quota_max_m` | REAL | — |
+| `versione_algoritmi` | TEXT | — |
+
+### Indici
+
+- `sqlite_autoindex_tappa_segmenti_1` (UNIQUE): `tappa_id`, `track_index`, `segment_index`
+
+### Chiavi esterne
+
+- `tappa_id` → `tappe.id` (ON UPDATE NO ACTION, ON DELETE CASCADE)
 
 ## `tappe`
 

@@ -1,20 +1,20 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 02:38:54*
+*Generato il 2026-10-01 alle 08:13:57*
 
 ## 1. Sintesi
 
 - Moduli Python: **22**
 - Classi: **19**
-- Funzioni globali: **257**
+- Funzioni globali: **246**
 - Rotte Flask: **7**
-- Tabelle rilevate: **18**
-- Simboli orfani: **53**
+- Tabelle rilevate: **21**
+- Simboli orfani: **56**
 
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle: 15
+- Tabelle: 17
 
 | Tabella | Righe | Colonne chiave |
 |---|---:|---|
@@ -31,6 +31,8 @@
 | `progetti` | 3 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
 | `superfici_tappa` | 992 | id (PK), tappa_id (FK → tappe.id) |
+| `tappa_analisi` | 0 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_segmenti` | 0 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
 | `tappe` | 993 | id (PK), id_progetto (FK → progetti.id) |
 | `trasferimenti` | 28 | id (PK), id_progetto (FK → progetti.id) |
 
@@ -78,7 +80,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (11 file)
+**core** (12 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/clima_service.py`
@@ -87,13 +89,12 @@
 - `service/geocodifica_offline_service.py`
 - `service/geonames_service.py`
 - `service/gpx_metrics_service.py`
-- ... e altri 3
+- ... e altri 4
 
-**altro** (6 file)
+**altro** (5 file)
 - `app_desktop.py`
 - `backup.py`
 - `installa_geonames.py`
-- `misura_prestazioni.py`
 - `resources/genera_catalogo_sprite.py`
 - `static/aggiorna_sprite.py`
 
@@ -121,7 +122,7 @@
 
 ## 5. Simboli orfani
 
-*53 simboli definiti ma mai citati altrove:*
+*56 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -141,6 +142,7 @@
 - **classe** `WorkerNomiLuoghi` in `gui/mappa.py`
 - **classe** `WorkerAltimetria` in `gui/mappa.py`
 - **classe** `PianificazionePercorsoWorker` in `gui/mappa.py`
+- **classe** `WorkerCaricamentoMappa` in `gui/mappa.py`
 - **funzione** `imposta_superfici` in `gui/mappa.py`
 - **funzione** `sincronizza_stato_percorso` in `gui/mappa.py`
 - **funzione** `attiva_modalita_interazione` in `gui/mappa.py`
@@ -152,8 +154,7 @@
 - **classe** `WizardNuovoPercorso` in `gui/wizard_percorso.py`
 - **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
 - **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
-- **funzione** `registra_trasferimento_gap` in `service/audit_service.py`
-- ... e altri 23
+- ... e altri 26
 
 ## 6. Moduli con più contenuto
 
@@ -161,12 +162,12 @@
 - `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
-- `misura_prestazioni.py`: 0 classi, 14 funzioni
 - `service/map_server.py`: 0 classi, 14 funzioni
 - `service/stats_service.py`: 0 classi, 12 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/gpx_metrics_service.py`: 0 classi, 7 funzioni
 - `service/map_manager_service.py`: 2 classi, 4 funzioni
+- `service/audit_service.py`: 0 classi, 5 funzioni
 
 ## 7. Livello di rischio e file critici
 

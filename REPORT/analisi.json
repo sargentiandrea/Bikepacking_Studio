@@ -1,15 +1,15 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T02:38:54.362895",
+    "data_analisi": "2026-10-01T08:13:57.837882",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
     "totale_moduli": 22,
     "totale_classi": 19,
-    "totale_funzioni": 257,
+    "totale_funzioni": 246,
     "totale_rotte_flask": 7,
-    "totale_tabelle": 18,
+    "totale_tabelle": 21,
     "tabelle_create": [
       "allarmi_percorso",
       "anagrafica_paesi",
@@ -20,6 +20,8 @@
       "progetti",
       "progetto_stagione",
       "superfici_tappa",
+      "tappa_analisi",
+      "tappa_segmenti",
       "tappe",
       "trasferimenti",
       "trasferimenti_logistici"
@@ -37,6 +39,7 @@
       "metadata",
       "progetti",
       "progetto_stagione",
+      "sqlite_master",
       "superfici_tappa",
       "tappe",
       "tiles",
@@ -79,7 +82,6 @@
       "shutil",
       "socket",
       "sqlite3",
-      "statistics",
       "subprocess",
       "sys",
       "threading",
@@ -116,6 +118,7 @@
         "service/geonames_service.py",
         "service/gpx_metrics_service.py",
         "service/map_manager_service.py",
+        "service/migrazione_tappa_analisi.py",
         "service/stats_service.py",
         "service/superfici_service.py"
       ],
@@ -123,7 +126,6 @@
         "app_desktop.py",
         "backup.py",
         "installa_geonames.py",
-        "misura_prestazioni.py",
         "resources/genera_catalogo_sprite.py",
         "static/aggiorna_sprite.py"
       ]
@@ -286,6 +288,11 @@
         "file": "gui/mappa.py"
       },
       {
+        "simbolo": "WorkerCaricamentoMappa",
+        "tipo": "classe",
+        "file": "gui/mappa.py"
+      },
+      {
         "simbolo": "imposta_superfici",
         "tipo": "funzione",
         "file": "gui/mappa.py"
@@ -429,6 +436,16 @@
         "simbolo": "run_server",
         "tipo": "funzione",
         "file": "service/map_server.py"
+      },
+      {
+        "simbolo": "crea_backup",
+        "tipo": "funzione",
+        "file": "service/migrazione_tappa_analisi.py"
+      },
+      {
+        "simbolo": "esegui_migrazione",
+        "tipo": "funzione",
+        "file": "service/migrazione_tappa_analisi.py"
       },
       {
         "simbolo": "calcola_distanza_mare_m",
@@ -579,13 +596,13 @@
       }
     ],
     "mappa_dipendenze": {
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
       "service/stats_service.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "database/database_setup.py": [
         "app_desktop"
       ],
       "service/clima_service.py": [
@@ -1676,98 +1693,6 @@
         "write"
       ]
     },
-    "misura_prestazioni.py": {
-      "classi": [],
-      "funzioni": [
-        "_local_name",
-        "_iter_children_named",
-        "_extract_tracks",
-        "_haversine_km",
-        "_calculate_distance",
-        "_calculate_elevation",
-        "_calculate_average_grade",
-        "_extract_map_coordinates",
-        "_build_map_features",
-        "_stratified_sample",
-        "_measure_file",
-        "_format_duration",
-        "_print_results",
-        "main"
-      ],
-      "import_interni": [],
-      "import_esterni": [
-        "__future__",
-        "argparse",
-        "json",
-        "math",
-        "pathlib",
-        "statistics",
-        "sys",
-        "time",
-        "xml.etree.ElementTree"
-      ],
-      "tabelle_usate": [],
-      "anomalie": [],
-      "chiamate_funzioni": [
-        "ArgumentParser",
-        "Path",
-        "SystemExit",
-        "_build_map_features",
-        "_calculate_average_grade",
-        "_calculate_distance",
-        "_calculate_elevation",
-        "_extract_map_coordinates",
-        "_extract_tracks",
-        "_format_duration",
-        "_haversine_km",
-        "_iter_children_named",
-        "_local_name",
-        "_measure_file",
-        "_print_results",
-        "_stratified_sample",
-        "abs",
-        "add_argument",
-        "append",
-        "asin",
-        "casefold",
-        "cos",
-        "dumps",
-        "encode",
-        "enumerate",
-        "error",
-        "float",
-        "fmean",
-        "fromstring",
-        "get",
-        "glob",
-        "int",
-        "is_dir",
-        "iter",
-        "join",
-        "len",
-        "main",
-        "max",
-        "min",
-        "next",
-        "parse_args",
-        "perf_counter",
-        "print",
-        "radians",
-        "range",
-        "read_text",
-        "resolve",
-        "round",
-        "rsplit",
-        "sin",
-        "sorted",
-        "sqrt",
-        "startswith",
-        "stat",
-        "sum",
-        "type",
-        "zip"
-      ]
-    },
     "resources/genera_catalogo_sprite.py": {
       "classi": [],
       "funzioni": [
@@ -2279,6 +2204,47 @@
         "strip",
         "unquote",
         "which"
+      ]
+    },
+    "service/migrazione_tappa_analisi.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_backup",
+        "esegui_migrazione",
+        "main"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "datetime",
+        "pathlib",
+        "shutil",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "sqlite_master",
+        "tappa_analisi",
+        "tappa_segmenti"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Path",
+        "RuntimeError",
+        "SystemExit",
+        "connect",
+        "copy2",
+        "crea_backup",
+        "esegui_migrazione",
+        "execute",
+        "fetchone",
+        "is_file",
+        "main",
+        "now",
+        "print",
+        "resolve",
+        "strftime",
+        "with_name"
       ]
     },
     "service/stats_service.py": {
@@ -8790,6 +8756,202 @@
         ]
       },
       {
+        "nome": "tappa_analisi",
+        "righe": 0,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "tappa_id",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria"
+            ]
+          },
+          {
+            "nome": "gpx_sha256",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "versione_algoritmi",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "distanza_km",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "dislivello_pos_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "dislivello_neg_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "quota_min_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "quota_max_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "pendenza_media_pct",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "pendenza_max_pct",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "bbox_min_lon",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "bbox_min_lat",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "bbox_max_lon",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "bbox_max_lat",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "stato",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "errore",
+            "tipo": "TEXT",
+            "vincoli": []
+          },
+          {
+            "nome": "aggiornato_il",
+            "tipo": "TEXT",
+            "vincoli": []
+          }
+        ],
+        "indici": [],
+        "chiavi_esterne": [
+          {
+            "colonna": "tappa_id",
+            "tabella_riferita": "tappe",
+            "colonna_riferita": "id",
+            "azione_update": "NO ACTION",
+            "azione_delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "nome": "tappa_segmenti",
+        "righe": 0,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "tappa_id",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria",
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "track_index",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria",
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "segment_index",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria",
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "punti",
+            "tipo": "INTEGER",
+            "vincoli": []
+          },
+          {
+            "nome": "distanza_km",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "dislivello_pos_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "dislivello_neg_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "quota_min_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "quota_max_m",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "versione_algoritmi",
+            "tipo": "TEXT",
+            "vincoli": []
+          }
+        ],
+        "indici": [
+          {
+            "nome": "sqlite_autoindex_tappa_segmenti_1",
+            "univoco": true,
+            "colonne": [
+              "tappa_id",
+              "track_index",
+              "segment_index"
+            ]
+          }
+        ],
+        "chiavi_esterne": [
+          {
+            "colonna": "tappa_id",
+            "tabella_riferita": "tappe",
+            "colonna_riferita": "id",
+            "azione_update": "NO ACTION",
+            "azione_delete": "CASCADE"
+          }
+        ]
+      },
+      {
         "nome": "tappe",
         "righe": 993,
         "errore_conteggio": null,
@@ -9270,21 +9432,21 @@
     "nome_progetto": "Bikepacking_Studio",
     "totale_moduli": 22,
     "totale_classi": 19,
-    "totale_funzioni": 257,
+    "totale_funzioni": 246,
     "endpoint_flask": 7,
-    "tabelle_rilevate": 18,
-    "simboli_orfani": 53,
+    "tabelle_rilevate": 21,
+    "simboli_orfani": 56,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
       "gui/dashboard.py",
       "service/superfici_service.py",
-      "misura_prestazioni.py",
       "service/map_server.py",
       "service/stats_service.py",
       "installa_geonames.py",
       "service/gpx_metrics_service.py",
-      "service/map_manager_service.py"
+      "service/map_manager_service.py",
+      "service/audit_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -9345,13 +9507,13 @@
     "riepilogo": {
       "moduli": 22,
       "classi": 19,
-      "funzioni": 257,
+      "funzioni": 246,
       "rotte": 7,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 53",
+      "Simboli orfani: 56",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -9366,7 +9528,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 257 funzioni, 7 endpoint Flask, 53 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 246 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 257 funzioni, 7 endpoint Flask, 53 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 246 funzioni, 7 endpoint Flask, 56 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }
