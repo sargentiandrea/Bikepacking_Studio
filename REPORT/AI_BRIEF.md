@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-01 19:30*
+*Aggiornato: 2026-10-02 00:31*
 
 ## Come leggere il progetto
 

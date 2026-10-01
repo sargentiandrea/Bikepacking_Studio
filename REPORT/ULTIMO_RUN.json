@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T19:30:11.949861",
+    "data_analisi": "2026-10-02T00:31:19.938787",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
@@ -644,13 +644,13 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/clima_service.py": [
-        "app_desktop"
-      ],
       "database/database_setup.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "service/clima_service.py": [
         "app_desktop"
       ],
       "service/stats_service.py": [
