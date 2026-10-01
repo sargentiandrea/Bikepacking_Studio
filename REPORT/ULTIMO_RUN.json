@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_analisi": "2026-10-01T08:42:31.552567",
+    "data_analisi": "2026-10-01T09:04:47.439598",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
@@ -600,16 +600,16 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/stats_service.py": [
+      "service/clima_service.py": [
         "app_desktop"
       ],
-      "service/clima_service.py": [
+      "database/database_setup.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
         "app_desktop"
       ],
-      "database/database_setup.py": [
+      "service/stats_service.py": [
         "app_desktop"
       ]
     }
@@ -1273,6 +1273,7 @@
         "service.geonames_service.cerca_coordinate_luogo",
         "service.map_manager_service.DownloadWorker",
         "service.map_manager_service.MapManagerService",
+        "service.precalcolo_service.precalcola_tappa",
         "service.stats_service.analizza_dati_rotta_brouter",
         "service.superfici_service.analizza_superfici_progetto"
       ],
@@ -1471,6 +1472,7 @@
         "parentWidget",
         "parse",
         "post",
+        "precalcola_tappa",
         "print",
         "radians",
         "raise_",
@@ -8686,7 +8688,7 @@
       },
       {
         "nome": "progetti",
-        "righe": 3,
+        "righe": 4,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8810,7 +8812,7 @@
       },
       {
         "nome": "tappa_analisi",
-        "righe": 0,
+        "righe": 1,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -8920,7 +8922,7 @@
       },
       {
         "nome": "tappa_segmenti",
-        "righe": 0,
+        "righe": 1,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -9006,7 +9008,7 @@
       },
       {
         "nome": "tappe",
-        "righe": 993,
+        "righe": 994,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -9272,7 +9274,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1395,
+        "riga": 1424,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -9281,7 +9283,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1461,
+        "riga": 1490,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -9290,7 +9292,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1598,
+        "riga": 1627,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -9299,7 +9301,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2093,
+        "riga": 2122,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -9510,7 +9512,7 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 453,
+        "score": 454,
         "classi": 9,
         "funzioni": 84,
         "anomalie": 0

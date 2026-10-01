@@ -243,7 +243,7 @@ Nessun indice.
 
 ## `progetti`
 
-- Righe: 3
+- Righe: 4
 
 ### Colonne
 
@@ -307,7 +307,7 @@ Nessuna chiave esterna.
 
 ## `tappa_analisi`
 
-- Righe: 0
+- Righe: 1
 
 ### Colonne
 
@@ -341,7 +341,7 @@ Nessun indice.
 
 ## `tappa_segmenti`
 
-- Righe: 0
+- Righe: 1
 
 ### Colonne
 
@@ -368,7 +368,7 @@ Nessun indice.
 
 ## `tappe`
 
-- Righe: 993
+- Righe: 994
 
 ### Colonne
 

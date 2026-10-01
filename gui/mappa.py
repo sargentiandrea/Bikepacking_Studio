@@ -24,6 +24,7 @@ from PySide6.QtGui import QColor, QPainter
 from service.config import BASE_DIR, BROUTER_URL, DB_NAME
 from service.geonames_service import cerca_coordinate_luogo
 from service.map_manager_service import MapManagerService, DownloadWorker
+from service.precalcolo_service import precalcola_tappa
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
 
@@ -1227,6 +1228,9 @@ class PannelloPianificazioneWidget(QFrame):
         file_gpx_precedente = None
         stato_precedente = "ATTIVA"
         tappa_id = risultato.get("tappa_id")
+        tappa_in_aggiornamento = tappa_id is not None
+        precalcolo_riuscito = True
+        errore_precalcolo = None
         try:
             os.makedirs(GPX_DIR, exist_ok=True)
             conn = sqlite3.connect(DB_NAME, timeout=30.0)
@@ -1238,11 +1242,11 @@ class PannelloPianificazioneWidget(QFrame):
                             "SELECT nome_file, stato FROM tappe WHERE id = ? AND id_progetto = ?",
                             (tappa_id, id_progetto_corrente),
                         )
-                        tappa_esistente = cursor.fetchone()
-                        if not tappa_esistente:
+                        riga_tappa_esistente = cursor.fetchone()
+                        if not riga_tappa_esistente:
                             raise ValueError("La tappa da aggiornare non è più presente nel progetto.")
-                        file_gpx_precedente = tappa_esistente[0]
-                        stato_precedente = tappa_esistente[1] or "ATTIVA"
+                        file_gpx_precedente = riga_tappa_esistente[0]
+                        stato_precedente = riga_tappa_esistente[1] or "ATTIVA"
                     else:
                         cursor.execute(
                             "SELECT COALESCE(MAX(sequenza), 0) + 1 FROM tappe WHERE id_progetto = ?",
@@ -1304,8 +1308,25 @@ class PannelloPianificazioneWidget(QFrame):
                                 *valori_rotta,
                             ),
                         )
+                        tappa_id = cursor.lastrowid
 
-            if file_gpx_precedente:
+            try:
+                risultato_precalcolo = precalcola_tappa(
+                    tappa_id,
+                    file_gpx,
+                    DB_NAME,
+                )
+                if risultato_precalcolo.get("stato") == "ERRORE":
+                    precalcolo_riuscito = False
+                    errore_precalcolo = risultato_precalcolo.get(
+                        "errore", "errore durante il precalcolo"
+                    )
+            except Exception as errore:
+                precalcolo_riuscito = False
+                errore_precalcolo = str(errore)
+                print(f"Errore precalcolo tappa {tappa_id}: {errore}")
+
+            if file_gpx_precedente and precalcolo_riuscito:
                 percorso_precedente = os.path.join(GPX_DIR, os.path.basename(file_gpx_precedente))
                 if os.path.isfile(percorso_precedente):
                     try:
@@ -1330,9 +1351,17 @@ class PannelloPianificazioneWidget(QFrame):
             QMessageBox.information(
                 self,
                 "Percorso salvato",
-                f"La tappa è stata {'aggiornata' if tappa_id is not None else 'aggiunta'} al progetto. "
+                f"La tappa è stata {'aggiornata' if tappa_in_aggiornamento else 'aggiunta'} al progetto. "
                 f"Distanza: {distanza_km:.1f} km.",
             )
+            if not precalcolo_riuscito:
+                QMessageBox.warning(
+                    self,
+                    "Precalcolo non completato",
+                    "La rotta è stata salvata, ma il precalcolo delle metriche "
+                    f"non è riuscito: {errore_precalcolo}. "
+                    "Il GPX precedente è stato conservato.",
+                )
         except Exception as errore_salvataggio:
             if file_gpx and os.path.exists(file_gpx):
                 try:

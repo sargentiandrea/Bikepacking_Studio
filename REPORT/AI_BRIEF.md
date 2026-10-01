@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-01 08:42*
+*Aggiornato: 2026-10-01 09:04*
 
 ## Come leggere il progetto
 
@@ -25,7 +25,7 @@
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 453 - 9 classi, 84 funzioni, 0 anomalie
+- `gui/mappa.py` - score 454 - 9 classi, 84 funzioni, 0 anomalie
 - `app_desktop.py` - score 331 - 5 classi, 52 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
 - `service/stats_service.py` - score 92 - 0 classi, 12 funzioni, 0 anomalie
@@ -93,12 +93,12 @@
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
-- `progetti`: 3 righe
+- `progetti`: 4 righe
 - `progetto_stagione`: 1 righe
 - `superfici_tappa`: 992 righe
-- `tappa_analisi`: 0 righe
-- `tappa_segmenti`: 0 righe
-- `tappe`: 993 righe
+- `tappa_analisi`: 1 righe
+- `tappa_segmenti`: 1 righe
+- `tappe`: 994 righe
 - `trasferimenti`: 28 righe
 
 ## Servizi esterni rilevati

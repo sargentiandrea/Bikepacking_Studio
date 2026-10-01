@@ -1,6 +1,6 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 08:42:31*
+*Generato il 2026-10-01 alle 09:04:47*
 
 ## 1. Sintesi
 
@@ -28,12 +28,12 @@
 | `confini_box` | 11 | id (PK) |
 | `dogane_percorso` | 0 | id (PK) |
 | `dogane_progetto` | 67 | id (PK), id_progetto (FK → progetti.id) |
-| `progetti` | 3 | id (PK) |
+| `progetti` | 4 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
 | `superfici_tappa` | 992 | id (PK), tappa_id (FK → tappe.id) |
-| `tappa_analisi` | 0 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_segmenti` | 0 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
-| `tappe` | 993 | id (PK), id_progetto (FK → progetti.id) |
+| `tappa_analisi` | 1 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_segmenti` | 1 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
+| `tappe` | 994 | id (PK), id_progetto (FK → progetti.id) |
 | `trasferimenti` | 28 | id (PK), id_progetto (FK → progetti.id) |
 
 ## File di configurazione
