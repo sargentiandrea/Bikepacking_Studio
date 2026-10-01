@@ -1,15 +1,15 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-09-30 alle 23:10:14*
+*Generato il 2026-10-01 alle 02:38:54*
 
 ## 1. Sintesi
 
-- Moduli Python: **21**
+- Moduli Python: **22**
 - Classi: **19**
-- Funzioni globali: **250**
+- Funzioni globali: **257**
 - Rotte Flask: **7**
 - Tabelle rilevate: **18**
-- Simboli orfani: **52**
+- Simboli orfani: **53**
 
 ## Database
 
@@ -78,7 +78,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (10 file)
+**core** (11 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/clima_service.py`
@@ -86,8 +86,8 @@
 - `service/dogane_service.py`
 - `service/geocodifica_offline_service.py`
 - `service/geonames_service.py`
-- `service/map_manager_service.py`
-- ... e altri 2
+- `service/gpx_metrics_service.py`
+- ... e altri 3
 
 **altro** (6 file)
 - `app_desktop.py`
@@ -121,7 +121,7 @@
 
 ## 5. Simboli orfani
 
-*52 simboli definiti ma mai citati altrove:*
+*53 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -153,7 +153,7 @@
 - **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
 - **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
 - **funzione** `registra_trasferimento_gap` in `service/audit_service.py`
-- ... e altri 22
+- ... e altri 23
 
 ## 6. Moduli con più contenuto
 
@@ -165,8 +165,8 @@
 - `service/map_server.py`: 0 classi, 14 funzioni
 - `service/stats_service.py`: 0 classi, 12 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
+- `service/gpx_metrics_service.py`: 0 classi, 7 funzioni
 - `service/map_manager_service.py`: 2 classi, 4 funzioni
-- `service/audit_service.py`: 0 classi, 5 funzioni
 
 ## 7. Livello di rischio e file critici
 

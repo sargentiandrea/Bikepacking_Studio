@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-09-30T23:10:14.322805",
+    "data_analisi": "2026-10-01T02:38:54.362895",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 21,
+    "totale_moduli": 22,
     "totale_classi": 19,
-    "totale_funzioni": 250,
+    "totale_funzioni": 257,
     "totale_rotte_flask": 7,
     "totale_tabelle": 18,
     "tabelle_create": [
@@ -84,6 +84,7 @@
       "sys",
       "threading",
       "time",
+      "typing",
       "urllib.parse",
       "urllib.request",
       "uuid",
@@ -113,6 +114,7 @@
         "service/dogane_service.py",
         "service/geocodifica_offline_service.py",
         "service/geonames_service.py",
+        "service/gpx_metrics_service.py",
         "service/map_manager_service.py",
         "service/stats_service.py",
         "service/superfici_service.py"
@@ -359,6 +361,11 @@
         "file": "service/dogane_service.py"
       },
       {
+        "simbolo": "analizza_gpx",
+        "tipo": "funzione",
+        "file": "service/gpx_metrics_service.py"
+      },
+      {
         "simbolo": "get_installed_maps",
         "tipo": "funzione",
         "file": "service/map_manager_service.py"
@@ -460,9 +467,10 @@
         "file": [
           "app_desktop.py",
           "gui/dashboard.py",
-          "service/audit_service.py"
+          "service/audit_service.py",
+          "service/gpx_metrics_service.py"
         ],
-        "numero_copie": 3
+        "numero_copie": 4
       },
       {
         "nome": "init_ui",
@@ -574,13 +582,13 @@
       "database/database_setup.py": [
         "app_desktop"
       ],
-      "service/clima_service.py": [
+      "service/stats_service.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
         "app_desktop"
       ],
-      "service/stats_service.py": [
+      "service/clima_service.py": [
         "app_desktop"
       ]
     }
@@ -2081,6 +2089,58 @@
         "split",
         "str",
         "strip"
+      ]
+    },
+    "service/gpx_metrics_service.py": {
+      "classi": [],
+      "funzioni": [
+        "calcola_distanza_haversine",
+        "_risultato_errore",
+        "_coordinate_valide",
+        "_quota_valida",
+        "_punto_senza_duplicati",
+        "_arrotonda_metriche",
+        "analizza_gpx"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "gpxpy",
+        "math",
+        "typing"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "_arrotonda_metriche",
+        "_coordinate_valide",
+        "_punto_senza_duplicati",
+        "_quota_valida",
+        "_risultato_errore",
+        "abs",
+        "any",
+        "append",
+        "asin",
+        "calcola_distanza_haversine",
+        "cos",
+        "extend",
+        "float",
+        "frozenset",
+        "isfinite",
+        "isinstance",
+        "len",
+        "list",
+        "max",
+        "min",
+        "open",
+        "parse",
+        "radians",
+        "round",
+        "sin",
+        "sqrt",
+        "sum",
+        "update",
+        "zip"
       ]
     },
     "service/map_manager_service.py": {
@@ -9208,12 +9268,12 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 21,
+    "totale_moduli": 22,
     "totale_classi": 19,
-    "totale_funzioni": 250,
+    "totale_funzioni": 257,
     "endpoint_flask": 7,
     "tabelle_rilevate": 18,
-    "simboli_orfani": 52,
+    "simboli_orfani": 53,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
@@ -9223,8 +9283,8 @@
       "service/map_server.py",
       "service/stats_service.py",
       "installa_geonames.py",
-      "service/map_manager_service.py",
-      "service/audit_service.py"
+      "service/gpx_metrics_service.py",
+      "service/map_manager_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -9283,15 +9343,15 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 21,
+      "moduli": 22,
       "classi": 19,
-      "funzioni": 250,
+      "funzioni": 257,
       "rotte": 7,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 52",
+      "Simboli orfani: 53",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -9306,7 +9366,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 21 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 52 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 257 funzioni, 7 endpoint Flask, 53 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 21 moduli, 19 classi, 250 funzioni, 7 endpoint Flask, 52 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 22 moduli, 19 classi, 257 funzioni, 7 endpoint Flask, 53 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

@@ -1,15 +1,15 @@
 RIEPILOGO ANALISI
 ==================================================
 
-Data: 2026-09-30 23:10:14
+Data: 2026-10-01 02:38:54
 Progetto: Bikepacking_Studio
 
-Moduli Python: 21
+Moduli Python: 22
 Classi: 19
-Funzioni: 250
+Funzioni: 257
 Rotte Flask: 7
 Tabelle: 18
-Simboli orfani: 52
+Simboli orfani: 53
 
 Livello rischio: alto
 File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py
