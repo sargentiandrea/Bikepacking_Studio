@@ -1,12 +1,12 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-01 alle 18:14:48*
+*Generato il 2026-10-01 alle 19:30:11*
 
 ## 1. Sintesi
 
 - Moduli Python: **34**
 - Classi: **19**
-- Funzioni globali: **292**
+- Funzioni globali: **293**
 - Rotte Flask: **8**
 - Tabelle rilevate: **23**
 - Simboli orfani: **56**
@@ -166,7 +166,7 @@
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 86 funzioni
+- `gui/mappa.py`: 9 classi, 87 funzioni
 - `app_desktop.py`: 5 classi, 52 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni

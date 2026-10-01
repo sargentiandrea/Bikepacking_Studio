@@ -670,9 +670,25 @@
                     container: 'map',
                     center: [12.5674, 41.8719],
                     zoom: 6,
-                    style: dynamicStyle,                 
-                    projection: 'globe' 
+                    style: dynamicStyle,
+                    projection: { type: 'mercator' }
                 });
+
+                let proiezioneAttiva = 'mercator';
+                let timeoutCambioProiezione = null;
+                const aggiornaProiezionePerZoom = () => {
+                    clearTimeout(timeoutCambioProiezione);
+                    timeoutCambioProiezione = setTimeout(() => {
+                        const proiezioneDesiderata =
+                            map.getZoom() < 3 ? 'globe' : 'mercator';
+                        if (proiezioneDesiderata === proiezioneAttiva) return;
+
+                        proiezioneAttiva = proiezioneDesiderata;
+                        map.setProjection({ type: proiezioneDesiderata });
+                    }, 200);
+                };
+                // Attende 200 ms dall'ultimo zoom per evitare cambi ravvicinati della proiezione.
+                map.on('zoomend', aggiornaProiezionePerZoom);
 
                 map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
                 map.addControl(new maplibregl.NavigationControl());
