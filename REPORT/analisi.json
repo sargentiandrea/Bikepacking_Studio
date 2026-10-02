@@ -1,11 +1,11 @@
 {
   "meta": {
-    "data_analisi": "2026-10-02T21:28:21.263022",
+    "data_analisi": "2026-10-02T23:41:15.854761",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 37,
+    "totale_moduli": 32,
     "totale_classi": 22,
     "totale_funzioni": 331,
     "totale_rotte_flask": 8,
@@ -114,7 +114,6 @@
   "architettura": {
     "strati": {
       "ui": [
-        "esegui_batch.py",
         "gui/dashboard.py",
         "gui/mappa.py",
         "gui/wizard_percorso.py"
@@ -154,11 +153,7 @@
         "backup.py",
         "installa_geonames.py",
         "resources/genera_catalogo_sprite.py",
-        "static/aggiorna_sprite.py",
-        "test_batch.py",
-        "verifica_precalcolo.py",
-        "verifica_stato.py",
-        "verifica_stato_tappe.py"
+        "static/aggiorna_sprite.py"
       ]
     },
     "rotte_api": {
@@ -516,6 +511,21 @@
         "file": "service/map_server.py"
       },
       {
+        "simbolo": "precalcola_tutte_le_tappe",
+        "tipo": "funzione",
+        "file": "service/precalcolo_batch_service.py"
+      },
+      {
+        "simbolo": "stima_tempo_precalcolo",
+        "tipo": "funzione",
+        "file": "service/precalcolo_batch_service.py"
+      },
+      {
+        "simbolo": "ottieni_stato_batch",
+        "tipo": "funzione",
+        "file": "service/precalcolo_batch_service.py"
+      },
+      {
         "simbolo": "interrompi_batch",
         "tipo": "funzione",
         "file": "service/precalcolo_batch_service.py"
@@ -692,7 +702,16 @@
       }
     ],
     "mappa_dipendenze": {
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
+      "service/audit_service.py": [
+        "app_desktop"
+      ],
       "service/clima_estrattore.py": [
+        "app_desktop"
+      ],
+      "service/catena_stagionale_service.py": [
         "app_desktop"
       ],
       "service/migrazione_clima.py": [
@@ -701,16 +720,7 @@
       "service/stats_service.py": [
         "app_desktop"
       ],
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
       "service/clima_service.py": [
-        "app_desktop"
-      ],
-      "service/catena_stagionale_service.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
         "app_desktop"
       ]
     }
@@ -878,6 +888,7 @@
         "QTabWidget",
         "QTableWidget",
         "QTableWidgetItem",
+        "QTextEdit",
         "QThread",
         "QVBoxLayout",
         "QWidget",
@@ -907,6 +918,7 @@
         "aggiorna_tabella_allarmi",
         "aggiorna_tabella_tappe",
         "aggiorna_tabella_trasferimenti",
+        "all",
         "analizza_dogane_progetto",
         "any",
         "append",
@@ -941,6 +953,7 @@
         "crea_pagina_placeholder",
         "crea_pagina_statistiche",
         "crea_pagina_trasporti",
+        "critical",
         "currentData",
         "currentDate",
         "currentRow",
@@ -991,6 +1004,7 @@
         "int",
         "isNull",
         "isalpha",
+        "isfinite",
         "isinstance",
         "item",
         "items",
@@ -1023,6 +1037,7 @@
         "resize",
         "rileva_gap_progetto",
         "rileva_strade_vietate_progetto",
+        "rollback",
         "round",
         "salva_impostazioni_stagione",
         "scaled",
@@ -1070,6 +1085,7 @@
         "setSpacing",
         "setStretchLastSection",
         "setStyleSheet",
+        "setSuffix",
         "setText",
         "setTextAlignment",
         "setToolTip",
@@ -1094,6 +1110,7 @@
         "takeItem",
         "text",
         "toLocalFile",
+        "toPlainText",
         "update",
         "upper",
         "urls",
@@ -1175,27 +1192,6 @@
         "inizializza_database",
         "items",
         "print"
-      ]
-    },
-    "esegui_batch.py": {
-      "classi": [],
-      "funzioni": [],
-      "import_interni": [
-        "service.precalcolo_batch_service.precalcola_tutte_le_tappe",
-        "service.precalcolo_batch_service.stima_tempo_precalcolo"
-      ],
-      "import_esterni": [
-        "time"
-      ],
-      "tabelle_usate": [],
-      "anomalie": [],
-      "chiamate_funzioni": [
-        "input",
-        "len",
-        "precalcola_tutte_le_tappe",
-        "print",
-        "stima_tempo_precalcolo",
-        "time"
       ]
     },
     "gui/dashboard.py": {
@@ -3404,109 +3400,6 @@
         "list",
         "load",
         "open",
-        "print"
-      ]
-    },
-    "test_batch.py": {
-      "classi": [],
-      "funzioni": [],
-      "import_interni": [
-        "service.config.DB_NAME",
-        "service.precalcolo_batch_service._percorso_gpx",
-        "service.precalcolo_batch_service._tappe_attive",
-        "service.precalcolo_batch_service.ottieni_stato_batch",
-        "service.precalcolo_batch_service.precalcola_tutte_le_tappe",
-        "service.precalcolo_batch_service.stima_tempo_precalcolo",
-        "service.precalcolo_service.precalcola_tappa"
-      ],
-      "import_esterni": [
-        "sqlite3"
-      ],
-      "tabelle_usate": [
-        "tappa_analisi",
-        "tappa_segmenti"
-      ],
-      "anomalie": [],
-      "chiamate_funzioni": [
-        "_percorso_gpx",
-        "_tappe_attive",
-        "close",
-        "commit",
-        "connect",
-        "cursor",
-        "execute",
-        "fetchall",
-        "fetchone",
-        "get",
-        "len",
-        "precalcola_tappa",
-        "print",
-        "stima_tempo_precalcolo"
-      ]
-    },
-    "verifica_precalcolo.py": {
-      "classi": [],
-      "funzioni": [],
-      "import_interni": [],
-      "import_esterni": [
-        "sqlite3"
-      ],
-      "tabelle_usate": [
-        "tappa_analisi",
-        "tappe"
-      ],
-      "anomalie": [],
-      "chiamate_funzioni": [
-        "close",
-        "connect",
-        "cursor",
-        "execute",
-        "fetchall",
-        "fetchone",
-        "print"
-      ]
-    },
-    "verifica_stato.py": {
-      "classi": [],
-      "funzioni": [],
-      "import_interni": [
-        "service.config.DB_NAME"
-      ],
-      "import_esterni": [
-        "sqlite3"
-      ],
-      "tabelle_usate": [
-        "tappa_analisi"
-      ],
-      "anomalie": [],
-      "chiamate_funzioni": [
-        "close",
-        "connect",
-        "cursor",
-        "execute",
-        "fetchall",
-        "print"
-      ]
-    },
-    "verifica_stato_tappe.py": {
-      "classi": [],
-      "funzioni": [],
-      "import_interni": [],
-      "import_esterni": [
-        "sqlite3"
-      ],
-      "tabelle_usate": [
-        "tappa_analisi",
-        "tappe"
-      ],
-      "anomalie": [],
-      "chiamate_funzioni": [
-        "close",
-        "connect",
-        "cursor",
-        "execute",
-        "fetchall",
-        "fetchone",
         "print"
       ]
     }
@@ -9579,7 +9472,7 @@
     "tabelle": [
       {
         "nome": "allarmi_percorso",
-        "righe": 28,
+        "righe": 3,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10068,7 +9961,7 @@
       },
       {
         "nome": "clima_paese_mese",
-        "righe": 0,
+        "righe": 540,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10433,7 +10326,7 @@
       },
       {
         "nome": "superfici_tappa",
-        "righe": 993,
+        "righe": 958,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10482,7 +10375,7 @@
       },
       {
         "nome": "tappa_analisi",
-        "righe": 993,
+        "righe": 958,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10592,7 +10485,7 @@
       },
       {
         "nome": "tappa_costa_riepilogo",
-        "righe": 992,
+        "righe": 957,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10726,7 +10619,7 @@
       },
       {
         "nome": "tappa_geometrie",
-        "righe": 992,
+        "righe": 957,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10827,7 +10720,7 @@
       },
       {
         "nome": "tappa_segmenti",
-        "righe": 994,
+        "righe": 958,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10913,7 +10806,7 @@
       },
       {
         "nome": "tappe",
-        "righe": 959,
+        "righe": 958,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11443,12 +11336,12 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 37,
+    "totale_moduli": 32,
     "totale_classi": 22,
     "totale_funzioni": 331,
     "endpoint_flask": 8,
     "tabelle_rilevate": 25,
-    "simboli_orfani": 62,
+    "simboli_orfani": 65,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
@@ -11477,7 +11370,7 @@
       },
       {
         "file": "app_desktop.py",
-        "score": 425,
+        "score": 432,
         "classi": 8,
         "funzioni": 69,
         "anomalie": 0
@@ -11518,7 +11411,7 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 37,
+      "moduli": 32,
       "classi": 22,
       "funzioni": 331,
       "rotte": 8,
@@ -11526,7 +11419,7 @@
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 62",
+      "Simboli orfani: 65",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -11541,7 +11434,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 331 funzioni, 8 endpoint Flask, 62 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 32 moduli, 22 classi, 331 funzioni, 8 endpoint Flask, 65 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 331 funzioni, 8 endpoint Flask, 62 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 32 moduli, 22 classi, 331 funzioni, 8 endpoint Flask, 65 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

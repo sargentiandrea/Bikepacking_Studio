@@ -29,7 +29,7 @@
     0.0083333333
   ],
   "metodo": "Lettura COG via HTTP range; raster globali non scaricati integralmente.",
-  "aggiornato_il": "2026-10-02T13:24:48+00:00",
-  "righe_sqlite": 276,
+  "aggiornato_il": "2026-10-02T21:00:04+00:00",
+  "righe_sqlite": 540,
   "id_progetto": 1
 }

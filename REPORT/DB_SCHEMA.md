@@ -5,7 +5,7 @@
 
 ## `allarmi_percorso`
 
-- Righe: 28
+- Righe: 3
 
 ### Colonne
 
@@ -199,7 +199,7 @@ Nessuna chiave esterna.
 
 ## `clima_paese_mese`
 
-- Righe: 0
+- Righe: 540
 
 ### Colonne
 
@@ -350,7 +350,7 @@ Nessuna chiave esterna.
 
 ## `superfici_tappa`
 
-- Righe: 993
+- Righe: 958
 
 ### Colonne
 
@@ -371,7 +371,7 @@ Nessuna chiave esterna.
 
 ## `tappa_analisi`
 
-- Righe: 993
+- Righe: 958
 
 ### Colonne
 
@@ -405,7 +405,7 @@ Nessun indice.
 
 ## `tappa_costa_riepilogo`
 
-- Righe: 992
+- Righe: 957
 
 ### Colonne
 
@@ -438,7 +438,7 @@ Nessun indice.
 
 ## `tappa_geometrie`
 
-- Righe: 992
+- Righe: 957
 
 ### Colonne
 
@@ -467,7 +467,7 @@ Nessun indice.
 
 ## `tappa_segmenti`
 
-- Righe: 994
+- Righe: 958
 
 ### Colonne
 
@@ -494,7 +494,7 @@ Nessun indice.
 
 ## `tappe`
 
-- Righe: 959
+- Righe: 958
 
 ### Colonne
 

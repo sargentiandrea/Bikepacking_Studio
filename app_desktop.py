@@ -1819,7 +1819,269 @@ class BikepackingStudioApp(QMainWindow):
         )
 
     def avvia_wizard_trasferimento(self, allarme_id):
-        QMessageBox.information(self, "Logistica Trasferimento", f"Apertura logistica per l'allarme ID {allarme_id}.")
+        if not self.verifica_progetto_attivo():
+            return
+
+        try:
+            with closing(sqlite3.connect(DB_NAME)) as conn:
+                conn.row_factory = sqlite3.Row
+                allarme = conn.execute(
+                    """
+                    SELECT
+                        a.id,
+                        a.id_progetto,
+                        a.tappa_origine_id,
+                        a.tappa_destinazione_id,
+                        t1.nome_file AS nome_origine,
+                        t1.end_lat AS origine_lat,
+                        t1.end_lon AS origine_lon,
+                        t2.nome_file AS nome_destinazione,
+                        t2.start_lat AS destinazione_lat,
+                        t2.start_lon AS destinazione_lon
+                    FROM allarmi_percorso a
+                    LEFT JOIN tappe t1 ON t1.id = a.tappa_origine_id
+                    LEFT JOIN tappe t2 ON t2.id = a.tappa_destinazione_id
+                    WHERE a.id = ? AND a.id_progetto = ? AND a.risolto = 0
+                    """,
+                    (allarme_id, self.current_progetto_id),
+                ).fetchone()
+        except sqlite3.Error as errore:
+            QMessageBox.critical(
+                self,
+                "Lettura del gap non riuscita",
+                f"Non riesco a leggere l'allarme dal database:\n{errore}",
+            )
+            return
+
+        if allarme is None:
+            QMessageBox.warning(
+                self,
+                "Gap non disponibile",
+                "L'allarme selezionato non è più attivo nel percorso aperto. "
+                "Aggiorno l'elenco degli allarmi.",
+            )
+            self.esegui_audit_automatico()
+            self.aggiorna_tabella_allarmi()
+            return
+
+        coordinate = (
+            allarme["origine_lat"],
+            allarme["origine_lon"],
+            allarme["destinazione_lat"],
+            allarme["destinazione_lon"],
+        )
+        if any(valore is None for valore in coordinate):
+            QMessageBox.warning(
+                self,
+                "Coordinate mancanti",
+                "Non posso associare il trasferimento al gap perché una delle "
+                "due tappe non contiene le coordinate necessarie.",
+            )
+            return
+
+        try:
+            origine_lat, origine_lon, destinazione_lat, destinazione_lon = (
+                float(valore) for valore in coordinate
+            )
+        except (TypeError, ValueError, OverflowError):
+            QMessageBox.warning(
+                self,
+                "Coordinate non valide",
+                "Le coordinate delle tappe non sono numeri validi; il "
+                "trasferimento non è stato salvato.",
+            )
+            return
+        if not all(
+            math.isfinite(valore)
+            for valore in (
+                origine_lat,
+                origine_lon,
+                destinazione_lat,
+                destinazione_lon,
+            )
+        ):
+            QMessageBox.warning(
+                self,
+                "Coordinate non valide",
+                "Le coordinate delle tappe non sono valide; il trasferimento "
+                "non è stato salvato.",
+            )
+            return
+        if (
+            not -90 <= origine_lat <= 90
+            or not -180 <= origine_lon <= 180
+            or not -90 <= destinazione_lat <= 90
+            or not -180 <= destinazione_lon <= 180
+        ):
+            QMessageBox.warning(
+                self,
+                "Coordinate non valide",
+                "Le coordinate delle tappe sono fuori dai limiti geografici "
+                "consentiti; il trasferimento non è stato salvato.",
+            )
+            return
+
+        nome_origine = allarme["nome_origine"] or (
+            f"Tappa {allarme['tappa_origine_id']}"
+        )
+        nome_destinazione = allarme["nome_destinazione"] or (
+            f"Tappa {allarme['tappa_destinazione_id']}"
+        )
+        dialogo = QDialog(self)
+        dialogo.setWindowTitle("Registra trasferimento per il gap")
+        dialogo.setMinimumWidth(480)
+        form = QFormLayout(dialogo)
+
+        form.addRow(
+            QLabel(
+                f"Collega '{nome_origine}' a '{nome_destinazione}'. "
+                "Le coordinate sono prese dagli estremi delle tappe per "
+                "rimuovere questo gap dall'audit."
+            )
+        )
+        combo_mezzo = QComboBox()
+        combo_mezzo.addItems(
+            [
+                "Traghetto / Nave",
+                "Treno",
+                "Bus / Pick-up",
+                "Aereo",
+                "Altro / Personale",
+                "Bicicletta / Tratto Ciclabile",
+            ]
+        )
+        form.addRow("Mezzo", combo_mezzo)
+
+        vettore = QLineEdit()
+        vettore.setPlaceholderText("Compagnia, linea o operatore (facoltativo)")
+        form.addRow("Vettore", vettore)
+        campo_da = QLineEdit(nome_origine)
+        campo_a = QLineEdit(nome_destinazione)
+        form.addRow("Da", campo_da)
+        form.addRow("A", campo_a)
+
+        durata = QLineEdit()
+        durata.setPlaceholderText("Es. 2 ore (facoltativo)")
+        form.addRow("Durata", durata)
+        costo = QDoubleSpinBox()
+        costo.setRange(0, 10000000)
+        costo.setDecimals(2)
+        costo.setSuffix(" €")
+        form.addRow("Costo", costo)
+
+        note = QTextEdit()
+        note.setPlaceholderText("Note facoltative")
+        note.setMaximumHeight(80)
+        form.addRow("Note", note)
+
+        form.addRow(
+            "Partenza gap",
+            QLabel(f"{origine_lat:.6f}, {origine_lon:.6f}"),
+        )
+        form.addRow(
+            "Arrivo gap",
+            QLabel(f"{destinazione_lat:.6f}, {destinazione_lon:.6f}"),
+        )
+        pulsanti = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        pulsanti.accepted.connect(dialogo.accept)
+        pulsanti.rejected.connect(dialogo.reject)
+        form.addRow(pulsanti)
+
+        if dialogo.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        valori_da = campo_da.text().strip()
+        valori_a = campo_a.text().strip()
+        if not valori_da or not valori_a:
+            QMessageBox.warning(
+                self,
+                "Dati incompleti",
+                "Inserisci i luoghi di partenza e di arrivo.",
+            )
+            return
+
+        try:
+            with closing(sqlite3.connect(DB_NAME, timeout=30.0)) as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                trasferimenti = conn.execute(
+                    """
+                    SELECT start_lat, start_lon, end_lat, end_lon
+                    FROM trasferimenti
+                    WHERE id_progetto = ?
+                    """,
+                    (self.current_progetto_id,),
+                ).fetchall()
+                gia_coperto = any(
+                    start_lat is not None
+                    and start_lon is not None
+                    and end_lat is not None
+                    and end_lon is not None
+                    and abs(start_lat - origine_lat) < 0.01
+                    and abs(start_lon - origine_lon) < 0.01
+                    and abs(end_lat - destinazione_lat) < 0.01
+                    and abs(end_lon - destinazione_lon) < 0.01
+                    for start_lat, start_lon, end_lat, end_lon in trasferimenti
+                )
+                if gia_coperto:
+                    conn.rollback()
+                    QMessageBox.information(
+                        self,
+                        "Gap già coperto",
+                        "Esiste già un trasferimento con questi estremi. "
+                        "Aggiorno l'audit senza crearne un duplicato.",
+                    )
+                else:
+                    conn.execute(
+                        """
+                        INSERT INTO trasferimenti (
+                            id_progetto, tipo_mezzo, vettore, da_luogo, a_luogo,
+                            durata, costo_eur, note, start_lat, start_lon,
+                            end_lat, end_lon
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            self.current_progetto_id,
+                            combo_mezzo.currentText(),
+                            vettore.text().strip(),
+                            valori_da,
+                            valori_a,
+                            durata.text().strip(),
+                            costo.value(),
+                            note.toPlainText().strip(),
+                            origine_lat,
+                            origine_lon,
+                            destinazione_lat,
+                            destinazione_lon,
+                        ),
+                    )
+                    conn.commit()
+        except sqlite3.Error as errore:
+            QMessageBox.critical(
+                self,
+                "Salvataggio trasferimento non riuscito",
+                f"Il database ha rifiutato il trasferimento:\n{errore}",
+            )
+            return
+
+        self.esegui_audit_automatico()
+        self.aggiorna_tabella_allarmi()
+        self.aggiorna_pagina_trasporti()
+        self.mappa_necessita_aggiornamento = True
+        QMessageBox.information(
+            self,
+            "Logistica aggiornata",
+            (
+                "Il trasferimento è stato registrato e l'audit è stato "
+                "ricalcolato. Se il gap non compare più nell'elenco, risulta "
+                "coperto."
+                if not gia_coperto
+                else "Il trasferimento esistente è stato riconosciuto e "
+                "l'audit è stato ricalcolato."
+            ),
+        )
 
     def aggiorna_tabella_allarmi(self):
         if not self.verifica_progetto_attivo():

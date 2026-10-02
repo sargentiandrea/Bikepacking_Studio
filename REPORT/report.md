@@ -1,15 +1,15 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-02 alle 21:28:21*
+*Generato il 2026-10-02 alle 23:41:15*
 
 ## 1. Sintesi
 
-- Moduli Python: **37**
+- Moduli Python: **32**
 - Classi: **22**
 - Funzioni globali: **331**
 - Rotte Flask: **8**
 - Tabelle rilevate: **25**
-- Simboli orfani: **62**
+- Simboli orfani: **65**
 
 ## Database
 
@@ -18,7 +18,7 @@
 
 | Tabella | Righe | Colonne chiave |
 |---|---:|---|
-| `allarmi_percorso` | 28 | id (PK), id_progetto (FK → progetti.id) |
+| `allarmi_percorso` | 3 | id (PK), id_progetto (FK → progetti.id) |
 | `anagrafica_paesi` | 198 | codice_iso2 (PK) |
 | `anagrafica_paesi_mondo` | 12 | codice_iso2 (PK) |
 | `blocchi_ordine` | 24 | id (PK), id_progetto (FK → progetti.id) |
@@ -26,18 +26,18 @@
 | `cache_geo_paesi` | 2 | lat_griglia (PK), lon_griglia (PK) |
 | `cache_nomi_luoghi` | 995 | lat_arrotondata (PK), lon_arrotondata (PK) |
 | `clima_blocco_mese` | 288 | id_progetto (PK), nome_blocco (PK), mese (PK) |
-| `clima_paese_mese` | 0 | id_progetto (PK), paese (PK), mese (PK) |
+| `clima_paese_mese` | 540 | id_progetto (PK), paese (PK), mese (PK) |
 | `confini_box` | 11 | id (PK) |
 | `dogane_percorso` | 0 | id (PK) |
 | `dogane_progetto` | 67 | id (PK), id_progetto (FK → progetti.id) |
 | `progetti` | 1 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
-| `superfici_tappa` | 993 | id (PK), tappa_id (FK → tappe.id) |
-| `tappa_analisi` | 993 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_costa_riepilogo` | 992 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_geometrie` | 992 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_segmenti` | 994 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
-| `tappe` | 959 | id (PK), id_progetto (FK → progetti.id) |
+| `superfici_tappa` | 958 | id (PK), tappa_id (FK → tappe.id) |
+| `tappa_analisi` | 958 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_costa_riepilogo` | 957 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_geometrie` | 957 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_segmenti` | 958 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
+| `tappe` | 958 | id (PK), id_progetto (FK → progetti.id) |
 | `trasferimenti` | 28 | id (PK), id_progetto (FK → progetti.id) |
 
 ## File di configurazione
@@ -76,8 +76,7 @@
 
 ## 2. Architettura (per strato)
 
-**ui** (4 file)
-- `esegui_batch.py`
+**ui** (3 file)
 - `gui/dashboard.py`
 - `gui/mappa.py`
 - `gui/wizard_percorso.py`
@@ -99,16 +98,12 @@
 - `service/dogane_service.py`
 - ... e altri 14
 
-**altro** (9 file)
+**altro** (5 file)
 - `app_desktop.py`
 - `backup.py`
 - `installa_geonames.py`
 - `resources/genera_catalogo_sprite.py`
 - `static/aggiorna_sprite.py`
-- `test_batch.py`
-- `verifica_precalcolo.py`
-- `verifica_stato.py`
-- ... e altri 1
 
 ## 3. Endpoint Flask
 
@@ -135,7 +130,7 @@
 
 ## 5. Simboli orfani
 
-*62 simboli definiti ma mai citati altrove:*
+*65 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -167,7 +162,7 @@
 - **funzione** `cancella_anteprima_percorso` in `gui/mappa.py`
 - **funzione** `evidenzia_tappa` in `gui/mappa.py`
 - **funzione** `request_stop` in `gui/mappa.py`
-- ... e altri 32
+- ... e altri 35
 
 ## 6. Moduli con più contenuto
 
