@@ -8,6 +8,7 @@ import folium
 import service.audit_service
 import service.catena_stagionale_service
 import service.clima_service
+import service.migrazione_clima
 import gpxpy
 import gpxpy.gpx
 import webbrowser
@@ -248,7 +249,11 @@ class TimelineCatenaWidget(QWidget):
         self.setStyleSheet("background-color: #252526;")
 
     def imposta_righe(self, righe):
-        self._righe = list(righe)
+        self._righe = [
+            paese
+            for blocco in righe
+            for paese in blocco.get("paesi", [])
+        ]
         self.setMinimumHeight(44 + max(1, len(self._righe)) * self._altezza_riga)
         self.update()
 
@@ -300,7 +305,11 @@ class TimelineCatenaWidget(QWidget):
                 round(durata / intervallo_giorni * larghezza_traccia),
             )
 
-            nome = f"{riga['nome_blocco']} ({durata} gg)"
+            nome = (
+                f"{riga.get('codice_paese', '')} "
+                f"{riga.get('nome_paese', 'Paese non assegnato')} "
+                f"({durata} gg)"
+            ).strip()
             painter.setPen(QColor("#eeeeee"))
             painter.drawText(8, y + 16, nome[:28])
             painter.setBrush(QColor(riga.get("semaforo_colore", "#0e639c")))
@@ -762,7 +771,9 @@ class BikepackingStudioApp(QMainWindow):
         layout.addLayout(controls)
 
         controlli_clima = QHBoxLayout()
-        self.btn_estrai_clima = QPushButton("Estrai/aggiorna dati CHELSA")
+        self.btn_estrai_clima = QPushButton(
+            "Estrai/aggiorna dati CHELSA per paese"
+        )
         self.btn_estrai_clima.clicked.connect(self.avvia_estrazione_clima)
         controlli_clima.addWidget(self.btn_estrai_clima)
         self.btn_soglie_clima = QPushButton("Impostazioni semaforo")
@@ -814,19 +825,19 @@ class BikepackingStudioApp(QMainWindow):
         self.area_timeline_clima.setWidget(self.timeline_clima)
         layout.addWidget(self.area_timeline_clima)
 
-        lbl_tabella = QLabel("Dettaglio per blocco")
+        lbl_tabella = QLabel("Dettaglio per blocco e paese")
         lbl_tabella.setStyleSheet("font-weight: bold; color: #cccccc;")
         layout.addWidget(lbl_tabella)
         self.table_clima = QTableWidget()
         self.table_clima.setColumnCount(12)
         self.table_clima.setHorizontalHeaderLabels([
-            "Blocco", "Tappe", "Km", "Pedalata", "Riposo", "Buffer",
+            "Blocco / paese", "Tappe", "Km", "Pedalata", "Riposo", "Buffer",
             "Totale giorni", "Ingresso", "Uscita", "Semaforo",
             "Motivazione climatica", "Nota"
         ])
         self.table_clima.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table_clima.horizontalHeader().setStretchLastSection(True)
-        self.table_clima.setMaximumHeight(300)
+        self.table_clima.setMaximumHeight(450)
         layout.addWidget(self.table_clima)
         self._aggiorna_controlli_scenario([])
         self._stile_pagina_servizio(widget)
@@ -1117,6 +1128,7 @@ class BikepackingStudioApp(QMainWindow):
             self._clima_ordine_scenario = None
             self._clima_risultati_correnti = []
             self.btn_estrai_clima.setEnabled(self._clima_thread is None)
+            service.migrazione_clima.assicura_schema_clima(DB_NAME)
             service.clima_service.assicura_tabelle_clima()
             with closing(sqlite3.connect(DB_NAME)) as conn:
                 cursor = conn.cursor()
@@ -1136,11 +1148,15 @@ class BikepackingStudioApp(QMainWindow):
             if impostazioni:
                 if impostazioni[0]:
                     data = datetime.strptime(impostazioni[0], "%Y-%m-%d").date()
-                    self.input_data_partenza.setDate(QDate(data.year, data.month, data.day))
+                    self.input_data_partenza.setDate(
+                        QDate(data.year, data.month, data.day)
+                    )
                 self.input_riposo.setValue(impostazioni[1] or 0)
             self.calcola_pagina_clima()
         except Exception as errore:
-            self.lbl_stato_clima.setText(f"Errore durante il caricamento clima: {errore}")
+            self.lbl_stato_clima.setText(
+                f"Errore durante il caricamento clima: {errore}"
+            )
 
     def calcola_pagina_clima(self):
         if not self.current_progetto_id:
@@ -1178,44 +1194,59 @@ class BikepackingStudioApp(QMainWindow):
                 self._carica_soglie_clima(),
             )
             self._clima_risultati_correnti = risultati
-            self._imposta_righe_tabella(
-                self.table_clima,
-                [
-                    [
-                        risultato["nome_blocco"],
-                        risultato["numero_tappe"],
-                        f"{risultato['km_totali']:.1f}",
-                        risultato["giorni_pedalata"],
-                        risultato["giorni_riposo"],
-                        risultato["giorni_extra"],
-                        risultato["giorni_totali"],
-                        datetime.strptime(
-                            risultato["data_ingresso"], "%Y-%m-%d"
-                        ).strftime("%d/%m/%Y"),
-                        datetime.strptime(
-                            risultato["data_uscita"], "%Y-%m-%d"
-                        ).strftime("%d/%m/%Y"),
-                        risultato["semaforo"],
-                        risultato["spiegazione_clima"],
-                        risultato["avviso"] or "—",
-                    ]
-                    for risultato in risultati
-                ],
-            )
-            for indice, risultato in enumerate(risultati):
-                cella_semaforo = self.table_clima.item(indice, 9)
-                cella_motivazione = self.table_clima.item(indice, 10)
-                if cella_semaforo:
-                    cella_semaforo.setForeground(
-                        QColor(risultato["semaforo_colore"])
+            righe_tabella = []
+            stile_righe = []
+            for blocco in risultati:
+                for indice_riga, risultato in enumerate(
+                    [blocco, *blocco.get("paesi", [])]
+                ):
+                    paese = indice_riga > 0
+                    etichetta = (
+                        f"  ↳ {risultato['codice_paese']} - "
+                        f"{risultato['nome_paese']}"
+                        if paese
+                        else risultato["nome_blocco"]
                     )
-                    cella_semaforo.setToolTip(
-                        risultato["spiegazione_clima"]
+                    righe_tabella.append(
+                        [
+                            etichetta,
+                            risultato["numero_tappe"],
+                            f"{risultato['km_totali']:.1f}",
+                            risultato["giorni_pedalata"],
+                            risultato["giorni_riposo"],
+                            risultato["giorni_extra"],
+                            risultato["giorni_totali"],
+                            datetime.strptime(
+                                risultato["data_ingresso"], "%Y-%m-%d"
+                            ).strftime("%d/%m/%Y"),
+                            datetime.strptime(
+                                risultato["data_uscita"], "%Y-%m-%d"
+                            ).strftime("%d/%m/%Y"),
+                            risultato.get("semaforo", "N/D"),
+                            risultato.get("spiegazione_clima", ""),
+                            risultato.get("avviso") or "—",
+                        ]
                     )
-                if cella_motivazione:
-                    cella_motivazione.setToolTip(
-                        risultato["spiegazione_clima"]
-                    )
+                    stile_righe.append((risultato, paese))
+
+            self._imposta_righe_tabella(self.table_clima, righe_tabella)
+            for indice, (risultato, paese) in enumerate(stile_righe):
+                for colonna in range(self.table_clima.columnCount()):
+                    cella = self.table_clima.item(indice, colonna)
+                    if cella is None:
+                        continue
+                    if not paese:
+                        carattere = cella.font()
+                        carattere.setBold(True)
+                        cella.setFont(carattere)
+                    if colonna == 9:
+                        cella.setForeground(
+                            QColor(risultato.get("semaforo_colore", "#555555"))
+                        )
+                    if colonna in (9, 10):
+                        cella.setToolTip(
+                            str(risultato.get("spiegazione_clima", ""))
+                        )
             self.timeline_clima.imposta_righe(risultati)
             ordine_attivo = [
                 risultato["nome_blocco"] for risultato in risultati
@@ -1226,8 +1257,14 @@ class BikepackingStudioApp(QMainWindow):
             avvisi = sum(
                 bool(risultato["avviso"]) for risultato in risultati
             )
+            paesi_risultati = [
+                paese
+                for risultato in risultati
+                for paese in risultato.get("paesi", [])
+            ]
             descrizione = (
-                f"Stima con margini per {len(risultati)} blocchi."
+                f"Stima con margini per {len(risultati)} blocchi e "
+                f"{len(paesi_risultati)} passaggi di paese."
                 if risultati
                 else "Il percorso non contiene blocchi con tappe attive."
             )
@@ -1236,24 +1273,27 @@ class BikepackingStudioApp(QMainWindow):
             if avvisi:
                 descrizione += f" Attenzione: {avvisi} blocchi richiedono verifica."
             numero_clima = sum(
-                risultato["semaforo"] in {"verde", "giallo", "rosso"}
-                for risultato in risultati
+                paese["semaforo"] in {"verde", "giallo", "rosso"}
+                for paese in paesi_risultati
             )
             numero_parziali = sum(
-                risultato["semaforo"] == "Parziale"
-                for risultato in risultati
+                paese["semaforo"] == "Parziale"
+                for paese in paesi_risultati
             )
             if numero_clima:
                 descrizione += (
-                    f" Semafori climatici disponibili per {numero_clima} blocchi."
+                    f" Semafori climatici disponibili per {numero_clima} "
+                    "passaggi di paese."
                 )
                 if numero_parziali:
                     descrizione += (
-                        f" Dati incompleti per altri {numero_parziali} blocchi."
+                        f" Dati incompleti per altri {numero_parziali} "
+                        "passaggi di paese."
                     )
             elif numero_parziali:
                 descrizione += (
-                    f" Dati climatici incompleti per {numero_parziali} blocchi; "
+                    f" Dati climatici incompleti per {numero_parziali} "
+                    "passaggi di paese; "
                     "controlla la copertura."
                 )
             else:

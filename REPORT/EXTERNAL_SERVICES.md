@@ -30,6 +30,14 @@
 - Riferimento: `redis`
 - Contesto: `"nota": "Elenco dei 193 Stati membri ONU più Santa Sede e Stato di Palestina. Le condizioni di ingresso possono cambiare: per un viaggio reale verificare sempre le fonti ufficiali prima della partenza. Versione 2.0: aggiunti campi anagra...`
 
+### `resources/sprite.json`:1871
+- Riferimento: `martin`
+- Contesto: `"name_it": "Saint Martin (parte francese)",`
+
+### `resources/sprite.json`:1872
+- Riferimento: `martin`
+- Contesto: `"name_en": "Saint Martin (French part)"`
+
 ### `gui/mappa.py`:1441
 - Riferimento: `http://127.0.0.1:8080/map`
 - Contesto: `self.web_view.setUrl("http://127.0.0.1:8080/map")`
@@ -62,15 +70,15 @@
 - Riferimento: `https://www.geonames.org/\n`
 - Contesto: `"https://www.geonames.org/\n"`
 
-### `service/clima_estrattore.py`:24
+### `service/clima_estrattore.py`:25
 - Riferimento: `https://os.unil.cloud.switch.ch/chelsa02`
 - Contesto: `BASE_URL = "https://os.unil.cloud.switch.ch/chelsa02"`
 
-### `service/clima_estrattore.py`:25
+### `service/clima_estrattore.py`:26
 - Riferimento: `https://www.chelsa-climate.org/datasets/chelsa_monthly`
 - Contesto: `DATASET_PAGE = "https://www.chelsa-climate.org/datasets/chelsa_monthly"`
 
-### `service/clima_estrattore.py`:29
+### `service/clima_estrattore.py`:30
 - Riferimento: `http://s3.amazonaws.com/doc/2006-03-01/`
 - Contesto: `NAMESPACE_S3 = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}`
 

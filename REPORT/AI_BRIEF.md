@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-02 14:40*
+*Aggiornato: 2026-10-02 21:28*
 
 ## Come leggere il progetto
 
@@ -17,19 +17,19 @@
 
 - Moduli Python: 37
 - Classi: 22
-- Funzioni: 329
+- Funzioni: 331
 - Rotte Flask: 8
-- Tabelle DB: 24
-- Simboli orfani: 61
+- Tabelle DB: 25
+- Simboli orfani: 62
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
 - `gui/mappa.py` - score 473 - 9 classi, 87 funzioni, 0 anomalie
-- `app_desktop.py` - score 421 - 8 classi, 69 funzioni, 0 anomalie
+- `app_desktop.py` - score 425 - 8 classi, 69 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
 - `service/stats_service.py` - score 110 - 0 classi, 14 funzioni, 0 anomalie
-- `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
+- `service/catena_stagionale_service.py` - score 96 - 0 classi, 15 funzioni, 0 anomalie
 
 ## Endpoint Flask
 
@@ -59,7 +59,7 @@
 - `esegui_backup_progetto` (funzione) in `backup.py`
 - `WizardNuovoPercorsoDialog` (classe) in `gui/dashboard.py`
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
-- ... e altri 46 (vedi report completo)
+- ... e altri 47 (vedi report completo)
 
 ## Duplicazioni rilevate
 
@@ -86,7 +86,7 @@
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Numero di tabelle: 20
+- Numero di tabelle: 21
 - `allarmi_percorso`: 28 righe
 - `anagrafica_paesi`: 198 righe
 - `anagrafica_paesi_mondo`: 12 righe
@@ -94,18 +94,19 @@
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
 - `cache_nomi_luoghi`: 995 righe
-- `clima_blocco_mese`: 12 righe
+- `clima_blocco_mese`: 288 righe
+- `clima_paese_mese`: 0 righe
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
-- `progetti`: 4 righe
+- `progetti`: 1 righe
 - `progetto_stagione`: 1 righe
 - `superfici_tappa`: 993 righe
 - `tappa_analisi`: 993 righe
 - `tappa_costa_riepilogo`: 992 righe
 - `tappa_geometrie`: 992 righe
 - `tappa_segmenti`: 994 righe
-- `tappe`: 994 righe
+- `tappe`: 959 righe
 - `trasferimenti`: 28 righe
 
 ## Servizi esterni rilevati
@@ -147,10 +148,10 @@
 - `gui/mappa.py`: 9 classi, 87 funzioni
 - `app_desktop.py`: 8 classi, 69 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
+- `service/catena_stagionale_service.py`: 0 classi, 15 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
-- `service/catena_stagionale_service.py`: 0 classi, 13 funzioni
 - `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/costa_service.py`: 0 classi, 8 funzioni

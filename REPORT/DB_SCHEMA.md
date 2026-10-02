@@ -1,7 +1,7 @@
 # Schema del database SQLite
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle trovate: 20
+- Tabelle trovate: 21
 
 ## `allarmi_percorso`
 
@@ -167,7 +167,7 @@ Nessuna chiave esterna.
 
 ## `clima_blocco_mese`
 
-- Righe: 12
+- Righe: 288
 
 ### Colonne
 
@@ -192,6 +192,38 @@ Nessuna chiave esterna.
 
 - `idx_clima_blocco_mese_progetto` (non univoco): `id_progetto`, `nome_blocco`
 - `sqlite_autoindex_clima_blocco_mese_1` (UNIQUE): `id_progetto`, `nome_blocco`, `mese`
+
+### Chiavi esterne
+
+Nessuna chiave esterna.
+
+## `clima_paese_mese`
+
+- Righe: 0
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `id_progetto` | INTEGER | chiave primaria, NOT NULL |
+| `paese` | TEXT | chiave primaria, NOT NULL |
+| `mese` | INTEGER | chiave primaria, NOT NULL |
+| `temperatura_media` | REAL | — |
+| `temperatura_max` | REAL | — |
+| `temperatura_min` | REAL | — |
+| `precipitazioni_mm` | REAL | — |
+| `vento_media` | REAL | — |
+| `dataset_versione` | TEXT | NOT NULL |
+| `aggiornato_il` | TEXT | NOT NULL |
+| `copertura_pct` | REAL | NOT NULL, DEFAULT 0 |
+| `campioni_validi` | INTEGER | NOT NULL, DEFAULT 0 |
+| `campioni_totali` | INTEGER | NOT NULL, DEFAULT 0 |
+| `anni_coperti` | TEXT | NOT NULL, DEFAULT '{}' |
+
+### Indici
+
+- `idx_clima_paese_mese_progetto` (non univoco): `id_progetto`, `paese`
+- `sqlite_autoindex_clima_paese_mese_1` (UNIQUE): `id_progetto`, `paese`, `mese`
 
 ### Chiavi esterne
 
@@ -275,7 +307,7 @@ Nessun indice.
 
 ## `progetti`
 
-- Righe: 4
+- Righe: 1
 
 ### Colonne
 
@@ -462,7 +494,7 @@ Nessun indice.
 
 ## `tappe`
 
-- Righe: 994
+- Righe: 959
 
 ### Colonne
 
@@ -483,6 +515,7 @@ Nessun indice.
 | `nome_file_gpx` | TEXT | — |
 | `km` | REAL | DEFAULT 0 |
 | `ruolo` | TEXT | — |
+| `paese` | TEXT | — |
 
 ### Indici
 

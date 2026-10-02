@@ -9,6 +9,7 @@ import json
 import math
 from pathlib import Path
 import sqlite3
+import time
 from typing import Callable
 from urllib.error import URLError
 from urllib.parse import quote
@@ -27,6 +28,7 @@ VERSIONE_DATASET = "CHELSA-monthly V2.1"
 VARIABILI = ("tas", "tasmax", "tasmin", "pr", "sfcWind")
 ANNI_DEFAULT = tuple(range(2015, 2022))
 NAMESPACE_S3 = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+TENTATIVI_LETTURA_RASTER = 3
 
 
 def _lista_file_mensili(anni: tuple[int, ...]) -> dict[
@@ -97,7 +99,7 @@ def _prepara_tappe(
         necessarie = {
             "id",
             "id_progetto",
-            "blocco",
+            "paese",
             "start_lat",
             "start_lon",
         }
@@ -117,21 +119,29 @@ def _prepara_tappe(
         parametri = (progetto_id,) if progetto_id is not None else ()
         righe = connessione.execute(
             f"""
-            SELECT id, id_progetto,
-                   COALESCE(NULLIF(TRIM(blocco), ''), 'Generale') AS blocco,
-                   start_lat, start_lon
+            SELECT id, id_progetto, paese, start_lat, start_lon
             FROM tappe
             WHERE 1 = 1 {stato} {filtro_progetto}
-            ORDER BY id_progetto, blocco, {sequenza}, id
+            ORDER BY id_progetto, {sequenza}, id
             """,
             parametri,
         ).fetchall()
 
-    numero_tappe_per_blocco: dict[tuple[int, str], int] = defaultdict(int)
+    numero_tappe_per_paese: dict[tuple[int, str], int] = defaultdict(int)
     tappe: list[dict[str, object]] = []
     for riga in righe:
-        chiave_blocco = (int(riga["id_progetto"]), str(riga["blocco"]))
-        numero_tappe_per_blocco[chiave_blocco] += 1
+        valore_paese = riga["paese"]
+        codice_paese = (
+            str(valore_paese).strip().upper()
+            if valore_paese is not None
+            else ""
+        )
+        if len(codice_paese) != 3 or not codice_paese.isascii() or not codice_paese.isalpha():
+            raise RuntimeError(
+                f"La tappa {riga['id']} non ha un codice ISO3 valido in tappe.paese."
+            )
+        chiave_paese = (int(riga["id_progetto"]), codice_paese)
+        numero_tappe_per_paese[chiave_paese] += 1
         latitudine = riga["start_lat"]
         longitudine = riga["start_lon"]
         if latitudine is None or longitudine is None:
@@ -148,8 +158,8 @@ def _prepara_tappe(
         tappe.append(
             {
                 "id": int(riga["id"]),
-                "id_progetto": chiave_blocco[0],
-                "blocco": chiave_blocco[1],
+                "id_progetto": chiave_paese[0],
+                "paese": chiave_paese[1],
                 "lat": latitudine,
                 "lon": longitudine,
             }
@@ -159,11 +169,11 @@ def _prepara_tappe(
         if limite_tappe <= 0:
             raise ValueError("limite_tappe deve essere maggiore di zero.")
         tappe = tappe[:limite_tappe]
-        numero_tappe_per_blocco = defaultdict(int)
+        numero_tappe_per_paese = defaultdict(int)
         for tappa in tappe:
-            chiave = (int(tappa["id_progetto"]), str(tappa["blocco"]))
-            numero_tappe_per_blocco[chiave] += 1
-    return tappe, dict(numero_tappe_per_blocco)
+            chiave = (int(tappa["id_progetto"]), str(tappa["paese"]))
+            numero_tappe_per_paese[chiave] += 1
+    return tappe, dict(numero_tappe_per_paese)
 
 
 def estrai_clima_per_tappe(
@@ -173,7 +183,7 @@ def estrai_clima_per_tappe(
     limite_tappe: int | None = None,
     progress_callback: Callable[[str], None] | None = None,
 ) -> dict[str, object]:
-    """Campiona i COG CHELSA e salva riepiloghi mensili offline in SQLite.
+    """Campiona i COG CHELSA e salva riepiloghi mensili per paese in SQLite.
 
     I GeoTIFF globali sono letti via richieste COG a intervalli; non vengono
     scaricati integralmente, perché il periodo completo pesa decine di GB.
@@ -182,7 +192,7 @@ def estrai_clima_per_tappe(
     if not anni_validi or any(anno < 1979 or anno > 2021 for anno in anni_validi):
         raise ValueError("Gli anni devono essere compresi tra 1979 e 2021.")
 
-    tappe, numero_tappe_per_blocco = _prepara_tappe(
+    tappe, numero_tappe_per_paese = _prepara_tappe(
         db_name, progetto_id, limite_tappe
     )
     if not tappe:
@@ -226,41 +236,68 @@ def estrai_clima_per_tappe(
             if progress_callback:
                 progress_callback(messaggio)
 
-            try:
-                with rasterio.open("/vsicurl/" + url) as raster:
-                    if dimensioni is None:
-                        dimensioni = (raster.width, raster.height)
-                        risoluzione_raster = tuple(
+            for tentativo in range(1, TENTATIVI_LETTURA_RASTER + 1):
+                campioni_file: list[
+                    tuple[tuple[int, str, int, str], int, float]
+                ] = []
+                dimensioni_file: tuple[int, int] | None = None
+                risoluzione_file: tuple[float, float] | None = None
+                try:
+                    with rasterio.open("/vsicurl/" + url) as raster:
+                        dimensioni_file = (raster.width, raster.height)
+                        risoluzione_file = tuple(
                             float(valore) for valore in raster.res
                         )
-                    scala = raster.scales[0] if raster.scales else 1.0
-                    offset = raster.offsets[0] if raster.offsets else 0.0
-                    campioni = raster.sample(punti, masked=True)
-                    for tappa, campione in zip(tappe, campioni):
-                        valore_grezzo = campione[0]
-                        if np.ma.is_masked(valore_grezzo):
-                            continue
-                        valore_float = float(valore_grezzo)
-                        if not math.isfinite(valore_float):
-                            continue
-                        if raster.nodata is not None and valore_float == raster.nodata:
-                            continue
-                        valore = _valore_fisico(
-                            valore_float, variabile, scala, offset
+                        scala = raster.scales[0] if raster.scales else 1.0
+                        offset = raster.offsets[0] if raster.offsets else 0.0
+                        campioni = raster.sample(punti, masked=True)
+                        for tappa, campione in zip(tappe, campioni):
+                            valore_grezzo = campione[0]
+                            if np.ma.is_masked(valore_grezzo):
+                                continue
+                            valore_float = float(valore_grezzo)
+                            if not math.isfinite(valore_float):
+                                continue
+                            if (
+                                raster.nodata is not None
+                                and valore_float == raster.nodata
+                            ):
+                                continue
+                            valore = _valore_fisico(
+                                valore_float, variabile, scala, offset
+                            )
+                            chiave = (
+                                int(tappa["id_progetto"]),
+                                str(tappa["paese"]),
+                                mese,
+                                variabile,
+                            )
+                            campioni_file.append(
+                                (chiave, int(tappa["id"]), valore)
+                            )
+                except (OSError, rasterio.errors.RasterioError) as errore:
+                    if tentativo == TENTATIVI_LETTURA_RASTER:
+                        raise RuntimeError(
+                            f"Errore leggendo CHELSA {variabile} "
+                            f"{mese:02d}/{anno} dopo "
+                            f"{TENTATIVI_LETTURA_RASTER} tentativi: {errore}"
+                        ) from errore
+                    if progress_callback:
+                        progress_callback(
+                            f"{messaggio} — tentativo {tentativo} non riuscito; "
+                            "nuovo tentativo in corso."
                         )
-                        chiave = (
-                            int(tappa["id_progetto"]),
-                            str(tappa["blocco"]),
-                            mese,
-                            variabile,
-                        )
-                        somme[chiave] += valore
-                        conteggi[chiave] += 1
-                        tappe_valide[chiave].add(int(tappa["id"]))
-            except (OSError, rasterio.errors.RasterioError) as errore:
-                raise RuntimeError(
-                    f"Errore leggendo CHELSA {variabile} {mese:02d}/{anno}: {errore}"
-                ) from errore
+                    time.sleep(2 ** (tentativo - 1))
+                    continue
+
+                if dimensioni is None:
+                    dimensioni = dimensioni_file
+                    risoluzione_raster = risoluzione_file
+                for chiave, id_tappa, valore in campioni_file:
+                    somme[chiave] += valore
+                    conteggi[chiave] += 1
+                    tappe_valide[chiave].add(id_tappa)
+                break
 
     aggiornato_il = datetime.now(timezone.utc).isoformat(timespec="seconds")
     valori_per_variabile = {
@@ -271,9 +308,9 @@ def estrai_clima_per_tappe(
         "sfcWind": "vento_media",
     }
     risultati: list[tuple[object, ...]] = []
-    blocchi_progetto = sorted(numero_tappe_per_blocco)
-    for id_progetto, nome_blocco in blocchi_progetto:
-        tappe_totali = numero_tappe_per_blocco[(id_progetto, nome_blocco)]
+    paesi_progetto = sorted(numero_tappe_per_paese)
+    for id_progetto, codice_paese in paesi_progetto:
+        tappe_totali = numero_tappe_per_paese[(id_progetto, codice_paese)]
         for mese in range(1, 13):
             valori: dict[str, float | None] = {
                 nome_colonna: None
@@ -281,7 +318,7 @@ def estrai_clima_per_tappe(
             }
             conteggi_tappe_mese: list[int] = []
             for variabile, nome_colonna in valori_per_variabile.items():
-                chiave = (id_progetto, nome_blocco, mese, variabile)
+                chiave = (id_progetto, codice_paese, mese, variabile)
                 conteggio = conteggi.get(chiave, 0)
                 if conteggio:
                     valori[nome_colonna] = somme[chiave] / conteggio
@@ -320,7 +357,7 @@ def estrai_clima_per_tappe(
             risultati.append(
                 (
                     id_progetto,
-                    nome_blocco,
+                    codice_paese,
                     mese,
                     valori["temperatura_media"],
                     valori["temperatura_max"],
@@ -344,13 +381,13 @@ def estrai_clima_per_tappe(
         if progetti:
             segnaposti = ",".join("?" for _ in progetti)
             connessione.execute(
-                f"DELETE FROM clima_blocco_mese WHERE id_progetto IN ({segnaposti})",
+                f"DELETE FROM clima_paese_mese WHERE id_progetto IN ({segnaposti})",
                 progetti,
             )
         connessione.executemany(
             """
-            INSERT INTO clima_blocco_mese (
-                id_progetto, nome_blocco, mese, temperatura_media,
+            INSERT INTO clima_paese_mese (
+                id_progetto, paese, mese, temperatura_media,
                 temperatura_max, temperatura_min, precipitazioni_mm,
                 vento_media, dataset_versione, aggiornato_il, copertura_pct,
                 campioni_validi, campioni_totali, anni_coperti

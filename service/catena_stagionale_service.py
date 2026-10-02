@@ -6,6 +6,7 @@ import sqlite3
 from collections import Counter, defaultdict
 from contextlib import closing
 from datetime import date, datetime, timedelta
+from functools import lru_cache
 import json
 import math
 from pathlib import Path
@@ -61,6 +62,7 @@ def _carica_blocchi(progetto_id: int) -> list[dict[str, object]]:
         colonna_nome_blocco = (
             "COALESCE(NULLIF(TRIM(t.blocco), ''), 'Generale')"
         )
+        colonna_paese = "t.paese" if "paese" in colonne_tappe else "NULL"
         colonna_distanza_tappa = (
             "t.distanza_km" if "distanza_km" in colonne_tappe else "NULL"
         )
@@ -81,6 +83,7 @@ def _carica_blocchi(progetto_id: int) -> list[dict[str, object]]:
             f"""
             SELECT
                 {colonna_nome_blocco} AS nome_blocco,
+                {colonna_paese} AS codice_paese,
                 t.id AS tappa_id,
                 {colonna_sequenza} AS sequenza,
                 {colonna_distanza} AS distanza_km
@@ -147,6 +150,11 @@ def _carica_blocchi(progetto_id: int) -> list[dict[str, object]]:
             avvisi.append(
                 "Blocco non presente in blocchi_ordine: usato ordine 999."
             )
+        if "paese" not in colonne_tappe:
+            avvisi.append(
+                "Manca tappe.paese: le sotto-righe non possono essere "
+                "associate a un paese."
+            )
         if not tappe:
             avvisi.append("Nessuna tappa attiva associata al blocco.")
 
@@ -160,6 +168,22 @@ def _carica_blocchi(progetto_id: int) -> list[dict[str, object]]:
         )
 
     return blocchi
+
+
+@lru_cache(maxsize=1)
+def _nomi_paesi_iso3() -> dict[str, str]:
+    percorso_sprite = (
+        Path(__file__).resolve().parents[1] / "resources" / "sprite.json"
+    )
+    with percorso_sprite.open(encoding="utf-8") as file_sprite:
+        sprite = json.load(file_sprite)
+    return {
+        str(voce.get("iso_alpha3", "")).upper(): str(voce.get("name_it", ""))
+        for voce in sprite.values()
+        if isinstance(voce, dict)
+        and voce.get("iso_alpha3") not in (None, "", "UNKNOWN")
+        and voce.get("name_it")
+    }
 
 
 def _normalizza_data(data_partenza: date | datetime) -> date:
@@ -176,6 +200,7 @@ def _calcola_da_blocchi(
     modificatore_riposo: int,
     ordine_blocchi: list[str],
 ) -> list[dict[str, object]]:
+    nomi_paesi = _nomi_paesi_iso3()
     blocchi_per_nome = {
         str(blocco["nome_blocco"]): blocco for blocco in blocchi
     }
@@ -186,13 +211,10 @@ def _calcola_da_blocchi(
         blocco = blocchi_per_nome[nome_blocco]
         tappe = blocco["tappe"]
         numero_tappe = len(tappe)
-        km_totali = sum(
-            (tappa["distanza_km"] or 0.0) for tappa in tappe
-        )
-        giorni_pedalata = numero_tappe
         giorni_riposo = max(
             0, (numero_tappe // 5) + modificatore_riposo
         )
+        giorni_pedalata = numero_tappe
         giorni_base = giorni_pedalata + giorni_riposo
 
         if giorni_base:
@@ -212,12 +234,110 @@ def _calcola_da_blocchi(
             buffer_quadrimestri = 0
 
         giorni_extra = buffer_mesi + buffer_quadrimestri
+        gruppi_paese: list[dict[str, object]] = []
+        for indice_tappa, tappa in enumerate(tappe, start=1):
+            codice = tappa["codice_paese"]
+            codice_paese = (
+                str(codice).strip().upper()
+                if codice is not None and str(codice).strip()
+                else None
+            )
+            if (
+                not gruppi_paese
+                or gruppi_paese[-1]["codice_paese"] != codice_paese
+            ):
+                gruppi_paese.append(
+                    {
+                        "codice_paese": codice_paese,
+                        "tappe": [],
+                        "giorni_riposo": 0,
+                        "km_totali": 0.0,
+                    }
+                )
+            gruppo = gruppi_paese[-1]
+            gruppo["tappe"].append(tappa)
+            gruppo["km_totali"] += float(tappa["distanza_km"] or 0.0)
+            if (
+                indice_tappa % 5 == 0
+                and indice_tappa // 5 <= giorni_riposo
+            ):
+                gruppo["giorni_riposo"] += 1
+
+        # Il riposo segue il paese della quinta tappa; gli aggiustamenti vanno all'ultimo.
+        riposi_calendario = numero_tappe // 5
+        riposi_aggiuntivi = max(0, giorni_riposo - riposi_calendario)
+        riposi_rimossi = max(0, riposi_calendario - giorni_riposo)
+        if gruppi_paese and riposi_aggiuntivi:
+            gruppi_paese[-1]["giorni_riposo"] += riposi_aggiuntivi
+        if riposi_rimossi and gruppi_paese:
+            for gruppo in reversed(gruppi_paese):
+                rimovibili = min(
+                    int(gruppo["giorni_riposo"]), riposi_rimossi
+                )
+                gruppo["giorni_riposo"] -= rimovibili
+                riposi_rimossi -= rimovibili
+                if not riposi_rimossi:
+                    break
+
+        paesi: list[dict[str, object]] = []
+        data_paese = data_corrente
+        for indice_paese, gruppo in enumerate(gruppi_paese, start=1):
+            tappe_paese = gruppo["tappe"]
+            tappe_paese_numero = len(tappe_paese)
+            pedalata_paese = tappe_paese_numero
+            riposo_paese = int(gruppo["giorni_riposo"])
+            buffer_paese = (
+                giorni_extra if indice_paese == len(gruppi_paese) else 0
+            )
+            totale_paese = pedalata_paese + riposo_paese + buffer_paese
+            fine_paese = (
+                data_paese + timedelta(days=totale_paese - 1)
+                if totale_paese
+                else data_paese
+            )
+            codice_paese = gruppo["codice_paese"]
+            paese = {
+                "ordine": posizione,
+                "nome_blocco": nome_blocco,
+                "codice_paese": codice_paese,
+                "nome_paese": nomi_paesi.get(
+                    str(codice_paese), "Paese non assegnato"
+                ),
+                "visita_paese": indice_paese,
+                "numero_tappe": tappe_paese_numero,
+                "km_totali": float(gruppo["km_totali"]),
+                "giorni_pedalata": pedalata_paese,
+                "giorni_riposo": riposo_paese,
+                "giorni_extra": buffer_paese,
+                "giorni_totali": totale_paese,
+                "data_ingresso": data_paese.isoformat(),
+                "data_uscita": fine_paese.isoformat(),
+                "avviso": (
+                    "Paese non assegnato in tappe.paese."
+                    if codice_paese is None
+                    else ""
+                ),
+            }
+            paesi.append(paese)
+            data_paese = fine_paese + timedelta(days=1)
+
         giorni_totali = giorni_base + giorni_extra
         data_uscita = (
-            data_corrente + timedelta(days=giorni_totali - 1)
-            if giorni_totali
-            else data_corrente
+            data_paese - timedelta(days=1)
+            if paesi
+            else data_corrente + timedelta(days=max(0, giorni_totali - 1))
         )
+        km_totali = sum(float(tappa["distanza_km"] or 0.0) for tappa in tappe)
+        avviso_blocco = str(blocco["avviso"])
+        if any(paese["avviso"] for paese in paesi):
+            avviso_blocco = " ".join(
+                parte
+                for parte in (
+                    avviso_blocco,
+                    "Una o più tappe non hanno un paese assegnato.",
+                )
+                if parte
+            )
 
         risultati.append(
             {
@@ -234,7 +354,8 @@ def _calcola_da_blocchi(
                 "data_ingresso": data_corrente.isoformat(),
                 "data_uscita": data_uscita.isoformat(),
                 "mesi_attraversati_base": mesi_attraversati,
-                "avviso": blocco["avviso"],
+                "paesi": paesi,
+                "avviso": avviso_blocco,
             }
         )
         data_corrente = data_uscita + timedelta(days=1)
@@ -297,16 +418,16 @@ def _carica_clima_progetto(
         tabella = connessione.execute(
             """
             SELECT 1 FROM sqlite_master
-            WHERE type = 'table' AND name = 'clima_blocco_mese'
+            WHERE type = 'table' AND name = 'clima_paese_mese'
             """
         ).fetchone()
         if tabella is None:
             return {}
 
-        colonne = _colonne_tabella(connessione, "clima_blocco_mese")
+        colonne = _colonne_tabella(connessione, "clima_paese_mese")
         necessarie = {
             "id_progetto",
-            "nome_blocco",
+            "paese",
             "mese",
             "temperatura_media",
             "temperatura_max",
@@ -321,18 +442,18 @@ def _carica_clima_progetto(
         if not necessarie <= colonne:
             mancanti = ", ".join(sorted(necessarie - colonne))
             raise RuntimeError(
-                f"La tabella clima_blocco_mese non è aggiornata: mancano {mancanti}."
+                f"La tabella clima_paese_mese non è aggiornata: mancano {mancanti}."
             )
         righe = connessione.execute(
             """
             SELECT *
-            FROM clima_blocco_mese
+            FROM clima_paese_mese
             WHERE id_progetto = ?
             """,
             (progetto_id,),
         ).fetchall()
     return {
-        (str(riga["nome_blocco"]), int(riga["mese"])): riga
+        (str(riga["paese"]).upper(), int(riga["mese"])): riga
         for riga in righe
     }
 
@@ -427,7 +548,6 @@ def applica_semafori(
         raise ValueError("Le soglie climatiche devono essere crescenti.")
 
     profilo = _carica_clima_progetto(progetto_id)
-    valutati: list[dict[str, object]] = []
     colori = {
         "verde": "#2e8b57",
         "giallo": "#d6a500",
@@ -435,16 +555,17 @@ def applica_semafori(
         "Parziale": "#777777",
         "N/D": "#555555",
     }
-    for risultato in risultati:
+
+    def valuta_paese(risultato: dict[str, object]) -> dict[str, object]:
         riga = dict(risultato)
-        nome_blocco = str(riga["nome_blocco"])
+        codice_paese = str(riga.get("codice_paese") or "").upper()
         data_ingresso = date.fromisoformat(str(riga["data_ingresso"]))
         data_uscita = date.fromisoformat(str(riga["data_uscita"]))
         giorni_totali = max(1, (data_uscita - data_ingresso).days + 1)
         righe_mese = [
-            (profilo[(nome_blocco, mese)], giorni)
+            (profilo[(codice_paese, mese)], giorni)
             for mese, giorni in _mesi_del_transito(data_ingresso, data_uscita)
-            if (nome_blocco, mese) in profilo
+            if (codice_paese, mese) in profilo
         ]
 
         medie = {
@@ -579,5 +700,53 @@ def applica_semafori(
                 "copertura_clima_pct": copertura,
             }
         )
-        valutati.append(riga)
+        return riga
+
+    valutati: list[dict[str, object]] = []
+    gravita = {"verde": 1, "giallo": 2, "Parziale": 3, "rosso": 4, "N/D": 0}
+    for risultato in risultati:
+        blocco = dict(risultato)
+        paesi = [
+            valuta_paese(paese)
+            for paese in risultato.get("paesi", [])
+        ]
+        blocco["paesi"] = paesi
+        if paesi:
+            peggiore = max(
+                paesi,
+                key=lambda paese: gravita.get(str(paese["semaforo"]), 0),
+            )
+            semaforo_blocco = str(peggiore["semaforo"])
+            dati_mancanti = any(
+                paese["semaforo"] == "N/D" for paese in paesi
+            )
+            if dati_mancanti and semaforo_blocco in {"verde", "giallo"}:
+                semaforo_blocco = "Parziale"
+            blocco["semaforo"] = semaforo_blocco
+            blocco["semaforo_colore"] = colori[semaforo_blocco]
+            blocco["spiegazione_clima"] = (
+                f"Semaforo aggregato: peggiore tra i paesi del blocco, "
+                f"{peggiore['codice_paese'] or peggiore['nome_paese']} "
+                f"({peggiore['semaforo']})."
+                + (
+                    " Alcuni paesi non hanno dati climatici."
+                    if dati_mancanti
+                    else ""
+                )
+            )
+            blocco["copertura_clima_pct"] = min(
+                float(paese["copertura_clima_pct"]) for paese in paesi
+            )
+        else:
+            blocco.update(
+                {
+                    "semaforo": "N/D",
+                    "semaforo_colore": colori["N/D"],
+                    "spiegazione_clima": (
+                        "Il blocco non contiene tappe associate a paesi."
+                    ),
+                    "copertura_clima_pct": 0.0,
+                }
+            )
+        valutati.append(blocco)
     return valutati

@@ -1301,8 +1301,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "ARAB",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "ARAB",
-    "name_en": "ARAB"
+    "name_it": "Lega Araba",
+    "name_en": "Arab League"
   },
   "as": {
     "height": 18,
@@ -1325,8 +1325,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "ASEAN",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "ASEAN",
-    "name_en": "ASEAN"
+    "name_it": "Associazione delle Nazioni del Sud-est asiatico",
+    "name_en": "Association of Southeast Asian Nations"
   },
   "at": {
     "height": 18,
@@ -1371,10 +1371,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 24,
     "y": 36,
     "iso_alpha2": "AX",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "AX",
-    "name_en": "AX"
+    "iso_alpha3": "ALA",
+    "iso_numeric": "248",
+    "name_it": "Isole Åland",
+    "name_en": "Åland Islands"
   },
   "az": {
     "height": 18,
@@ -1503,10 +1503,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 24,
     "y": 234,
     "iso_alpha2": "BL",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "BL",
-    "name_en": "BL"
+    "iso_alpha3": "BLM",
+    "iso_numeric": "652",
+    "name_it": "Saint-Barthélemy",
+    "name_en": "Saint Barthélemy"
   },
   "bm": {
     "height": 18,
@@ -1551,10 +1551,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 48,
     "y": 54,
     "iso_alpha2": "BQ",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "BQ",
-    "name_en": "BQ"
+    "iso_alpha3": "BES",
+    "iso_numeric": "535",
+    "name_it": "Bonaire, Sint Eustatius e Saba",
+    "name_en": "Bonaire, Sint Eustatius and Saba"
   },
   "br": {
     "height": 18,
@@ -1599,10 +1599,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 48,
     "y": 126,
     "iso_alpha2": "BV",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "BV",
-    "name_en": "BV"
+    "iso_alpha3": "BVT",
+    "iso_numeric": "074",
+    "name_it": "Isola Bouvet",
+    "name_en": "Bouvet Island"
   },
   "bw": {
     "height": 18,
@@ -1659,10 +1659,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 48,
     "y": 216,
     "iso_alpha2": "CC",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "CC",
-    "name_en": "CC"
+    "iso_alpha3": "CCK",
+    "iso_numeric": "166",
+    "name_it": "Isole Cocos (Keeling)",
+    "name_en": "Cocos (Keeling) Islands"
   },
   "cd": {
     "height": 18,
@@ -1685,8 +1685,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "CEFTA",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "CEFTA",
-    "name_en": "CEFTA"
+    "name_it": "Accordo centro-europeo di libero scambio",
+    "name_en": "Central European Free Trade Agreement"
   },
   "cf": {
     "height": 18,
@@ -1805,8 +1805,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "CP",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "CP",
-    "name_en": "CP"
+    "name_it": "Isola Clipperton",
+    "name_en": "Clipperton Island"
   },
   "cr": {
     "height": 18,
@@ -1863,10 +1863,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 96,
     "y": 18,
     "iso_alpha2": "CX",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "CX",
-    "name_en": "CX"
+    "iso_alpha3": "CXR",
+    "iso_numeric": "162",
+    "name_it": "Isola di Natale",
+    "name_en": "Christmas Island"
   },
   "cy": {
     "height": 18,
@@ -1913,8 +1913,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "DG",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "DG",
-    "name_en": "DG"
+    "name_it": "Diego Garcia",
+    "name_en": "Diego Garcia"
   },
   "dj": {
     "height": 18,
@@ -1985,8 +1985,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "EAC",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "EAC",
-    "name_en": "EAC"
+    "name_it": "Comunità dell'Africa orientale",
+    "name_en": "East African Community"
   },
   "ec": {
     "height": 18,
@@ -2031,10 +2031,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 120,
     "y": 18,
     "iso_alpha2": "EH",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "EH",
-    "name_en": "EH"
+    "iso_alpha3": "ESH",
+    "iso_numeric": "732",
+    "name_it": "Sahara Occidentale",
+    "name_en": "Western Sahara"
   },
   "er": {
     "height": 18,
@@ -2069,8 +2069,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "ES-CT",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "ES-CT",
-    "name_en": "ES-CT"
+    "name_it": "Catalogna",
+    "name_en": "Catalonia"
   },
   "es-ga": {
     "height": 18,
@@ -2081,8 +2081,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "ES-GA",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "ES-GA",
-    "name_en": "ES-GA"
+    "name_it": "Galizia",
+    "name_en": "Galicia"
   },
   "es-pv": {
     "height": 18,
@@ -2093,8 +2093,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "ES-PV",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "ES-PV",
-    "name_en": "ES-PV"
+    "name_it": "Paesi Baschi",
+    "name_en": "Basque Country"
   },
   "et": {
     "height": 18,
@@ -2117,8 +2117,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "EU",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "EU",
-    "name_en": "EU"
+    "name_it": "Unione europea",
+    "name_en": "European Union"
   },
   "fi": {
     "height": 18,
@@ -2225,8 +2225,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "GB-ENG",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "GB-ENG",
-    "name_en": "GB-ENG"
+    "name_it": "Inghilterra",
+    "name_en": "England"
   },
   "gb-nir": {
     "height": 18,
@@ -2237,8 +2237,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "GB-NIR",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "GB-NIR",
-    "name_en": "GB-NIR"
+    "name_it": "Irlanda del Nord",
+    "name_en": "Northern Ireland"
   },
   "gb-sct": {
     "height": 18,
@@ -2249,8 +2249,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "GB-SCT",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "GB-SCT",
-    "name_en": "GB-SCT"
+    "name_it": "Scozia",
+    "name_en": "Scotland"
   },
   "gb-wls": {
     "height": 18,
@@ -2261,8 +2261,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "GB-WLS",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "GB-WLS",
-    "name_en": "GB-WLS"
+    "name_it": "Galles",
+    "name_en": "Wales"
   },
   "gd": {
     "height": 18,
@@ -2415,10 +2415,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 168,
     "y": 90,
     "iso_alpha2": "GS",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "GS",
-    "name_en": "GS"
+    "iso_alpha3": "SGS",
+    "iso_numeric": "239",
+    "name_it": "Georgia del Sud e Isole Sandwich Australi",
+    "name_en": "South Georgia and the South Sandwich Islands"
   },
   "gt": {
     "height": 18,
@@ -2487,10 +2487,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 168,
     "y": 198,
     "iso_alpha2": "HM",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "HM",
-    "name_en": "HM"
+    "iso_alpha3": "HMD",
+    "iso_numeric": "334",
+    "name_it": "Isole Heard e McDonald",
+    "name_en": "Heard Island and McDonald Islands"
   },
   "hn": {
     "height": 18,
@@ -2549,8 +2549,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "IC",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "IC",
-    "name_en": "IC"
+    "name_it": "Isole Canarie",
+    "name_en": "Canary Islands"
   },
   "id": {
     "height": 18,
@@ -2619,10 +2619,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 384,
     "y": 0,
     "iso_alpha2": "IO",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "IO",
-    "name_en": "IO"
+    "iso_alpha3": "IOT",
+    "iso_numeric": "086",
+    "name_it": "Territorio britannico dell'Oceano Indiano",
+    "name_en": "British Indian Ocean Territory"
   },
   "iq": {
     "height": 18,
@@ -2787,10 +2787,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 192,
     "y": 180,
     "iso_alpha2": "KN",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "KN",
-    "name_en": "KN"
+    "iso_alpha3": "KNA",
+    "iso_numeric": "659",
+    "name_it": "Saint Kitts e Nevis",
+    "name_en": "Saint Kitts and Nevis"
   },
   "kp": {
     "height": 18,
@@ -2811,10 +2811,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 192,
     "y": 216,
     "iso_alpha2": "KR",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "KR",
-    "name_en": "KR"
+    "iso_alpha3": "KOR",
+    "iso_numeric": "410",
+    "name_it": "Corea del Sud",
+    "name_en": "South Korea"
   },
   "kw": {
     "height": 18,
@@ -2883,10 +2883,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 312,
     "y": 18,
     "iso_alpha2": "LC",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "LC",
-    "name_en": "LC"
+    "iso_alpha3": "LCA",
+    "iso_numeric": "662",
+    "name_it": "Santa Lucia",
+    "name_en": "Saint Lucia"
   },
   "li": {
     "height": 18,
@@ -3039,10 +3039,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 216,
     "y": 126,
     "iso_alpha2": "MF",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "MF",
-    "name_en": "MF"
+    "iso_alpha3": "MAF",
+    "iso_numeric": "663",
+    "name_it": "Saint Martin (parte francese)",
+    "name_en": "Saint Martin (French part)"
   },
   "mg": {
     "height": 18,
@@ -3437,8 +3437,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "PC",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "PC",
-    "name_en": "PC"
+    "name_it": "Codice PC non assegnato",
+    "name_en": "Unassigned PC code"
   },
   "pe": {
     "height": 18,
@@ -3519,10 +3519,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 264,
     "y": 90,
     "iso_alpha2": "PM",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "PM",
-    "name_en": "PM"
+    "iso_alpha3": "SPM",
+    "iso_numeric": "666",
+    "name_it": "Saint Pierre e Miquelon",
+    "name_en": "Saint Pierre and Miquelon"
   },
   "pn": {
     "height": 18,
@@ -3747,10 +3747,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 288,
     "y": 108,
     "iso_alpha2": "SH",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "SH",
-    "name_en": "SH"
+    "iso_alpha3": "SHN",
+    "iso_numeric": "654",
+    "name_it": "Sant'Elena, Ascensione e Tristan da Cunha",
+    "name_en": "Saint Helena, Ascension and Tristan da Cunha"
   },
   "sh-ac": {
     "height": 18,
@@ -3761,8 +3761,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "SH-AC",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "SH-AC",
-    "name_en": "SH-AC"
+    "name_it": "Isola di Ascensione",
+    "name_en": "Ascension Island"
   },
   "sh-hl": {
     "height": 18,
@@ -3773,8 +3773,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "SH-HL",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "SH-HL",
-    "name_en": "SH-HL"
+    "name_it": "Sant'Elena",
+    "name_en": "Saint Helena"
   },
   "sh-ta": {
     "height": 18,
@@ -3785,8 +3785,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "SH-TA",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "SH-TA",
-    "name_en": "SH-TA"
+    "name_it": "Tristan da Cunha",
+    "name_en": "Tristan da Cunha"
   },
   "si": {
     "height": 18,
@@ -3807,10 +3807,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 288,
     "y": 198,
     "iso_alpha2": "SJ",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "SJ",
-    "name_en": "SJ"
+    "iso_alpha3": "SJM",
+    "iso_numeric": "744",
+    "name_it": "Svalbard e Jan Mayen",
+    "name_en": "Svalbard and Jan Mayen"
   },
   "sk": {
     "height": 18,
@@ -3891,10 +3891,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 408,
     "y": 90,
     "iso_alpha2": "SS",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "SS",
-    "name_en": "SS"
+    "iso_alpha3": "SSD",
+    "iso_numeric": "728",
+    "name_it": "Sud Sudan",
+    "name_en": "South Sudan"
   },
   "st": {
     "height": 18,
@@ -3903,10 +3903,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 432,
     "y": 90,
     "iso_alpha2": "ST",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "ST",
-    "name_en": "ST"
+    "iso_alpha3": "STP",
+    "iso_numeric": "678",
+    "name_it": "São Tomé e Príncipe",
+    "name_en": "Sao Tome and Principe"
   },
   "sv": {
     "height": 18,
@@ -3963,10 +3963,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 312,
     "y": 144,
     "iso_alpha2": "TC",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "TC",
-    "name_en": "TC"
+    "iso_alpha3": "TCA",
+    "iso_numeric": "796",
+    "name_it": "Isole Turks e Caicos",
+    "name_en": "Turks and Caicos Islands"
   },
   "td": {
     "height": 18,
@@ -3987,10 +3987,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 312,
     "y": 180,
     "iso_alpha2": "TF",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "TF",
-    "name_en": "TF"
+    "iso_alpha3": "ATF",
+    "iso_numeric": "260",
+    "name_it": "Terre australi e antartiche francesi",
+    "name_en": "French Southern Territories"
   },
   "tg": {
     "height": 18,
@@ -4035,10 +4035,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 336,
     "y": 108,
     "iso_alpha2": "TK",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "TK",
-    "name_en": "TK"
+    "iso_alpha3": "TKL",
+    "iso_numeric": "772",
+    "name_it": "Tokelau",
+    "name_en": "Tokelau"
   },
   "tl": {
     "height": 18,
@@ -4047,10 +4047,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 360,
     "y": 108,
     "iso_alpha2": "TL",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "TL",
-    "name_en": "TL"
+    "iso_alpha3": "TLS",
+    "iso_numeric": "626",
+    "name_it": "Timor-Leste",
+    "name_en": "Timor-Leste"
   },
   "tm": {
     "height": 18,
@@ -4119,10 +4119,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 336,
     "y": 126,
     "iso_alpha2": "TV",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "TV",
-    "name_en": "TV"
+    "iso_alpha3": "TUV",
+    "iso_numeric": "798",
+    "name_it": "Tuvalu",
+    "name_en": "Tuvalu"
   },
   "tw": {
     "height": 18,
@@ -4179,10 +4179,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 336,
     "y": 216,
     "iso_alpha2": "UM",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "UM",
-    "name_en": "UM"
+    "iso_alpha3": "UMI",
+    "iso_numeric": "581",
+    "name_it": "Isole minori esterne degli Stati Uniti",
+    "name_en": "United States Minor Outlying Islands"
   },
   "un": {
     "height": 18,
@@ -4193,8 +4193,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "UN",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "UN",
-    "name_en": "UN"
+    "name_it": "Nazioni Unite",
+    "name_en": "United Nations"
   },
   "us": {
     "height": 18,
@@ -4251,10 +4251,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 456,
     "y": 126,
     "iso_alpha2": "VC",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "VC",
-    "name_en": "VC"
+    "iso_alpha3": "VCT",
+    "iso_numeric": "670",
+    "name_it": "Saint Vincent e Grenadine",
+    "name_en": "Saint Vincent and the Grenadines"
   },
   "ve": {
     "height": 18,
@@ -4275,10 +4275,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 360,
     "y": 144,
     "iso_alpha2": "VG",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "VG",
-    "name_en": "VG"
+    "iso_alpha3": "VGB",
+    "iso_numeric": "092",
+    "name_it": "Isole Vergini Britanniche",
+    "name_en": "British Virgin Islands"
   },
   "vi": {
     "height": 18,
@@ -4287,10 +4287,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 360,
     "y": 162,
     "iso_alpha2": "VI",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "VI",
-    "name_en": "VI"
+    "iso_alpha3": "VIR",
+    "iso_numeric": "850",
+    "name_it": "Isole Vergini Americane",
+    "name_en": "United States Virgin Islands"
   },
   "vn": {
     "height": 18,
@@ -4311,10 +4311,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 360,
     "y": 198,
     "iso_alpha2": "VU",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "VU",
-    "name_en": "VU"
+    "iso_alpha3": "VUT",
+    "iso_numeric": "548",
+    "name_it": "Vanuatu",
+    "name_en": "Vanuatu"
   },
   "wf": {
     "height": 18,
@@ -4323,10 +4323,10 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "x": 360,
     "y": 216,
     "iso_alpha2": "WF",
-    "iso_alpha3": "UNKNOWN",
-    "iso_numeric": "UNKNOWN",
-    "name_it": "WF",
-    "name_en": "WF"
+    "iso_alpha3": "WLF",
+    "iso_numeric": "876",
+    "name_it": "Wallis e Futuna",
+    "name_en": "Wallis and Futuna Islands"
   },
   "ws": {
     "height": 18,
@@ -4349,8 +4349,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "XK",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "XK",
-    "name_en": "XK"
+    "name_it": "Kosovo (codice assegnato per uso pratico)",
+    "name_en": "Kosovo (user-assigned code)"
   },
   "xx": {
     "height": 18,
@@ -4361,8 +4361,8 @@ Nota: File JSON: verificare dal contenuto se è configurazione o dato.
     "iso_alpha2": "XX",
     "iso_alpha3": "UNKNOWN",
     "iso_numeric": "UNKNOWN",
-    "name_it": "XX",
-    "name_en": "XX"
+    "name_it": "Codice non specificato",
+    "name_en": "Unspecified code"
   },
   "ye": {
     "height": 18,
