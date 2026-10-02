@@ -31,6 +31,7 @@ from service.geometria_service import (
 from service.geonames_service import cerca_coordinate_luogo
 from service.map_manager_service import MapManagerService, DownloadWorker
 from service.precalcolo_service import precalcola_tappa
+from service.gpx_paths import percorso_gpx_progetto, trova_percorso_gpx
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
 
@@ -579,7 +580,11 @@ class PannelloPianificazioneWidget(QFrame):
             if not riga or not riga[0]:
                 raise ValueError("La tappa selezionata non è più presente nel progetto attivo.")
 
-            percorso_gpx = os.path.join(GPX_DIR, os.path.basename(riga[0]))
+            percorso_gpx = trova_percorso_gpx(
+                riga[0], progetto, directory_gpx=GPX_DIR
+            )
+            if percorso_gpx is None:
+                raise FileNotFoundError(f"File GPX non trovato: {riga[0]}")
             with open(percorso_gpx, "r", encoding="utf-8", errors="ignore") as file_gpx:
                 traccia = gpxpy.parse(file_gpx)
             coordinate = [
@@ -735,7 +740,11 @@ class PannelloPianificazioneWidget(QFrame):
         # in modo sincrono sul thread dell'interfaccia, bloccava l'intera app
         # per minuti. Ora viene calcolata in un thread separato, come già
         # avviene per superfici e nomi luogo.
-        nomi_file = [nome_file for _, nome_file, *_ in tappe if nome_file]
+        nomi_file = [
+            (nome_file, id_progetto)
+            for _, nome_file, *_ in tappe
+            if nome_file
+        ]
         self._avvia_analisi_altimetria(nomi_file)
 
         self._avvia_analisi_superfici_offline(id_progetto)
@@ -1261,7 +1270,12 @@ class PannelloPianificazioneWidget(QFrame):
                         sequenza = cursor.fetchone()[0]
 
                     nome_file = f"Pianificato_{id_progetto_corrente}_{uuid.uuid4().hex[:10]}.gpx"
-                    file_gpx = os.path.join(GPX_DIR, nome_file)
+                    file_gpx = percorso_gpx_progetto(
+                        id_progetto_corrente,
+                        nome_file,
+                        directory_gpx=GPX_DIR,
+                    )
+                    os.makedirs(file_gpx.parent, exist_ok=True)
 
                     traccia = gpxpy.gpx.GPX()
                     traccia.creator = "Bikepacking Studio"
@@ -1333,8 +1347,12 @@ class PannelloPianificazioneWidget(QFrame):
                 print(f"Errore precalcolo tappa {tappa_id}: {errore}")
 
             if file_gpx_precedente and precalcolo_riuscito:
-                percorso_precedente = os.path.join(GPX_DIR, os.path.basename(file_gpx_precedente))
-                if os.path.isfile(percorso_precedente):
+                percorso_precedente = trova_percorso_gpx(
+                    file_gpx_precedente,
+                    id_progetto_corrente,
+                    directory_gpx=GPX_DIR,
+                )
+                if percorso_precedente is not None:
                     try:
                         os.remove(percorso_precedente)
                     except OSError as errore_file:
@@ -1950,11 +1968,13 @@ class WorkerAltimetria(QThread):
 
     def run(self):
         quote = []
-        for nome_file in self.nomi_file:
+        for nome_file, id_progetto in self.nomi_file:
             if self._annullato:
                 break
-            percorso_gpx = os.path.join(GPX_DIR, os.path.basename(nome_file))
-            if not os.path.exists(percorso_gpx):
+            percorso_gpx = trova_percorso_gpx(
+                nome_file, id_progetto, directory_gpx=GPX_DIR
+            )
+            if percorso_gpx is None:
                 continue
             try:
                 with open(percorso_gpx, "r", encoding="utf-8", errors="ignore") as file_gpx:
@@ -2191,7 +2211,9 @@ class WorkerCaricamentoMappa(QThread):
             ) in tappe:
                 if not nome_file_db: continue
                 solo_nome = os.path.basename(nome_file_db)
-                filepath = os.path.join(GPX_DIR, solo_nome)
+                filepath = trova_percorso_gpx(
+                    solo_nome, self.p_id, directory_gpx=GPX_DIR
+                )
                 segmenti_coordinate = None
                 bbox_tappa = None
 
@@ -2208,7 +2230,7 @@ class WorkerCaricamentoMappa(QThread):
                             f"{tappa_id}; uso il GPX: {errore}"
                         )
 
-                if segmenti_coordinate is None and os.path.exists(filepath):
+                if segmenti_coordinate is None and filepath is not None and os.path.exists(filepath):
                     try:
                         with open(
                             filepath, 'r', encoding='utf-8', errors='ignore'

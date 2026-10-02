@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt, Signal as pyqtSignal
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from service.config import DB_NAME
+from service.gpx_paths import percorso_gpx_progetto, trova_percorso_gpx
 from service.precalcolo_service import precalcola_tappa
 try:
     from service.config import calcola_distanza_haversine
@@ -281,8 +282,7 @@ class DashboardPage(QWidget):
         file_list = sorted(filepaths, key=lambda x: os.path.basename(x).upper())
         
         cartella_gpx = os.path.join(os.getcwd(), "gpx")
-        if not os.path.exists(cartella_gpx):
-            os.makedirs(cartella_gpx)
+        os.makedirs(cartella_gpx, exist_ok=True)
 
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
@@ -302,8 +302,11 @@ class DashboardPage(QWidget):
             if nome_file in file_esistenti:
                 continue
 
-            destinazione = os.path.join(cartella_gpx, nome_file)
+            destinazione = percorso_gpx_progetto(
+                self.current_progetto_id, nome_file, directory_gpx=cartella_gpx
+            )
             try:
+                os.makedirs(destinazione.parent, exist_ok=True)
                 shutil.copy2(path, destinazione)
             except Exception as e:
                 print(f"Errore copia {nome_file}: {e}")
@@ -331,9 +334,7 @@ class DashboardPage(QWidget):
                             INSERT INTO tappe (id_progetto, sequenza, blocco, nome_file, start_lat, start_lon, end_lat, end_lon, distanza_km, stato)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ATTIVA')
                         ''', (self.current_progetto_id, seq_attuale, blocco_rilevato, nome_file, s_lat, s_lon, e_lat, e_lon, round(dist_km, 2)))
-                        tappe_da_precalcolare.append(
-                            (cursor.lastrowid, destinazione)
-                        )
+                        tappe_da_precalcolare.append((cursor.lastrowid, str(destinazione)))
                         seq_attuale += 1
             except Exception as e:
                 print(f"Errore lettura GPX {nome_file}: {e}")
@@ -404,13 +405,18 @@ class DashboardPage(QWidget):
             try:
                 conn = sqlite3.connect(DB_NAME)
                 cursor = conn.cursor()
+                cursor.execute("SELECT id_progetto FROM tappe WHERE id = ?", (tappa_id,))
+                riga = cursor.fetchone()
+                id_progetto = riga[0] if riga else self.current_progetto_id
                 cursor.execute("DELETE FROM tappe WHERE id = ?", (tappa_id,))
                 conn.commit()
                 conn.close()
 
                 if nome_file:
-                    filepath = os.path.join(os.getcwd(), "gpx", os.path.basename(nome_file))
-                    if os.path.exists(filepath):
+                    filepath = trova_percorso_gpx(
+                        nome_file, id_progetto, directory_gpx=os.path.join(os.getcwd(), "gpx")
+                    )
+                    if filepath is not None:
                         try:
                             os.remove(filepath)
                         except Exception as e:

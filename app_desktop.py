@@ -9,6 +9,8 @@ import service.audit_service
 import service.catena_stagionale_service
 import service.clima_service
 import service.migrazione_clima
+import service.migrazione_catena_stagionale
+from service.gpx_paths import trova_percorso_gpx
 import gpxpy
 import gpxpy.gpx
 import webbrowser
@@ -25,7 +27,6 @@ from PySide6.QtCore import (
     Signal,
     QTimer,
     QObject,
-    QSettings,
     QThread,
     Qt,
     QUrl,
@@ -78,19 +79,19 @@ class ClimaSoglieDialog(QDialog):
         self.setWindowTitle("Soglie del semaforo climatico")
         form = QFormLayout(self)
         etichette = {
-            "temperatura_rossa_bassa": "Freddo critico (°C)",
-            "temperatura_verde_min": "Temperatura verde minima (°C)",
-            "temperatura_verde_max": "Temperatura verde massima (°C)",
-            "temperatura_rossa_alta": "Caldo critico (°C)",
-            "pioggia_verde_max": "Pioggia verde sotto (mm/mese)",
-            "pioggia_gialla_max": "Pioggia gialla fino a (mm/mese)",
-            "vento_verde_max": "Vento verde sotto (km/h)",
-            "vento_giallo_max": "Vento giallo fino a (km/h)",
+            "temp_min_giallo": "Limite freddo giallo (°C)",
+            "temp_min_verde": "Temperatura verde minima (°C)",
+            "temp_max_verde": "Temperatura verde massima (°C)",
+            "temp_max_giallo": "Limite caldo giallo (°C)",
+            "pioggia_max_verde": "Pioggia verde fino a (mm/mese)",
+            "pioggia_max_giallo": "Pioggia gialla fino a (mm/mese)",
+            "vento_max_verde": "Vento verde fino a (km/h)",
+            "vento_max_giallo": "Vento giallo fino a (km/h)",
         }
         self.campi = {}
         for chiave, etichetta in etichette.items():
             campo = QDoubleSpinBox()
-            if chiave.startswith("temperatura_"):
+            if chiave.startswith("temp_"):
                 campo.setRange(-50, 70)
             elif chiave.startswith("pioggia_"):
                 campo.setRange(0, 1000)
@@ -100,6 +101,15 @@ class ClimaSoglieDialog(QDialog):
             campo.setValue(float(soglie[chiave]))
             self.campi[chiave] = campo
             form.addRow(etichetta, campo)
+
+        self.combo_priorita = QComboBox()
+        self.combo_priorita.addItem("Caldo prioritario", 1)
+        self.combo_priorita.addItem("Pioggia prioritaria", 0)
+        indice_priorita = self.combo_priorita.findData(
+            int(soglie.get("priorita_caldo", 1))
+        )
+        self.combo_priorita.setCurrentIndex(max(0, indice_priorita))
+        form.addRow("Fattore preferito", self.combo_priorita)
 
         pulsanti = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
@@ -112,14 +122,11 @@ class ClimaSoglieDialog(QDialog):
     def accept(self):
         valori = self.valori()
         if (
-            valori["temperatura_rossa_bassa"]
-            >= valori["temperatura_verde_min"]
-            or valori["temperatura_verde_min"]
-            >= valori["temperatura_verde_max"]
-            or valori["temperatura_verde_max"]
-            >= valori["temperatura_rossa_alta"]
-            or valori["pioggia_verde_max"] >= valori["pioggia_gialla_max"]
-            or valori["vento_verde_max"] >= valori["vento_giallo_max"]
+            valori["temp_min_giallo"] >= valori["temp_min_verde"]
+            or valori["temp_min_verde"] >= valori["temp_max_verde"]
+            or valori["temp_max_verde"] >= valori["temp_max_giallo"]
+            or valori["pioggia_max_verde"] >= valori["pioggia_max_giallo"]
+            or valori["vento_max_verde"] >= valori["vento_max_giallo"]
         ):
             QMessageBox.warning(
                 self,
@@ -130,9 +137,11 @@ class ClimaSoglieDialog(QDialog):
         super().accept()
 
     def valori(self):
-        return {
+        valori = {
             chiave: campo.value() for chiave, campo in self.campi.items()
         }
+        valori["priorita_caldo"] = int(self.combo_priorita.currentData())
+        return valori
 
 
 # Import dei moduli interni del progetto
@@ -468,6 +477,8 @@ class BikepackingStudioApp(QMainWindow):
         self._clima_progetto_id = None
         self._clima_ordine_base = []
         self._clima_ordine_scenario = None
+        self._clima_scenario_id = None
+        self._clima_ultima_applicazione_id = None
         self._clima_risultati_correnti = []
         self._clima_thread = None
         self._clima_worker = None
@@ -801,6 +812,18 @@ class BikepackingStudioApp(QMainWindow):
         self.btn_ripristina_scenario = QPushButton("Ripristina ordine")
         self.btn_ripristina_scenario.clicked.connect(self.ripristina_ordine_scenario)
         controlli_scenario.addWidget(self.btn_ripristina_scenario)
+        self.btn_conferma_scenario = QPushButton("Conferma scenario")
+        self.btn_conferma_scenario.clicked.connect(
+            self.conferma_scenario_clima
+        )
+        controlli_scenario.addWidget(self.btn_conferma_scenario)
+        self.btn_annulla_scenario = QPushButton(
+            "Annulla ultima applicazione"
+        )
+        self.btn_annulla_scenario.clicked.connect(
+            self.annulla_ultima_applicazione_scenario
+        )
+        controlli_scenario.addWidget(self.btn_annulla_scenario)
         layout.addLayout(controlli_scenario)
 
         self.lbl_stato_clima = QLabel(
@@ -1114,6 +1137,8 @@ class BikepackingStudioApp(QMainWindow):
             self._clima_progetto_id = None
             self._clima_ordine_base = []
             self._clima_ordine_scenario = None
+            self._clima_scenario_id = None
+            self._clima_ultima_applicazione_id = None
             self._clima_risultati_correnti = []
             self.btn_estrai_clima.setEnabled(False)
             self.lbl_stato_clima.setText("Apri un percorso per calcolare la catena.")
@@ -1126,10 +1151,30 @@ class BikepackingStudioApp(QMainWindow):
             self._clima_progetto_id = self.current_progetto_id
             self._clima_ordine_base = []
             self._clima_ordine_scenario = None
+            self._clima_scenario_id = None
             self._clima_risultati_correnti = []
             self.btn_estrai_clima.setEnabled(self._clima_thread is None)
+            service.migrazione_catena_stagionale.assicura_schema_catena_stagionale(
+                DB_NAME
+            )
             service.migrazione_clima.assicura_schema_clima(DB_NAME)
             service.clima_service.assicura_tabelle_clima()
+            scenario_sospeso = (
+                service.catena_stagionale_service.ottieni_scenario_in_sospeso(
+                    self.current_progetto_id
+                )
+            )
+            if scenario_sospeso:
+                self._clima_ordine_scenario = list(
+                    scenario_sospeso["ordine"]
+                )
+                self._clima_scenario_id = int(scenario_sospeso["id"])
+            self._clima_ultima_applicazione_id = (
+                service.catena_stagionale_service
+                .ottieni_ultima_applicazione_scenario(
+                    self.current_progetto_id
+                )
+            )
             with closing(sqlite3.connect(DB_NAME)) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
@@ -1173,12 +1218,20 @@ class BikepackingStudioApp(QMainWindow):
                 risultato["nome_blocco"] for risultato in risultati_base
             ]
 
+            self._clima_ordine_base = ordine_base
             if (
                 self._clima_ordine_scenario is None
-                or self._clima_ordine_scenario == self._clima_ordine_base
+                or self._clima_ordine_scenario == ordine_base
             ):
-                self._clima_ordine_base = ordine_base
+                if (
+                    self._clima_scenario_id is not None
+                    and self.current_progetto_id
+                ):
+                    service.catena_stagionale_service.scarta_scenario_in_sospeso(
+                        self.current_progetto_id
+                    )
                 self._clima_ordine_scenario = list(ordine_base)
+                self._clima_scenario_id = None
                 risultati = risultati_base
             else:
                 risultati = service.catena_stagionale_service.proponi_scenario(
@@ -1187,11 +1240,19 @@ class BikepackingStudioApp(QMainWindow):
                     data_partenza,
                     self.input_riposo.value(),
                 )
+                scenario_sospeso = (
+                    service.catena_stagionale_service
+                    .ottieni_scenario_in_sospeso(self.current_progetto_id)
+                )
+                self._clima_scenario_id = (
+                    int(scenario_sospeso["id"])
+                    if scenario_sospeso is not None
+                    else None
+                )
 
-            risultati = service.catena_stagionale_service.applica_semafori(
+            risultati = service.catena_stagionale_service.calcola_semaforo(
                 self.current_progetto_id,
                 risultati,
-                self._carica_soglie_clima(),
             )
             self._clima_risultati_correnti = risultati
             righe_tabella = []
@@ -1269,7 +1330,7 @@ class BikepackingStudioApp(QMainWindow):
                 else "Il percorso non contiene blocchi con tappe attive."
             )
             if scenario_attivo:
-                descrizione += " Scenario non salvato."
+                descrizione += " Scenario temporaneo non applicato."
             if avvisi:
                 descrizione += f" Attenzione: {avvisi} blocchi richiedono verifica."
             numero_clima = sum(
@@ -1308,23 +1369,42 @@ class BikepackingStudioApp(QMainWindow):
             self.lbl_stato_clima.setText(f"Errore durante il calcolo stagionale: {errore}")
 
     def _carica_soglie_clima(self):
-        impostazioni = QSettings("Bikepacking Studio", "Bikepacking Studio")
-        predefinite = service.catena_stagionale_service.SOGLIE_CLIMA_DEFAULT
-        return {
-            chiave: float(
-                impostazioni.value(f"clima/soglie/{chiave}", valore)
+        if not self.current_progetto_id:
+            return dict(
+                service.catena_stagionale_service.SOGLIE_CLIMA_DEFAULT
             )
-            for chiave, valore in predefinite.items()
-        }
+        return (
+            service.catena_stagionale_service.carica_impostazioni_semaforo(
+                self.current_progetto_id
+            )
+        )
 
     def apri_soglie_clima(self):
+        if not self.current_progetto_id:
+            QMessageBox.information(
+                self,
+                "Percorso richiesto",
+                "Apri un percorso prima di modificare le soglie.",
+            )
+            return
         dialogo = ClimaSoglieDialog(self._carica_soglie_clima(), self)
         if dialogo.exec() != QDialog.DialogCode.Accepted:
             return
-        impostazioni = QSettings("Bikepacking Studio", "Bikepacking Studio")
-        for chiave, valore in dialogo.valori().items():
-            impostazioni.setValue(f"clima/soglie/{chiave}", valore)
-        self.calcola_pagina_clima()
+        try:
+            service.catena_stagionale_service.salva_impostazioni_semaforo(
+                self.current_progetto_id, dialogo.valori()
+            )
+            self.calcola_pagina_clima()
+            self.lbl_stato_clima.setText(
+                "Preferenze del semaforo salvate per questo percorso. "
+                + self.lbl_stato_clima.text()
+            )
+        except Exception as errore:
+            QMessageBox.critical(
+                self,
+                "Impostazioni non salvate",
+                f"Non è stato possibile salvare le soglie: {errore}",
+            )
 
     def avvia_estrazione_clima(self):
         if not self.current_progetto_id:
@@ -1403,6 +1483,13 @@ class BikepackingStudioApp(QMainWindow):
             ci_sono_blocchi
             and self._clima_ordine_scenario != self._clima_ordine_base
         )
+        self.btn_conferma_scenario.setEnabled(
+            self._clima_scenario_id is not None
+            and self._clima_ordine_scenario != self._clima_ordine_base
+        )
+        self.btn_annulla_scenario.setEnabled(
+            self._clima_ultima_applicazione_id is not None
+        )
 
     def sposta_blocco_scenario(self):
         ordine_corrente = [
@@ -1426,8 +1513,101 @@ class BikepackingStudioApp(QMainWindow):
         self.calcola_pagina_clima()
 
     def ripristina_ordine_scenario(self):
+        if self.current_progetto_id:
+            service.catena_stagionale_service.scarta_scenario_in_sospeso(
+                self.current_progetto_id
+            )
         self._clima_ordine_scenario = list(self._clima_ordine_base)
+        self._clima_scenario_id = None
         self.calcola_pagina_clima()
+
+    def conferma_scenario_clima(self):
+        scenario_id = self._clima_scenario_id
+        if scenario_id is None or not self.current_progetto_id:
+            return
+
+        ordine_precedente = " → ".join(self._clima_ordine_base)
+        ordine_proposto = " → ".join(self._clima_ordine_scenario or [])
+        risposta = QMessageBox.question(
+            self,
+            "Confermare lo scenario?",
+            "L'ordine ufficiale in Gestione blocchi verrà aggiornato.\n\n"
+            f"Prima: {ordine_precedente}\n\nDopo: {ordine_proposto}",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if risposta != QMessageBox.Yes:
+            return
+
+        try:
+            risultato = (
+                service.catena_stagionale_service.conferma_scenario(
+                    scenario_id
+                )
+            )
+            self._clima_scenario_id = None
+            self._clima_ordine_scenario = None
+            self.page_blocchi.carica_blocchi()
+            self.aggiorna_pagina_clima()
+            QMessageBox.information(
+                self,
+                "Scenario applicato",
+                "L'ordine è stato aggiornato e l'ordine precedente è "
+                "conservato per poterlo ripristinare.\n\n"
+                f"Nuova sequenza: {' → '.join(risultato['ordine'])}",
+            )
+        except Exception as errore:
+            QMessageBox.critical(
+                self,
+                "Scenario non applicato",
+                f"L'ordine ufficiale non è stato modificato: {errore}",
+            )
+
+    def annulla_ultima_applicazione_scenario(self):
+        if not self.current_progetto_id:
+            return
+        scenario_id = (
+            service.catena_stagionale_service
+            .ottieni_ultima_applicazione_scenario(self.current_progetto_id)
+        )
+        if scenario_id is None:
+            QMessageBox.information(
+                self,
+                "Nessuna applicazione",
+                "Non ci sono scenari da annullare.",
+            )
+            return
+        risposta = QMessageBox.question(
+            self,
+            "Annullare l'ultima applicazione?",
+            "Verrà ripristinato l'ordine dei blocchi precedente allo "
+            "scenario. Eventuali modifiche successive all'ordine "
+            "impediranno il ripristino.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if risposta != QMessageBox.Yes:
+            return
+        try:
+            risultato = service.catena_stagionale_service.annulla_scenario(
+                scenario_id
+            )
+            self._clima_ordine_scenario = None
+            self._clima_scenario_id = None
+            self.page_blocchi.carica_blocchi()
+            self.aggiorna_pagina_clima()
+            QMessageBox.information(
+                self,
+                "Ordine ripristinato",
+                "È stato ripristinato l'ordine precedente:\n"
+                f"{' → '.join(risultato['ordine'])}",
+            )
+        except Exception as errore:
+            QMessageBox.critical(
+                self,
+                "Ripristino non riuscito",
+                f"L'ordine non è stato modificato: {errore}",
+            )
 
     def salva_impostazioni_clima(self):
         if not self.current_progetto_id:
@@ -1777,12 +1957,17 @@ class BikepackingStudioApp(QMainWindow):
     def elimina_singola_tappa(self, tappa_id, nome_file):
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
+        cursor.execute("SELECT id_progetto FROM tappe WHERE id = ?", (tappa_id,))
+        riga = cursor.fetchone()
+        id_progetto = riga[0] if riga else self.current_progetto_id
         cursor.execute("DELETE FROM tappe WHERE id = ?", (tappa_id,))
         conn.commit()
         conn.close()
 
-        filepath = os.path.join(os.getcwd(), "gpx", os.path.basename(nome_file))
-        if os.path.exists(filepath):
+        filepath = trova_percorso_gpx(
+            nome_file, id_progetto, directory_gpx=os.path.join(os.getcwd(), "gpx")
+        )
+        if filepath is not None:
             try:
                 os.remove(filepath)
             except Exception as e:

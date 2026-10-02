@@ -17,6 +17,7 @@ import gpxpy
 import gpxpy.gpx
 
 from service.config import BROUTER_URL, DB_NAME
+from service.gpx_paths import percorso_gpx_progetto
 
 def calcola_distanza_haversine(lat1, lon1, lat2, lon2):
     """Calcola la distanza in chilometri tra due punti geografici usando la formula di Haversine."""
@@ -233,9 +234,8 @@ def genera_raccordo_gpx(id_progetto, t1_id, t2_id, t1_nome, t2_nome, db_name="bi
     for lat, lon in punti_strada:
         gpx_segment.points.append(gpxpy.gpx.GPXTrackPoint(lat, lon))
 
-    gpx_dir = os.path.join(os.getcwd(), "gpx")
-    os.makedirs(gpx_dir, exist_ok=True)
-    path_raccordo = os.path.join(gpx_dir, nome_raccordo)
+    path_raccordo = percorso_gpx_progetto(id_progetto, nome_raccordo)
+    os.makedirs(path_raccordo.parent, exist_ok=True)
     
     with open(path_raccordo, 'w', encoding='utf-8') as f:
         f.write(gpx.to_xml())

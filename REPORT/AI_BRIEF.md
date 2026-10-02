@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-02 23:41*
+*Aggiornato: 2026-10-03 01:22*
 
 ## Come leggere il progetto
 
@@ -15,21 +15,21 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 32
+- Moduli Python: 34
 - Classi: 22
-- Funzioni: 331
+- Funzioni: 350
 - Rotte Flask: 8
-- Tabelle DB: 25
-- Simboli orfani: 65
+- Tabelle DB: 27
+- Simboli orfani: 66
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 473 - 9 classi, 87 funzioni, 0 anomalie
-- `app_desktop.py` - score 432 - 8 classi, 69 funzioni, 0 anomalie
-- `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
-- `service/stats_service.py` - score 110 - 0 classi, 14 funzioni, 0 anomalie
-- `service/catena_stagionale_service.py` - score 96 - 0 classi, 15 funzioni, 0 anomalie
+- `gui/mappa.py` - score 475 - 9 classi, 87 funzioni, 0 anomalie
+- `app_desktop.py` - score 445 - 8 classi, 71 funzioni, 0 anomalie
+- `gui/dashboard.py` - score 163 - 2 classi, 20 funzioni, 0 anomalie
+- `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
+- `service/stats_service.py` - score 111 - 0 classi, 14 funzioni, 0 anomalie
 
 ## Endpoint Flask
 
@@ -59,11 +59,11 @@
 - `esegui_backup_progetto` (funzione) in `backup.py`
 - `WizardNuovoPercorsoDialog` (classe) in `gui/dashboard.py`
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
-- ... e altri 50 (vedi report completo)
+- ... e altri 51 (vedi report completo)
 
 ## Duplicazioni rilevate
 
-*17 funzioni/metodi definiti in più file:*
+*18 funzioni/metodi definiti in più file:*
 
 - `calcola_distanza_haversine` (4 copie) → `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`, `service/gpx_metrics_service.py`
 - `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
@@ -81,12 +81,13 @@
 - `elimina_singola_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `elimina_percorso_corrente` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `conferma_creazione` (2 copie) → `gui/dashboard.py`, `gui/wizard_percorso.py`
+- `_crea_backup` (2 copie) → `service/migrazione_catena_stagionale.py`, `service/migrazione_clima.py`
 - `_trova_percorso_gpx` (2 copie) → `service/stats_service.py`, `service/superfici_service.py`
 
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Numero di tabelle: 21
+- Numero di tabelle: 23
 - `allarmi_percorso`: 3 righe
 - `anagrafica_paesi`: 198 righe
 - `anagrafica_paesi_mondo`: 12 righe
@@ -99,11 +100,13 @@
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
+- `impostazioni_semaforo`: 0 righe
 - `progetti`: 1 righe
 - `progetto_stagione`: 1 righe
+- `scenari`: 0 righe
 - `superfici_tappa`: 958 righe
 - `tappa_analisi`: 958 righe
-- `tappa_costa_riepilogo`: 957 righe
+- `tappa_costa_riepilogo`: 958 righe
 - `tappa_geometrie`: 957 righe
 - `tappa_segmenti`: 958 righe
 - `tappe`: 958 righe
@@ -146,9 +149,9 @@
 ## Moduli principali
 
 - `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 8 classi, 69 funzioni
+- `app_desktop.py`: 8 classi, 71 funzioni
+- `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
-- `service/catena_stagionale_service.py`: 0 classi, 15 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni

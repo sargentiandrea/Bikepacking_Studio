@@ -1,7 +1,7 @@
 # Schema del database SQLite
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle trovate: 21
+- Tabelle trovate: 23
 
 ## `allarmi_percorso`
 
@@ -305,6 +305,34 @@ Nessun indice.
 
 - `id_progetto` → `progetti.id` (ON UPDATE NO ACTION, ON DELETE NO ACTION)
 
+## `impostazioni_semaforo`
+
+- Righe: 0
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `id_progetto` | INTEGER | chiave primaria |
+| `temp_min_verde` | REAL | DEFAULT 15.0 |
+| `temp_max_verde` | REAL | DEFAULT 28.0 |
+| `temp_min_giallo` | REAL | DEFAULT 5.0 |
+| `temp_max_giallo` | REAL | DEFAULT 35.0 |
+| `pioggia_max_verde` | REAL | DEFAULT 50.0 |
+| `pioggia_max_giallo` | REAL | DEFAULT 100.0 |
+| `vento_max_verde` | REAL | DEFAULT 20.0 |
+| `vento_max_giallo` | REAL | DEFAULT 35.0 |
+| `priorita_caldo` | INTEGER | DEFAULT 1 |
+| `aggiornato_il` | TEXT | — |
+
+### Indici
+
+Nessun indice.
+
+### Chiavi esterne
+
+Nessuna chiave esterna.
+
 ## `progetti`
 
 - Righe: 1
@@ -339,6 +367,31 @@ Nessuna chiave esterna.
 | `id_progetto` | INTEGER | chiave primaria |
 | `data_partenza` | TEXT | — |
 | `modificatore_riposo` | INTEGER | DEFAULT 0 |
+
+### Indici
+
+Nessun indice.
+
+### Chiavi esterne
+
+Nessuna chiave esterna.
+
+## `scenari`
+
+- Righe: 0
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `id` | INTEGER | chiave primaria |
+| `id_progetto` | INTEGER | NOT NULL |
+| `nome` | TEXT | NOT NULL |
+| `ordine_json` | TEXT | NOT NULL |
+| `creato_il` | TEXT | NOT NULL |
+| `applicato` | INTEGER | DEFAULT 0 |
+| `ordine_precedente_json` | TEXT | — |
+| `annullato` | INTEGER | DEFAULT 0 |
 
 ### Indici
 
@@ -405,7 +458,7 @@ Nessun indice.
 
 ## `tappa_costa_riepilogo`
 
-- Righe: 957
+- Righe: 958
 
 ### Colonne
 

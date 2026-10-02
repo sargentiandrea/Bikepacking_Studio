@@ -20,6 +20,7 @@ from service.precalcolo_service import (
     calcola_sha256,
     precalcola_tappa,
 )
+from service.gpx_paths import trova_percorso_gpx
 
 
 _stato_lock = threading.Lock()
@@ -35,17 +36,26 @@ _stato_batch: dict[str, Any] = {
 }
 
 
-def _percorso_gpx(nome_file: str | None) -> str | None:
+def _percorso_gpx(
+    nome_file: str | None, id_progetto: int | None = None
+) -> str | None:
     """Risolve il file GPX nelle posizioni gestite dall'app."""
     if not nome_file:
         return None
 
     nome = os.path.basename(nome_file)
     radice_progetto = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    percorso = trova_percorso_gpx(
+        nome_file,
+        id_progetto,
+        directory_gpx=os.path.join(radice_progetto, "gpx"),
+    )
+    if percorso is not None:
+        return os.path.abspath(percorso)
+
     candidati = [
         nome_file,
         os.path.join(radice_progetto, nome_file),
-        os.path.join(radice_progetto, "gpx", nome),
         os.path.join(radice_progetto, "uploads", nome),
         os.path.join(radice_progetto, "tracks", nome),
     ]
@@ -55,13 +65,15 @@ def _percorso_gpx(nome_file: str | None) -> str | None:
     return None
 
 
-def _tappe_attive(id_progetto: int | None) -> list[tuple[int, str | None]]:
+def _tappe_attive(
+    id_progetto: int | None,
+) -> list[tuple[int, str | None, int | None]]:
     """Legge le tappe da elaborare rispettando il filtro del progetto."""
     connessione = sqlite3.connect(DB_NAME)
     try:
         if id_progetto is None:
             query = """
-                SELECT id, nome_file
+                SELECT id, nome_file, id_progetto
                 FROM tappe
                 WHERE stato = 'ATTIVA'
                 ORDER BY id
@@ -69,7 +81,7 @@ def _tappe_attive(id_progetto: int | None) -> list[tuple[int, str | None]]:
             return connessione.execute(query).fetchall()
 
         query = """
-            SELECT id, nome_file
+            SELECT id, nome_file, id_progetto
             FROM tappe
             WHERE stato = 'ATTIVA' AND id_progetto = ?
             ORDER BY id
@@ -177,7 +189,7 @@ def precalcola_tutte_le_tappe(id_progetto: int | None = None) -> dict[str, Any]:
     fallite = 0
     errori: list[dict[str, Any]] = []
 
-    for indice, (tappa_id, nome_file) in enumerate(tappe, start=1):
+    for indice, (tappa_id, nome_file, progetto_tappa) in enumerate(tappe, start=1):
         with _stato_lock:
             interrotto = _batch_interrotto
         if interrotto:
@@ -187,7 +199,7 @@ def precalcola_tutte_le_tappe(id_progetto: int | None = None) -> dict[str, Any]:
             )
             break
 
-        percorso_gpx = _percorso_gpx(nome_file)
+        percorso_gpx = _percorso_gpx(nome_file, progetto_tappa)
         try:
             if percorso_gpx is None:
                 raise FileNotFoundError(
@@ -256,8 +268,8 @@ def stima_tempo_precalcolo(id_progetto: int | None = None) -> float:
     """Stima in secondi il tempo necessario per le tappe non aggiornate."""
     tappe = _tappe_attive(id_progetto)
     mancanti: list[tuple[int, str]] = []
-    for tappa_id, nome_file in tappe:
-        percorso_gpx = _percorso_gpx(nome_file)
+    for tappa_id, nome_file, progetto_tappa in tappe:
+        percorso_gpx = _percorso_gpx(nome_file, progetto_tappa)
         if percorso_gpx is None:
             continue
         try:

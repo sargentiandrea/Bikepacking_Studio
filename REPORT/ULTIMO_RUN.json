@@ -1,15 +1,15 @@
 {
   "meta": {
-    "data_analisi": "2026-10-02T23:41:15.854761",
+    "data_analisi": "2026-10-03T01:22:18.897068",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 32,
+    "totale_moduli": 34,
     "totale_classi": 22,
-    "totale_funzioni": 331,
+    "totale_funzioni": 350,
     "totale_rotte_flask": 8,
-    "totale_tabelle": 25,
+    "totale_tabelle": 27,
     "tabelle_create": [
       "allarmi_percorso",
       "anagrafica_paesi",
@@ -19,8 +19,10 @@
       "clima_paese_mese",
       "dogane_progetto",
       "geonames",
+      "impostazioni_semaforo",
       "progetti",
       "progetto_stagione",
+      "scenari",
       "superfici_tappa",
       "tappa_analisi",
       "tappa_costa_riepilogo",
@@ -41,9 +43,11 @@
       "geonames",
       "geonames_names",
       "geonames_names_fts",
+      "impostazioni_semaforo",
       "metadata",
       "progetti",
       "progetto_stagione",
+      "scenari",
       "sqlite_master",
       "superfici_tappa",
       "tappa_analisi",
@@ -137,7 +141,9 @@
         "service/geometria_service.py",
         "service/geonames_service.py",
         "service/gpx_metrics_service.py",
+        "service/gpx_paths.py",
         "service/map_manager_service.py",
+        "service/migrazione_catena_stagionale.py",
         "service/migrazione_clima.py",
         "service/migrazione_tappa_analisi.py",
         "service/migrazione_tappa_costa.py",
@@ -407,6 +413,11 @@
       },
       {
         "simbolo": "valuta_paese",
+        "tipo": "funzione",
+        "file": "service/catena_stagionale_service.py"
+      },
+      {
+        "simbolo": "applica_semafori",
         "tipo": "funzione",
         "file": "service/catena_stagionale_service.py"
       },
@@ -693,6 +704,14 @@
         "numero_copie": 2
       },
       {
+        "nome": "_crea_backup",
+        "file": [
+          "service/migrazione_catena_stagionale.py",
+          "service/migrazione_clima.py"
+        ],
+        "numero_copie": 2
+      },
+      {
         "nome": "_trova_percorso_gpx",
         "file": [
           "service/stats_service.py",
@@ -705,22 +724,25 @@
       "database/database_setup.py": [
         "app_desktop"
       ],
-      "service/audit_service.py": [
+      "service/clima_service.py": [
         "app_desktop"
       ],
       "service/clima_estrattore.py": [
         "app_desktop"
       ],
-      "service/catena_stagionale_service.py": [
+      "service/migrazione_clima.py": [
         "app_desktop"
       ],
-      "service/migrazione_clima.py": [
+      "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "service/catena_stagionale_service.py": [
         "app_desktop"
       ],
       "service/stats_service.py": [
         "app_desktop"
       ],
-      "service/clima_service.py": [
+      "service/migrazione_catena_stagionale.py": [
         "app_desktop"
       ]
     }
@@ -784,6 +806,8 @@
         "_aggiorna_controlli_scenario",
         "sposta_blocco_scenario",
         "ripristina_ordine_scenario",
+        "conferma_scenario_clima",
+        "annulla_ultima_applicazione_scenario",
         "salva_impostazioni_clima",
         "aggiorna_pagina_statistiche",
         "crea_pagina_placeholder",
@@ -819,7 +843,9 @@
         "service.config.DB_NAME",
         "service.dogane_service.analizza_dogane_progetto",
         "service.dogane_service.recupera_dogane_salvate",
+        "service.gpx_paths.trova_percorso_gpx",
         "service.map_server.start_local_map_server",
+        "service.migrazione_catena_stagionale",
         "service.migrazione_clima",
         "service.stats_service"
       ],
@@ -881,7 +907,6 @@
         "QPixmap",
         "QPushButton",
         "QScrollArea",
-        "QSettings",
         "QSize",
         "QSpinBox",
         "QStackedWidget",
@@ -920,9 +945,10 @@
         "aggiorna_tabella_trasferimenti",
         "all",
         "analizza_dogane_progetto",
+        "annulla_scenario",
         "any",
         "append",
-        "applica_semafori",
+        "assicura_schema_catena_stagionale",
         "assicura_schema_clima",
         "assicura_tabelle_clima",
         "atan2",
@@ -933,14 +959,17 @@
         "calcola_catena",
         "calcola_distanza_haversine",
         "calcola_pagina_clima",
+        "calcola_semaforo",
         "cambia_pagina",
         "carica_blocchi",
+        "carica_impostazioni_semaforo",
         "carica_lista_percorsi",
         "clear",
         "close",
         "closing",
         "columnCount",
         "commit",
+        "conferma_scenario",
         "connect",
         "copy",
         "cos",
@@ -964,6 +993,7 @@
         "date",
         "datetime",
         "day",
+        "dict",
         "dirname",
         "drawRoundedRect",
         "drawText",
@@ -1022,7 +1052,9 @@
         "open",
         "ottieni_kpi_totali_progetto",
         "ottieni_ripartizione_fasce_mare",
+        "ottieni_scenario_in_sospeso",
         "ottieni_statistiche_per_blocco",
+        "ottieni_ultima_applicazione_scenario",
         "pop",
         "primaryScreen",
         "print",
@@ -1039,8 +1071,10 @@
         "rileva_strade_vietate_progetto",
         "rollback",
         "round",
+        "salva_impostazioni_semaforo",
         "salva_impostazioni_stagione",
         "scaled",
+        "scarta_scenario_in_sospeso",
         "set",
         "setAcceptDrops",
         "setAlignment",
@@ -1111,6 +1145,7 @@
         "text",
         "toLocalFile",
         "toPlainText",
+        "trova_percorso_gpx",
         "update",
         "upper",
         "urls",
@@ -1224,6 +1259,8 @@
       "import_interni": [
         "service.config.DB_NAME",
         "service.config.calcola_distanza_haversine",
+        "service.gpx_paths.percorso_gpx_progetto",
+        "service.gpx_paths.trova_percorso_gpx",
         "service.precalcolo_service.precalcola_tappa"
       ],
       "import_esterni": [
@@ -1296,7 +1333,6 @@
         "esegui_audit_automatico",
         "exec",
         "execute",
-        "exists",
         "fetchall",
         "fetchone",
         "getOpenFileNames",
@@ -1312,6 +1348,7 @@
         "makedirs",
         "open",
         "parse",
+        "percorso_gpx_progetto",
         "precalcola_tappa",
         "print",
         "pyqtSignal",
@@ -1355,6 +1392,7 @@
         "super",
         "text",
         "toggle_pausa_tappa",
+        "trova_percorso_gpx",
         "upper",
         "warning",
         "window"
@@ -1470,6 +1508,8 @@
         "service.geometria_service.decomprimi_segmenti",
         "service.geometria_service.geometria_geojson",
         "service.geonames_service.cerca_coordinate_luogo",
+        "service.gpx_paths.percorso_gpx_progetto",
+        "service.gpx_paths.trova_percorso_gpx",
         "service.map_manager_service.DownloadWorker",
         "service.map_manager_service.MapManagerService",
         "service.precalcolo_service.precalcola_tappa",
@@ -1504,6 +1544,7 @@
       "chiamate_funzioni": [
         "BarraSuperfici",
         "DownloadWorker",
+        "FileNotFoundError",
         "GPX",
         "GPXTrack",
         "GPXTrackPoint",
@@ -1653,7 +1694,6 @@
         "isChecked",
         "isRunning",
         "isVisible",
-        "isfile",
         "itemAt",
         "items",
         "join",
@@ -1680,6 +1720,7 @@
         "page",
         "parentWidget",
         "parse",
+        "percorso_gpx_progetto",
         "post",
         "precalcola_tappa",
         "print",
@@ -1764,6 +1805,7 @@
         "toString",
         "to_xml",
         "top",
+        "trova_percorso_gpx",
         "tuple",
         "update",
         "updateGeometry",
@@ -1979,6 +2021,7 @@
       "import_interni": [
         "service.config.BROUTER_URL",
         "service.config.DB_NAME",
+        "service.gpx_paths.percorso_gpx_progetto",
         "service.superfici_service.carica_superfici_tappa"
       ],
       "import_esterni": [
@@ -2015,12 +2058,11 @@
         "fetchall",
         "fetchone",
         "get",
-        "getcwd",
-        "join",
         "json",
         "len",
         "makedirs",
         "open",
+        "percorso_gpx_progetto",
         "print",
         "radians",
         "range",
@@ -2043,16 +2085,29 @@
         "_calcola_da_blocchi",
         "calcola_catena",
         "proponi_scenario",
+        "_salva_scenario_proposto",
+        "ottieni_scenario_in_sospeso",
+        "scarta_scenario_in_sospeso",
+        "ottieni_ultima_applicazione_scenario",
+        "_ordine_ufficiale",
+        "_verifica_ordine_scenario",
+        "conferma_scenario",
+        "annulla_scenario",
+        "_normalizza_soglie",
+        "carica_impostazioni_semaforo",
+        "salva_impostazioni_semaforo",
         "_carica_clima_progetto",
         "_valuta_temperatura",
         "_valuta_sopra_soglia",
         "_media_pesata",
         "_mesi_del_transito",
-        "applica_semafori",
-        "valuta_paese"
+        "calcola_semaforo",
+        "valuta_paese",
+        "applica_semafori"
       ],
       "import_interni": [
-        "service.config.DB_NAME"
+        "service.config.DB_NAME",
+        "service.migrazione_catena_stagionale.assicura_schema_catena_stagionale"
       ],
       "import_esterni": [
         "__future__",
@@ -2067,9 +2122,13 @@
         "urllib.parse"
       ],
       "tabelle_usate": [
+        "SET",
         "blocchi_ordine",
         "clima_paese_mese",
-        "sqlite_master"
+        "impostazioni_semaforo",
+        "scenari",
+        "sqlite_master",
+        "tappe"
       ],
       "anomalie": [],
       "chiamate_funzioni": [
@@ -2087,21 +2146,31 @@
         "_mesi_del_transito",
         "_nomi_paesi_iso3",
         "_normalizza_data",
+        "_normalizza_soglie",
+        "_ordine_ufficiale",
+        "_salva_scenario_proposto",
         "_valuta_sopra_soglia",
         "_valuta_temperatura",
+        "_verifica_ordine_scenario",
         "add",
         "all",
         "any",
         "append",
         "as_posix",
+        "assicura_schema_catena_stagionale",
+        "calcola_semaforo",
+        "carica_impostazioni_semaforo",
         "casefold",
         "closing",
+        "commit",
         "connect",
         "date",
         "defaultdict",
         "dict",
+        "dumps",
         "enumerate",
         "execute",
+        "executemany",
         "fetchall",
         "fetchone",
         "float",
@@ -2114,6 +2183,7 @@
         "items",
         "iter",
         "join",
+        "keys",
         "len",
         "list",
         "load",
@@ -2122,14 +2192,17 @@
         "max",
         "min",
         "next",
+        "now",
         "open",
         "quote",
         "resolve",
         "reversed",
+        "rollback",
         "set",
         "setdefault",
         "sorted",
         "str",
+        "strftime",
         "strip",
         "sum",
         "timedelta",
@@ -2137,8 +2210,7 @@
         "update",
         "upper",
         "values",
-        "valuta_paese",
-        "zip"
+        "valuta_paese"
       ]
     },
     "service/clima_estrattore.py": {
@@ -2633,6 +2705,28 @@
         "zip"
       ]
     },
+    "service/gpx_paths.py": {
+      "classi": [],
+      "funzioni": [
+        "percorso_gpx_progetto",
+        "trova_percorso_gpx"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "pathlib"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "Path",
+        "ValueError",
+        "append",
+        "is_absolute",
+        "is_file",
+        "resolve",
+        "str"
+      ]
+    },
     "service/map_manager_service.py": {
       "classi": [
         "DownloadWorker",
@@ -2783,6 +2877,45 @@
         "strip",
         "unquote",
         "which"
+      ]
+    },
+    "service/migrazione_catena_stagionale.py": {
+      "classi": [],
+      "funzioni": [
+        "_crea_backup",
+        "_colonne",
+        "assicura_schema_catena_stagionale"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "contextlib",
+        "datetime",
+        "pathlib",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "impostazioni_semaforo",
+        "scenari",
+        "sqlite_master"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Path",
+        "_colonne",
+        "_crea_backup",
+        "backup",
+        "closing",
+        "commit",
+        "connect",
+        "execute",
+        "is_file",
+        "now",
+        "resolve",
+        "set",
+        "strftime",
+        "with_name"
       ]
     },
     "service/migrazione_clima.py": {
@@ -3003,6 +3136,7 @@
         "service.costa_service.ottieni_versione_dataset_costa",
         "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
         "service.gpx_metrics_service.analizza_gpx",
+        "service.gpx_paths.trova_percorso_gpx",
         "service.precalcolo_service.VERSIONE_ALGORITMI",
         "service.precalcolo_service.calcola_sha256",
         "service.precalcolo_service.precalcola_tappa"
@@ -3056,6 +3190,7 @@
         "round",
         "str",
         "sum",
+        "trova_percorso_gpx",
         "update"
       ]
     },
@@ -3164,7 +3299,8 @@
         "service.costa_service.calcola_sha256_gpx",
         "service.costa_service.ottieni_metadati_gpx",
         "service.costa_service.ottieni_versione_dataset_costa",
-        "service.costa_service.salva_riepilogo_costa"
+        "service.costa_service.salva_riepilogo_costa",
+        "service.gpx_paths.trova_percorso_gpx"
       ],
       "import_esterni": [
         "json",
@@ -3262,6 +3398,7 @@
         "str",
         "strip",
         "sum",
+        "trova_percorso_gpx",
         "update",
         "upper",
         "values",
@@ -3291,7 +3428,8 @@
       "import_interni": [
         "service.audit_service.calcola_distanza_haversine",
         "service.config.BASE_DIR",
-        "service.config.DB_NAME"
+        "service.config.DB_NAME",
+        "service.gpx_paths.trova_percorso_gpx"
       ],
       "import_esterni": [
         "datetime",
@@ -3345,7 +3483,6 @@
         "distance",
         "dumps",
         "execute",
-        "exists",
         "fetchall",
         "fetchone",
         "float",
@@ -3374,7 +3511,8 @@
         "sort",
         "split",
         "str",
-        "tan"
+        "tan",
+        "trova_percorso_gpx"
       ]
     },
     "static/aggiorna_sprite.py": {
@@ -10250,6 +10388,90 @@
         ]
       },
       {
+        "nome": "impostazioni_semaforo",
+        "righe": 0,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "id_progetto",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria"
+            ]
+          },
+          {
+            "nome": "temp_min_verde",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 15.0"
+            ]
+          },
+          {
+            "nome": "temp_max_verde",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 28.0"
+            ]
+          },
+          {
+            "nome": "temp_min_giallo",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 5.0"
+            ]
+          },
+          {
+            "nome": "temp_max_giallo",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 35.0"
+            ]
+          },
+          {
+            "nome": "pioggia_max_verde",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 50.0"
+            ]
+          },
+          {
+            "nome": "pioggia_max_giallo",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 100.0"
+            ]
+          },
+          {
+            "nome": "vento_max_verde",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 20.0"
+            ]
+          },
+          {
+            "nome": "vento_max_giallo",
+            "tipo": "REAL",
+            "vincoli": [
+              "DEFAULT 35.0"
+            ]
+          },
+          {
+            "nome": "priorita_caldo",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "DEFAULT 1"
+            ]
+          },
+          {
+            "nome": "aggiornato_il",
+            "tipo": "TEXT",
+            "vincoli": []
+          }
+        ],
+        "indici": [],
+        "chiavi_esterne": []
+      },
+      {
         "nome": "progetti",
         "righe": 1,
         "errore_conteggio": null,
@@ -10315,6 +10537,69 @@
           },
           {
             "nome": "modificatore_riposo",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "DEFAULT 0"
+            ]
+          }
+        ],
+        "indici": [],
+        "chiavi_esterne": []
+      },
+      {
+        "nome": "scenari",
+        "righe": 0,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "id",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria"
+            ]
+          },
+          {
+            "nome": "id_progetto",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "nome",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "ordine_json",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "creato_il",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "applicato",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "ordine_precedente_json",
+            "tipo": "TEXT",
+            "vincoli": []
+          },
+          {
+            "nome": "annullato",
             "tipo": "INTEGER",
             "vincoli": [
               "DEFAULT 0"
@@ -10485,7 +10770,7 @@
       },
       {
         "nome": "tappa_costa_riepilogo",
-        "righe": 957,
+        "righe": 958,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11098,7 +11383,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1441,
+        "riga": 1459,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -11107,7 +11392,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1516,
+        "riga": 1534,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -11116,7 +11401,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1709,
+        "riga": 1727,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11125,7 +11410,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2347,
+        "riga": 2369,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11325,7 +11610,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "riga": 122,
+        "riga": 121,
         "termini": [],
         "url": [
           "http://www.topografix.com/GPX/1/1"
@@ -11336,17 +11621,17 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 32,
+    "totale_moduli": 34,
     "totale_classi": 22,
-    "totale_funzioni": 331,
+    "totale_funzioni": 350,
     "endpoint_flask": 8,
-    "tabelle_rilevate": 25,
-    "simboli_orfani": 65,
+    "tabelle_rilevate": 27,
+    "simboli_orfani": 66,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
-      "gui/dashboard.py",
       "service/catena_stagionale_service.py",
+      "gui/dashboard.py",
       "service/map_server.py",
       "service/superfici_service.py",
       "service/stats_service.py",
@@ -11363,37 +11648,37 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 473,
+        "score": 475,
         "classi": 9,
         "funzioni": 87,
         "anomalie": 0
       },
       {
         "file": "app_desktop.py",
-        "score": 432,
+        "score": 445,
         "classi": 8,
-        "funzioni": 69,
+        "funzioni": 71,
         "anomalie": 0
       },
       {
         "file": "gui/dashboard.py",
-        "score": 162,
+        "score": 163,
         "classi": 2,
         "funzioni": 20,
         "anomalie": 0
       },
       {
-        "file": "service/stats_service.py",
-        "score": 110,
+        "file": "service/catena_stagionale_service.py",
+        "score": 133,
         "classi": 0,
-        "funzioni": 14,
+        "funzioni": 27,
         "anomalie": 0
       },
       {
-        "file": "service/catena_stagionale_service.py",
-        "score": 96,
+        "file": "service/stats_service.py",
+        "score": 111,
         "classi": 0,
-        "funzioni": 15,
+        "funzioni": 14,
         "anomalie": 0
       }
     ],
@@ -11411,30 +11696,30 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 32,
+      "moduli": 34,
       "classi": 22,
-      "funzioni": 331,
+      "funzioni": 350,
       "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 65",
+      "Simboli orfani: 66",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
-      "gui/mappa.py",
       "app_desktop.py",
+      "gui/mappa.py",
       "gui/dashboard.py",
       "service/stats_service.py",
-      "service/clima_estrattore.py"
+      "service/catena_stagionale_service.py"
     ],
     "prossimi_passi": [
       "Rivedere i simboli orfani e decidere se integrarli, rimuoverli o spostarli.",
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 32 moduli, 22 classi, 331 funzioni, 8 endpoint Flask, 65 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 22 classi, 350 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 32 moduli, 22 classi, 331 funzioni, 8 endpoint Flask, 65 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 22 classi, 350 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

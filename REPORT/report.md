@@ -1,20 +1,20 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-02 alle 23:41:15*
+*Generato il 2026-10-03 alle 01:22:18*
 
 ## 1. Sintesi
 
-- Moduli Python: **32**
+- Moduli Python: **34**
 - Classi: **22**
-- Funzioni globali: **331**
+- Funzioni globali: **350**
 - Rotte Flask: **8**
-- Tabelle rilevate: **25**
-- Simboli orfani: **65**
+- Tabelle rilevate: **27**
+- Simboli orfani: **66**
 
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle: 21
+- Tabelle: 23
 
 | Tabella | Righe | Colonne chiave |
 |---|---:|---|
@@ -30,11 +30,13 @@
 | `confini_box` | 11 | id (PK) |
 | `dogane_percorso` | 0 | id (PK) |
 | `dogane_progetto` | 67 | id (PK), id_progetto (FK → progetti.id) |
+| `impostazioni_semaforo` | 0 | id_progetto (PK) |
 | `progetti` | 1 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
+| `scenari` | 0 | id (PK) |
 | `superfici_tappa` | 958 | id (PK), tappa_id (FK → tappe.id) |
 | `tappa_analisi` | 958 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_costa_riepilogo` | 957 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_costa_riepilogo` | 958 | tappa_id (PK), tappa_id (FK → tappe.id) |
 | `tappa_geometrie` | 957 | tappa_id (PK), tappa_id (FK → tappe.id) |
 | `tappa_segmenti` | 958 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
 | `tappe` | 958 | id (PK), id_progetto (FK → progetti.id) |
@@ -87,7 +89,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (22 file)
+**core** (24 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/catena_stagionale_service.py`
@@ -96,7 +98,7 @@
 - `service/config.py`
 - `service/costa_service.py`
 - `service/dogane_service.py`
-- ... e altri 14
+- ... e altri 16
 
 **altro** (5 file)
 - `app_desktop.py`
@@ -130,7 +132,7 @@
 
 ## 5. Simboli orfani
 
-*65 simboli definiti ma mai citati altrove:*
+*66 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -162,14 +164,14 @@
 - **funzione** `cancella_anteprima_percorso` in `gui/mappa.py`
 - **funzione** `evidenzia_tappa` in `gui/mappa.py`
 - **funzione** `request_stop` in `gui/mappa.py`
-- ... e altri 35
+- ... e altri 36
 
 ## 6. Moduli con più contenuto
 
 - `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 8 classi, 69 funzioni
+- `app_desktop.py`: 8 classi, 71 funzioni
+- `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
-- `service/catena_stagionale_service.py`: 0 classi, 15 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni

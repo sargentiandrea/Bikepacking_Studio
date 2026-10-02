@@ -34,6 +34,7 @@ import mapbox_vector_tile
 from shapely.geometry import LineString, Point
 
 from service.config import BASE_DIR, DB_NAME
+from service.gpx_paths import trova_percorso_gpx
 from service.audit_service import calcola_distanza_haversine
 
 MAPS_DIR = os.path.join(BASE_DIR, "data", "maps")
@@ -240,18 +241,13 @@ def _classifica_tag_strada(tag):
 # -------------------------------------------------------------------
 # LETTURA GPX E CAMPIONAMENTO
 # -------------------------------------------------------------------
-def _trova_percorso_gpx(nome_file):
-    if not nome_file:
-        return None
-    candidati = [nome_file, os.path.join(GPX_DIR, os.path.basename(nome_file))]
-    for candidato in candidati:
-        if os.path.exists(candidato):
-            return candidato
-    return None
+def _trova_percorso_gpx(nome_file, id_progetto=None):
+    percorso = trova_percorso_gpx(nome_file, id_progetto, directory_gpx=GPX_DIR)
+    return str(percorso) if percorso is not None else None
 
 
-def _leggi_punti_gpx(nome_file):
-    filepath = _trova_percorso_gpx(nome_file)
+def _leggi_punti_gpx(nome_file, id_progetto=None):
+    filepath = _trova_percorso_gpx(nome_file, id_progetto)
     if not filepath:
         return []
     try:
@@ -290,7 +286,7 @@ def _campiona_punti(punti, passo_metri=PASSO_CAMPIONAMENTO_M):
 # -------------------------------------------------------------------
 # ANALISI PRINCIPALE
 # -------------------------------------------------------------------
-def analizza_superfici_gpx(nome_file):
+def analizza_superfici_gpx(nome_file, id_progetto=None):
     """
     Analizza un singolo file GPX confrontandolo con le mappe locali già
     scaricate. Restituisce un dizionario con la ripartizione delle
@@ -301,7 +297,7 @@ def analizza_superfici_gpx(nome_file):
     mappe scaricate, quel tratto viene semplicemente segnalato come
     "non coperto".
     """
-    punti = _leggi_punti_gpx(nome_file)
+    punti = _leggi_punti_gpx(nome_file, id_progetto)
     if len(punti) < 2:
         return {
             "disponibile": False,
@@ -423,14 +419,16 @@ def salva_superfici_tappa(tappa_id, dati):
         print(f"Nota: impossibile salvare la cache superfici della tappa {tappa_id}: {errore}")
 
 
-def analizza_o_carica_superficie_tappa(tappa_id, nome_file, forza_ricalcolo=False):
+def analizza_o_carica_superficie_tappa(
+    tappa_id, nome_file, forza_ricalcolo=False, id_progetto=None
+):
     """Restituisce l'analisi offline di una tappa: dalla cache se già calcolata, altrimenti la calcola e la salva."""
     if not forza_ricalcolo:
         dati_cache = carica_superfici_tappa(tappa_id)
         if dati_cache is not None:
             return dati_cache
 
-    dati = analizza_superfici_gpx(nome_file)
+    dati = analizza_superfici_gpx(nome_file, id_progetto)
     salva_superfici_tappa(tappa_id, dati)
     return dati
 
@@ -450,7 +448,7 @@ def analizza_superfici_progetto(id_progetto, forza_ricalcolo=False, deve_continu
         with sqlite3.connect(DB_NAME, timeout=15.0) as conn:
             tappe = conn.execute(
                 """
-                SELECT id, nome_file FROM tappe
+                SELECT id, nome_file, id_progetto FROM tappe
                 WHERE id_progetto = ? AND stato = 'ATTIVA' AND nome_file IS NOT NULL
                 ORDER BY sequenza ASC
                 """,
@@ -468,10 +466,15 @@ def analizza_superfici_progetto(id_progetto, forza_ricalcolo=False, deve_continu
     km_totali = 0.0
     km_non_coperti = 0.0
 
-    for tappa_id, nome_file in tappe:
+    for tappa_id, nome_file, progetto_tappa in tappe:
         if deve_continuare is not None and not deve_continuare():
             return {"disponibile": False, "motivo": "Calcolo interrotto: percorso cambiato.", "annullato": True}
-        dati_tappa = analizza_o_carica_superficie_tappa(tappa_id, nome_file, forza_ricalcolo=forza_ricalcolo)
+        dati_tappa = analizza_o_carica_superficie_tappa(
+            tappa_id,
+            nome_file,
+            forza_ricalcolo=forza_ricalcolo,
+            id_progetto=progetto_tappa,
+        )
         if not dati_tappa.get("disponibile"):
             continue
         for voce in dati_tappa.get("superfici", []):

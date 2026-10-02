@@ -8,6 +8,7 @@ from shapely.geometry import Point, shape
 from shapely.strtree import STRtree
 
 from service.config import DB_NAME
+from service.gpx_paths import trova_percorso_gpx
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COASTLINE_FILE = os.path.join(PROJECT_ROOT, "world_coastlines_10m.geojson")
@@ -96,15 +97,13 @@ def assegna_fascia_costiera_metri(dist_m):
 # -------------------------------------------------------------------
 # PARSING GPX
 # -------------------------------------------------------------------
-def _trova_percorso_gpx(nome_file):
+def _trova_percorso_gpx(nome_file, id_progetto=None):
     if not nome_file:
         return None
-    percorsi = [
-        nome_file,
-        os.path.join("gpx", nome_file),
-        os.path.join("uploads", nome_file),
-        os.path.join("tracks", nome_file)
-    ]
+    percorso = trova_percorso_gpx(nome_file, id_progetto)
+    if percorso is not None:
+        return str(percorso)
+    percorsi = [nome_file, os.path.join("uploads", nome_file), os.path.join("tracks", nome_file)]
     for p in percorsi:
         if os.path.exists(p):
             return p
@@ -410,7 +409,7 @@ def ottieni_ripartizione_fasce_mare(id_progetto):
     ) in tappe:
         km_val = km_tappa or 0.0
         km_totali_viaggio += km_val
-        percorso_gpx = _trova_percorso_gpx(nome_file)
+        percorso_gpx = _trova_percorso_gpx(nome_file, id_progetto)
         cache = riepiloghi.get(tappa_id)
         metadati_gpx = None
         if percorso_gpx is not None:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from collections import Counter, defaultdict
 from contextlib import closing
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from functools import lru_cache
 import json
 import math
@@ -13,6 +13,9 @@ from pathlib import Path
 from urllib.parse import quote
 
 from service.config import DB_NAME
+from service.migrazione_catena_stagionale import (
+    assicura_schema_catena_stagionale,
+)
 
 
 def _connetti_sola_lettura() -> sqlite3.Connection:
@@ -394,21 +397,475 @@ def proponi_scenario(
             "L'ordine proposto deve contenere ogni blocco esattamente una volta."
         )
 
-    return _calcola_da_blocchi(
+    risultati = _calcola_da_blocchi(
         blocchi, data_iniziale, modificatore_riposo, ordine_proposto
     )
+    _salva_scenario_proposto(progetto_id, ordine_proposto)
+    return risultati
+
+
+def _salva_scenario_proposto(
+    progetto_id: int, ordine_proposto: list[str]
+) -> int:
+    assicura_schema_catena_stagionale(DB_NAME)
+    creato_il = datetime.now(timezone.utc).isoformat()
+    ordine_json = json.dumps(ordine_proposto, ensure_ascii=False)
+    nome = f"Scenario catena {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    with closing(sqlite3.connect(DB_NAME, timeout=15.0)) as connessione:
+        connessione.execute("BEGIN IMMEDIATE")
+        riga = connessione.execute(
+            """
+            SELECT id FROM scenari
+            WHERE id_progetto = ? AND applicato = 0 AND annullato = 0
+            ORDER BY id DESC LIMIT 1
+            """,
+            (progetto_id,),
+        ).fetchone()
+        if riga:
+            scenario_id = int(riga[0])
+            connessione.execute(
+                """
+                UPDATE scenari
+                SET nome = ?, ordine_json = ?, creato_il = ?
+                WHERE id = ?
+                """,
+                (nome, ordine_json, creato_il, scenario_id),
+            )
+        else:
+            cursore = connessione.execute(
+                """
+                INSERT INTO scenari (
+                    id_progetto, nome, ordine_json, creato_il
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (progetto_id, nome, ordine_json, creato_il),
+            )
+            scenario_id = int(cursore.lastrowid)
+        connessione.commit()
+    return scenario_id
+
+
+def ottieni_scenario_in_sospeso(progetto_id: int) -> dict[str, object] | None:
+    """Restituisce l'ultima bozza ancora non applicata del progetto."""
+    with closing(_connetti_sola_lettura()) as connessione:
+        presente = connessione.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'scenari'
+            """
+        ).fetchone()
+        if presente is None:
+            return None
+        riga = connessione.execute(
+            """
+            SELECT id, nome, ordine_json, creato_il
+            FROM scenari
+            WHERE id_progetto = ? AND applicato = 0 AND annullato = 0
+            ORDER BY id DESC LIMIT 1
+            """,
+            (progetto_id,),
+        ).fetchone()
+    if riga is None:
+        return None
+    ordine = json.loads(riga["ordine_json"])
+    if not isinstance(ordine, list) or not all(
+        isinstance(nome_blocco, str) for nome_blocco in ordine
+    ):
+        raise RuntimeError("L'ordine salvato nello scenario non è valido.")
+    return {
+        "id": int(riga["id"]),
+        "nome": str(riga["nome"]),
+        "ordine": ordine,
+        "creato_il": str(riga["creato_il"]),
+    }
+
+
+def scarta_scenario_in_sospeso(progetto_id: int) -> None:
+    """Segna come annullata la bozza corrente senza toccare l'ordine ufficiale."""
+    with closing(sqlite3.connect(DB_NAME, timeout=15.0)) as connessione:
+        presente = connessione.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'scenari'
+            """
+        ).fetchone()
+        if presente is None:
+            return
+        connessione.execute(
+            """
+            UPDATE scenari SET annullato = 1
+            WHERE id = (
+                SELECT id FROM scenari
+                WHERE id_progetto = ? AND applicato = 0 AND annullato = 0
+                ORDER BY id DESC LIMIT 1
+            )
+            """,
+            (progetto_id,),
+        )
+        connessione.commit()
+
+
+def ottieni_ultima_applicazione_scenario(
+    progetto_id: int,
+) -> int | None:
+    """Restituisce l'applicazione più recente ancora annullabile."""
+    with closing(_connetti_sola_lettura()) as connessione:
+        presente = connessione.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'scenari'
+            """
+        ).fetchone()
+        if presente is None:
+            return None
+        riga = connessione.execute(
+            """
+            SELECT id FROM scenari
+            WHERE id_progetto = ? AND applicato = 1 AND annullato = 0
+            ORDER BY id DESC LIMIT 1
+            """,
+            (progetto_id,),
+        ).fetchone()
+    return int(riga["id"]) if riga else None
+
+
+def _ordine_ufficiale(
+    connessione: sqlite3.Connection, progetto_id: int
+) -> list[dict[str, object]]:
+    righe = connessione.execute(
+        """
+        SELECT id, nome_blocco, ordine
+        FROM blocchi_ordine
+        WHERE id_progetto = ?
+        ORDER BY
+            CASE WHEN ordine IS NULL THEN 1 ELSE 0 END,
+            ordine,
+            id
+        """,
+        (progetto_id,),
+    ).fetchall()
+    return [
+        {
+            "id": int(riga[0]),
+            "nome_blocco": str(riga[1]),
+            "ordine": riga[2],
+        }
+        for riga in righe
+    ]
+
+
+def _verifica_ordine_scenario(
+    connessione: sqlite3.Connection,
+    progetto_id: int,
+    ordine: list[object],
+) -> list[str]:
+    if not all(isinstance(nome, str) and nome for nome in ordine):
+        raise ValueError("Lo scenario contiene nomi di blocco non validi.")
+    ordine_blocchi = [str(nome) for nome in ordine]
+    if len(ordine_blocchi) != len(set(ordine_blocchi)):
+        raise ValueError("Ogni blocco deve comparire una sola volta nello scenario.")
+    attivi = connessione.execute(
+        """
+        SELECT DISTINCT COALESCE(NULLIF(TRIM(blocco), ''), 'Generale')
+        FROM tappe
+        WHERE id_progetto = ? AND (stato = 'ATTIVA' OR stato IS NULL)
+        """,
+        (progetto_id,),
+    ).fetchall()
+    nomi_attivi = {str(riga[0]) for riga in attivi}
+    righe_ordine = _ordine_ufficiale(connessione, progetto_id)
+    nomi_attesi = {str(riga["nome_blocco"]) for riga in righe_ordine} | nomi_attivi
+    if Counter(ordine_blocchi) != Counter(nomi_attesi):
+        raise ValueError(
+            "Lo scenario non corrisponde più ai blocchi attivi del progetto. "
+            "Ricalcola la catena prima di confermarlo."
+        )
+    return ordine_blocchi
+
+
+def conferma_scenario(scenario_id: int) -> dict[str, object]:
+    """Applica atomically lo scenario ai blocchi e conserva il precedente ordine."""
+    assicura_schema_catena_stagionale(DB_NAME)
+    with closing(sqlite3.connect(DB_NAME, timeout=15.0)) as connessione:
+        connessione.execute("PRAGMA foreign_keys = ON")
+        connessione.execute("BEGIN IMMEDIATE")
+        try:
+            scenario = connessione.execute(
+                """
+                SELECT id_progetto, nome, ordine_json, applicato, annullato
+                FROM scenari WHERE id = ?
+                """,
+                (scenario_id,),
+            ).fetchone()
+            if scenario is None:
+                raise ValueError("Lo scenario non esiste più.")
+            if scenario[3] or scenario[4]:
+                raise ValueError("Questo scenario è già stato applicato o annullato.")
+
+            progetto_id = int(scenario[0])
+            ordine_scenario = json.loads(scenario[2])
+            if not isinstance(ordine_scenario, list):
+                raise ValueError("L'ordine salvato nello scenario non è valido.")
+            ordine_scenario = _verifica_ordine_scenario(
+                connessione, progetto_id, ordine_scenario
+            )
+            ordine_precedente = _ordine_ufficiale(connessione, progetto_id)
+            snapshot_precedente = json.dumps(
+                ordine_precedente, ensure_ascii=False
+            )
+
+            connessione.execute(
+                "DELETE FROM blocchi_ordine WHERE id_progetto = ?",
+                (progetto_id,),
+            )
+            connessione.executemany(
+                """
+                INSERT INTO blocchi_ordine (id_progetto, nome_blocco, ordine)
+                VALUES (?, ?, ?)
+                """,
+                [
+                    (progetto_id, nome_blocco, posizione)
+                    for posizione, nome_blocco in enumerate(
+                        ordine_scenario, start=1
+                    )
+                ],
+            )
+            connessione.execute(
+                """
+                UPDATE scenari
+                SET applicato = 1, ordine_precedente_json = ?
+                WHERE id = ?
+                """,
+                (snapshot_precedente, scenario_id),
+            )
+            connessione.commit()
+        except Exception:
+            connessione.rollback()
+            raise
+    return {
+        "scenario_id": scenario_id,
+        "id_progetto": progetto_id,
+        "ordine": ordine_scenario,
+        "ordine_precedente": [
+            str(riga["nome_blocco"]) for riga in ordine_precedente
+        ],
+    }
+
+
+def annulla_scenario(scenario_id: int) -> dict[str, object]:
+    """Ripristina in modo atomico l'ordine registrato prima dell'applicazione."""
+    assicura_schema_catena_stagionale(DB_NAME)
+    with closing(sqlite3.connect(DB_NAME, timeout=15.0)) as connessione:
+        connessione.execute("PRAGMA foreign_keys = ON")
+        connessione.execute("BEGIN IMMEDIATE")
+        try:
+            scenario = connessione.execute(
+                """
+                SELECT id_progetto, ordine_json, ordine_precedente_json,
+                       applicato, annullato
+                FROM scenari WHERE id = ?
+                """,
+                (scenario_id,),
+            ).fetchone()
+            if scenario is None:
+                raise ValueError("Lo scenario non esiste più.")
+            if not scenario[3] or scenario[4]:
+                raise ValueError("Lo scenario non è un'applicazione annullabile.")
+            if not scenario[2]:
+                raise RuntimeError("Non è disponibile l'ordine precedente dello scenario.")
+
+            progetto_id = int(scenario[0])
+            ordine_applicato = json.loads(scenario[1])
+            ordine_precedente = json.loads(scenario[2])
+            ordine_corrente = _ordine_ufficiale(connessione, progetto_id)
+            nomi_correnti = [str(riga["nome_blocco"]) for riga in ordine_corrente]
+            if nomi_correnti != ordine_applicato:
+                raise RuntimeError(
+                    "L'ordine ufficiale è cambiato dopo l'applicazione: "
+                    "il ripristino automatico è stato interrotto per non "
+                    "sovrascrivere modifiche successive."
+                )
+            if not isinstance(ordine_precedente, list) or not all(
+                isinstance(riga, dict)
+                and {"id", "nome_blocco", "ordine"} <= riga.keys()
+                for riga in ordine_precedente
+            ):
+                raise RuntimeError("La copia dell'ordine precedente non è valida.")
+
+            connessione.execute(
+                "DELETE FROM blocchi_ordine WHERE id_progetto = ?",
+                (progetto_id,),
+            )
+            connessione.executemany(
+                """
+                INSERT INTO blocchi_ordine (id, id_progetto, nome_blocco, ordine)
+                VALUES (?, ?, ?, ?)
+                """,
+                [
+                    (
+                        int(riga["id"]),
+                        progetto_id,
+                        str(riga["nome_blocco"]),
+                        riga["ordine"],
+                    )
+                    for riga in ordine_precedente
+                ],
+            )
+            connessione.execute(
+                "UPDATE scenari SET annullato = 1 WHERE id = ?",
+                (scenario_id,),
+            )
+            connessione.commit()
+        except Exception:
+            connessione.rollback()
+            raise
+    return {
+        "scenario_id": scenario_id,
+        "id_progetto": progetto_id,
+        "ordine": [
+            str(riga["nome_blocco"]) for riga in ordine_precedente
+        ],
+    }
 
 
 SOGLIE_CLIMA_DEFAULT = {
-    "temperatura_rossa_bassa": 5.0,
-    "temperatura_verde_min": 15.0,
-    "temperatura_verde_max": 28.0,
-    "temperatura_rossa_alta": 35.0,
-    "pioggia_verde_max": 50.0,
-    "pioggia_gialla_max": 100.0,
-    "vento_verde_max": 20.0,
-    "vento_giallo_max": 35.0,
+    "temp_min_verde": 15.0,
+    "temp_max_verde": 28.0,
+    "temp_min_giallo": 5.0,
+    "temp_max_giallo": 35.0,
+    "pioggia_max_verde": 50.0,
+    "pioggia_max_giallo": 100.0,
+    "vento_max_verde": 20.0,
+    "vento_max_giallo": 35.0,
+    "priorita_caldo": 1,
 }
+
+
+def _normalizza_soglie(
+    soglie: dict[str, float | int] | None,
+) -> dict[str, float | int]:
+    """Unifica le vecchie chiavi UI e convalida l'insieme delle soglie."""
+    normalizzate: dict[str, float | int] = dict(SOGLIE_CLIMA_DEFAULT)
+    if soglie:
+        alias_legacy = {
+            "temperatura_verde_min": "temp_min_verde",
+            "temperatura_verde_max": "temp_max_verde",
+            "temperatura_rossa_bassa": "temp_min_giallo",
+            "temperatura_rossa_alta": "temp_max_giallo",
+            "pioggia_verde_max": "pioggia_max_verde",
+            "pioggia_gialla_max": "pioggia_max_giallo",
+            "vento_verde_max": "vento_max_verde",
+            "vento_giallo_max": "vento_max_giallo",
+        }
+        for chiave, valore in soglie.items():
+            normalizzate[alias_legacy.get(chiave, chiave)] = valore
+
+    for chiave in SOGLIE_CLIMA_DEFAULT:
+        if chiave != "priorita_caldo":
+            valore = float(normalizzate[chiave])
+            if not math.isfinite(valore):
+                raise ValueError(f"La soglia '{chiave}' deve essere un numero finito.")
+            normalizzate[chiave] = valore
+
+    priorita_raw = normalizzate["priorita_caldo"]
+    if priorita_raw not in (0, 1, 0.0, 1.0):
+        raise ValueError("priorita_caldo deve valere 0 (pioggia) oppure 1 (caldo).")
+    priorita = int(priorita_raw)
+    normalizzate["priorita_caldo"] = priorita
+
+    if not (
+        float(normalizzate["temp_min_giallo"])
+        < float(normalizzate["temp_min_verde"])
+        < float(normalizzate["temp_max_verde"])
+        < float(normalizzate["temp_max_giallo"])
+        and float(normalizzate["pioggia_max_verde"])
+        < float(normalizzate["pioggia_max_giallo"])
+        and float(normalizzate["vento_max_verde"])
+        < float(normalizzate["vento_max_giallo"])
+    ):
+        raise ValueError("Le soglie climatiche devono essere in ordine crescente.")
+    return normalizzate
+
+
+def carica_impostazioni_semaforo(
+    progetto_id: int,
+) -> dict[str, float | int]:
+    """Legge le preferenze del progetto, oppure restituisce i valori predefiniti."""
+    risultato: dict[str, float | int] = dict(SOGLIE_CLIMA_DEFAULT)
+    with closing(_connetti_sola_lettura()) as connessione:
+        presente = connessione.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'impostazioni_semaforo'
+            """
+        ).fetchone()
+        if presente is None:
+            return risultato
+        riga = connessione.execute(
+            """
+            SELECT temp_min_verde, temp_max_verde, temp_min_giallo,
+                   temp_max_giallo, pioggia_max_verde, pioggia_max_giallo,
+                   vento_max_verde, vento_max_giallo, priorita_caldo
+            FROM impostazioni_semaforo
+            WHERE id_progetto = ?
+            """,
+            (progetto_id,),
+        ).fetchone()
+    if riga is None:
+        return risultato
+    risultato.update(
+        {
+            nome: riga[indice]
+            for indice, nome in enumerate(SOGLIE_CLIMA_DEFAULT)
+        }
+    )
+    return _normalizza_soglie(risultato)
+
+
+def salva_impostazioni_semaforo(
+    progetto_id: int, soglie: dict[str, float | int]
+) -> dict[str, float | int]:
+    """Convalida e salva nel database le soglie climatiche del progetto."""
+    valori = _normalizza_soglie(soglie)
+    assicura_schema_catena_stagionale(DB_NAME)
+    aggiornato_il = datetime.now(timezone.utc).isoformat()
+    with closing(sqlite3.connect(DB_NAME, timeout=15.0)) as connessione:
+        connessione.execute(
+            """
+            INSERT INTO impostazioni_semaforo (
+                id_progetto, temp_min_verde, temp_max_verde,
+                temp_min_giallo, temp_max_giallo, pioggia_max_verde,
+                pioggia_max_giallo, vento_max_verde, vento_max_giallo,
+                priorita_caldo, aggiornato_il
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id_progetto) DO UPDATE SET
+                temp_min_verde = excluded.temp_min_verde,
+                temp_max_verde = excluded.temp_max_verde,
+                temp_min_giallo = excluded.temp_min_giallo,
+                temp_max_giallo = excluded.temp_max_giallo,
+                pioggia_max_verde = excluded.pioggia_max_verde,
+                pioggia_max_giallo = excluded.pioggia_max_giallo,
+                vento_max_verde = excluded.vento_max_verde,
+                vento_max_giallo = excluded.vento_max_giallo,
+                priorita_caldo = excluded.priorita_caldo,
+                aggiornato_il = excluded.aggiornato_il
+            """,
+            (
+                progetto_id,
+                valori["temp_min_verde"],
+                valori["temp_max_verde"],
+                valori["temp_min_giallo"],
+                valori["temp_max_giallo"],
+                valori["pioggia_max_verde"],
+                valori["pioggia_max_giallo"],
+                valori["vento_max_verde"],
+                valori["vento_max_giallo"],
+                valori["priorita_caldo"],
+                aggiornato_il,
+            ),
+        )
+        connessione.commit()
+    return valori
 
 
 def _carica_clima_progetto(
@@ -459,17 +916,17 @@ def _carica_clima_progetto(
 
 
 def _valuta_temperatura(
-    valore: float, soglie: dict[str, float]
+    valore: float, soglie: dict[str, float | int]
 ) -> tuple[int, str]:
-    if soglie["temperatura_verde_min"] <= valore <= soglie["temperatura_verde_max"]:
+    if float(soglie["temp_min_verde"]) <= valore <= float(soglie["temp_max_verde"]):
         return 0, "verde"
     if (
-        soglie["temperatura_rossa_bassa"]
+        float(soglie["temp_min_giallo"])
         <= valore
-        < soglie["temperatura_verde_min"]
-        or soglie["temperatura_verde_max"]
+        < float(soglie["temp_min_verde"])
+        or float(soglie["temp_max_verde"])
         < valore
-        <= soglie["temperatura_rossa_alta"]
+        <= float(soglie["temp_max_giallo"])
     ):
         return 1, "giallo"
     return 2, "rosso"
@@ -524,28 +981,15 @@ def _mesi_del_transito(
     return risultato
 
 
-def applica_semafori(
+def calcola_semaforo(
     progetto_id: int,
     risultati: list[dict[str, object]],
-    soglie: dict[str, float] | None = None,
+    soglie: dict[str, float | int] | None = None,
 ) -> list[dict[str, object]]:
-    """Aggiunge alla catena gli indicatori del transito e le relative motivazioni."""
-    soglie_attive = dict(SOGLIE_CLIMA_DEFAULT)
-    if soglie:
-        soglie_attive.update(soglie)
-    if (
-        soglie_attive["temperatura_rossa_bassa"]
-        >= soglie_attive["temperatura_verde_min"]
-        or soglie_attive["temperatura_verde_min"]
-        >= soglie_attive["temperatura_verde_max"]
-        or soglie_attive["temperatura_verde_max"]
-        >= soglie_attive["temperatura_rossa_alta"]
-        or soglie_attive["pioggia_verde_max"]
-        >= soglie_attive["pioggia_gialla_max"]
-        or soglie_attive["vento_verde_max"]
-        >= soglie_attive["vento_giallo_max"]
-    ):
-        raise ValueError("Le soglie climatiche devono essere crescenti.")
+    """Applica le soglie climatiche salvate per il progetto."""
+    soglie_attive = _normalizza_soglie(
+        carica_impostazioni_semaforo(progetto_id) if soglie is None else soglie
+    )
 
     profilo = _carica_clima_progetto(progetto_id)
     colori = {
@@ -583,45 +1027,63 @@ def applica_semafori(
             ),
             "vento_media": _media_pesata(righe_mese, "vento_media"),
         }
-        valori_fattori = [
-            medie["temperatura_media"],
-            medie["precipitazioni_mm"],
-            medie["vento_media"],
-        ]
+        dati_fattori = {
+            "Temperatura media": medie["temperatura_media"],
+            "Pioggia": medie["precipitazioni_mm"],
+            "Vento": medie["vento_media"],
+        }
+        priorita_caldo = int(soglie_attive["priorita_caldo"])
+        nome_prioritario = "Temperatura media" if priorita_caldo else "Pioggia"
+        nome_secondario = "Pioggia" if priorita_caldo else "Temperatura media"
+        ordine_fattori = (
+            [nome_prioritario, nome_secondario, "Vento"]
+        )
+        valori_fattori = list(dati_fattori.values())
         note_fattori: list[str] = []
-        severita: list[int] = []
+        severita_per_fattore: dict[str, int] = {}
         copertura_temporale = [
             giorni_coperti / giorni_totali
             for _, giorni_coperti in valori_fattori
         ]
-        for nome, (valore, _) in zip(
-            ("Temperatura media", "Pioggia", "Vento"), valori_fattori
-        ):
+        for nome in ordine_fattori:
+            valore, _ = dati_fattori[nome]
             if valore is None:
                 note_fattori.append(f"{nome}: dato non disponibile")
                 continue
             if nome == "Temperatura media":
                 livello, colore = _valuta_temperatura(valore, soglie_attive)
+                limiti = (
+                    f"verde {float(soglie_attive['temp_min_verde']):g}-"
+                    f"{float(soglie_attive['temp_max_verde']):g} °C, "
+                    f"giallo {float(soglie_attive['temp_min_giallo']):g}-"
+                    f"{float(soglie_attive['temp_max_giallo']):g} °C"
+                )
                 note_fattori.append(
-                    f"Temperatura {valore:.1f} °C: {colore}"
+                    f"Temperatura {valore:.1f} °C: {colore} ({limiti})"
                 )
             elif nome == "Pioggia":
                 livello, colore = _valuta_sopra_soglia(
                     valore,
-                    soglie_attive["pioggia_verde_max"],
-                    soglie_attive["pioggia_gialla_max"],
+                    float(soglie_attive["pioggia_max_verde"]),
+                    float(soglie_attive["pioggia_max_giallo"]),
                 )
                 note_fattori.append(
-                    f"Pioggia {valore:.1f} mm/mese: {colore}"
+                    f"Pioggia {valore:.1f} mm/mese: {colore} "
+                    f"(verde <{float(soglie_attive['pioggia_max_verde']):g}, "
+                    f"giallo fino a {float(soglie_attive['pioggia_max_giallo']):g})"
                 )
             else:
                 livello, colore = _valuta_sopra_soglia(
                     valore,
-                    soglie_attive["vento_verde_max"],
-                    soglie_attive["vento_giallo_max"],
+                    float(soglie_attive["vento_max_verde"]),
+                    float(soglie_attive["vento_max_giallo"]),
                 )
-                note_fattori.append(f"Vento {valore:.1f} km/h: {colore}")
-            severita.append(livello)
+                note_fattori.append(
+                    f"Vento {valore:.1f} km/h: {colore} "
+                    f"(verde <{float(soglie_attive['vento_max_verde']):g}, "
+                    f"giallo fino a {float(soglie_attive['vento_max_giallo']):g})"
+                )
+            severita_per_fattore[nome] = livello
 
         copertura_spaziale = min(
             (
@@ -633,17 +1095,44 @@ def applica_semafori(
         copertura_tempo = min(copertura_temporale, default=0.0) * 100
         copertura = min(copertura_spaziale, copertura_tempo)
         completo = (
-            len(severita) == 3
+            len(severita_per_fattore) == 3
             and copertura >= 99.9
             and all(giorni == giorni_totali for _, giorni in valori_fattori)
         )
 
-        if not severita:
+        if not severita_per_fattore:
             semaforo = "N/D"
         elif not completo:
             semaforo = "Parziale"
         else:
-            semaforo = ("verde", "giallo", "rosso")[max(severita)]
+            livello_prioritario = severita_per_fattore.get(nome_prioritario)
+            livello_secondario = severita_per_fattore.get(nome_secondario)
+            if (
+                livello_prioritario is not None
+                and livello_secondario is not None
+                and livello_prioritario < livello_secondario
+            ):
+                # La preferenza può attenuare di un solo livello il fattore secondario.
+                livello_secondario = max(0, livello_secondario - 1)
+            livelli_non_prioritari = [
+                livello
+                for nome, livello in severita_per_fattore.items()
+                if nome not in {nome_prioritario, nome_secondario}
+            ]
+            livello_combinato = max(
+                [
+                    *livelli_non_prioritari,
+                    (
+                        livello_prioritario
+                        if livello_prioritario is not None
+                        else 0
+                    ),
+                    livello_secondario
+                    if livello_secondario is not None
+                    else 0,
+                ]
+            )
+            semaforo = ("verde", "giallo", "rosso")[livello_combinato]
 
         anni_per_fattore: dict[str, list[int]] = defaultdict(list)
         versioni: set[str] = set()
@@ -687,6 +1176,13 @@ def applica_semafori(
             fonte = f"Fonte: {fonte}. "
         spiegazione = (
             "; ".join(note_fattori)
+            + (
+                ". Preferenza: caldo prioritario; la pioggia può pesare un "
+                "livello in meno quando la temperatura è migliore."
+                if priorita_caldo
+                else ". Preferenza: pioggia prioritaria; la temperatura può "
+                "pesare un livello in meno quando la pioggia è migliore."
+            )
             + estremi
             + f". Copertura complessiva: {copertura:.0f}%"
             + anni_descrizione
@@ -750,3 +1246,12 @@ def applica_semafori(
             )
         valutati.append(blocco)
     return valutati
+
+
+def applica_semafori(
+    progetto_id: int,
+    risultati: list[dict[str, object]],
+    soglie: dict[str, float | int] | None = None,
+) -> list[dict[str, object]]:
+    """Mantiene compatibili i chiamanti precedenti al nome calcola_semaforo."""
+    return calcola_semaforo(progetto_id, risultati, soglie)
