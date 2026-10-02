@@ -6,6 +6,7 @@
 - `http://127.0.0.1:8080/api/set-gpx-data`
 - `http://127.0.0.1:8080/map`
 - `http://localhost:3000`
+- `http://s3.amazonaws.com/doc/2006-03-01/`
 - `http://www.topografix.com/GPX/1/1`
 - `http://{BROUTER_HOST}:{BROUTER_PORT}`
 - `http://{BROUTER_HOST}:{BROUTER_PORT}/brouter`
@@ -13,10 +14,12 @@
 - `https://creativecommons.org/licenses/by/4.0/\n`
 - `https://download.geonames.org/export/dump/allCountries.zip`
 - `https://download.geonames.org/export/dump/alternateNamesV2.zip`
+- `https://os.unil.cloud.switch.ch/chelsa02`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles`
+- `https://www.chelsa-climate.org/datasets/chelsa_monthly`
 - `https://www.geonames.org/\n`
 - `martin`
 - `redis`
@@ -58,6 +61,18 @@
 ### `installa_geonames.py`:326
 - Riferimento: `https://www.geonames.org/\n`
 - Contesto: `"https://www.geonames.org/\n"`
+
+### `service/clima_estrattore.py`:24
+- Riferimento: `https://os.unil.cloud.switch.ch/chelsa02`
+- Contesto: `BASE_URL = "https://os.unil.cloud.switch.ch/chelsa02"`
+
+### `service/clima_estrattore.py`:25
+- Riferimento: `https://www.chelsa-climate.org/datasets/chelsa_monthly`
+- Contesto: `DATASET_PAGE = "https://www.chelsa-climate.org/datasets/chelsa_monthly"`
+
+### `service/clima_estrattore.py`:29
+- Riferimento: `http://s3.amazonaws.com/doc/2006-03-01/`
+- Contesto: `NAMESPACE_S3 = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}`
 
 ### `service/config.py`:9
 - Riferimento: `http://{BROUTER_HOST}:{BROUTER_PORT}/brouter`

@@ -9,31 +9,57 @@ L'utente che ti guida è un **regista non-tecnico**: sa cosa vuole ottenere, ma 
 
 ---
 
+## PRINCIPI FONDATIVI DEL PROGETTO
+
+Il documento `REPORT/FIRST_PRINCIPLES.md` contiene i 13 principi fondativi di Bikepacking Studio. Ogni decisione tecnica deve essere coerente con questi principi.
+
+In particolare, ricorda sempre:
+- Il viaggio non è il percorso (il GPX è una guida, non un vincolo)
+- La realtà ha priorità sul piano (l'app deve adattarsi ai cambiamenti)
+- L'IA è un assistente (suggerisce, non decide)
+- La connessione è utile ma non obbligatoria (offline-first)
+- Ogni viaggio genera conoscenza (da preservare)
+
+Prima di ogni intervento significativo, chiediti: "Questa modifica è coerente con i principi fondativi?"
+
+---
+
 ## CONTESTO DEL PROGETTO
 
 - **Nome**: Bikepacking Studio
 - **Tipo**: applicazione desktop con backend mappa Flask
 - **Framework UI**: **PySide6** (obbligatorio)
-- **Backend mappe**: Flask + MapLibre GL
-- **Database**: SQLite (verificare in `database/database_setup.py`)
+- **Backend mappe**: Flask + MapLibre GL 5.6.2 (con proiezione globo)
+- **Database**: SQLite (`data/bikepacking_app.db`)
 
 ### Architettura (rispettala sempre)
 
 - `gui/` → interfaccia desktop (PySide6): dashboard, mappa, wizard
-- `service/` → logica di dominio: audit, clima, dogane, mappa, statistiche, config
+- `service/` → logica di dominio: audit, clima, dogane, mappa, statistiche, config, precalcolo, catena stagionale
 - `database/` → setup e accesso al database
-- `app_desktop.py` → entry point dell'app desktop (attualmente God Object, in fase di refactor)
+- `app_desktop.py` → entry point dell'app desktop
 - `templates/` → template HTML per la mappa
 - `static/` → risorse statiche (JS, CSS, sprite)
 - `resources/` → risorse generate (catalogo sprite)
 
 ### File critici (da trattare con particolare cautela)
 
-- `app_desktop.py` (~1370 righe, 5 classi, 53 funzioni — God Object)
-- `gui/mappa.py` (6 classi, 53 funzioni)
+- `gui/mappa.py` (~9 classi, 87 funzioni — **God Object attuale, priorità di refactor**)
+- `app_desktop.py` (~5 classi, 52 funzioni — God Object storico)
 - `gui/dashboard.py` (2 classi, 20 funzioni)
 
 Questi tre file contengono la maggior parte della logica dell'app. **Non riscriverli mai da capo in un colpo solo.** Intervieni con modifiche piccole e verificabili.
+
+### Servizi principali (creati durante il precalcolo)
+
+- `service/gpx_metrics_service.py` → calcolo metriche GPX (distanza, dislivello, pendenza)
+- `service/precalcolo_service.py` → salvataggio metriche in `tappa_analisi`
+- `service/precalcolo_batch_service.py` → precalcolo di massa (992+ tappe)
+- `service/geometria_service.py` → geometria semplificata (Ramer-Douglas-Peucker)
+- `service/costa_service.py` → calcolo distanza dalla costa
+- `service/catena_stagionale_service.py` → catena temporale e scenari
+- `service/clima_estrattore.py` → estrazione dati CHELSA
+- `service/stats_service.py` → statistiche progetto (legge da `tappa_analisi`)
 
 ---
 
@@ -46,6 +72,8 @@ Questi tre file contengono la maggior parte della logica dell'app. **Non riscriv
 5. **Non introdurre nuove dipendenze** senza chiedere esplicitamente il permesso all'utente.
 6. **Non cancellare file** senza autorizzazione esplicita.
 7. **Non modificare** `database/database_setup.py` senza backup preventivo.
+8. **Non toccare `blocchi_ordine`** in lettura/scrittura senza autorizzazione (è l'ordine ufficiale del viaggio).
+9. **Offline-first**: nessuna funzionalità fondamentale deve richiedere internet per funzionare.
 
 ---
 
@@ -57,6 +85,7 @@ Questi tre file contengono la maggior parte della logica dell'app. **Non riscriv
 4. **Se un task è ambiguo**, fai **una domanda** all'utente prima di procedere. Non inventare.
 5. **Se il task è complesso**, proponi un **piano in 2-3 passi** e attendi approvazione prima di eseguire.
 6. **Non toccare file fuori dal perimetro** che ti viene indicato esplicitamente nell'ordine.
+7. **Se il task è chiaro**, procedi direttamente senza chiedere ulteriori conferme.
 
 ---
 
@@ -69,34 +98,27 @@ Questi tre file contengono la maggior parte della logica dell'app. **Non riscriv
 
 ---
 
-## STILE DI LAVORO ATTESO
-
-**Esempio di comportamento corretto:**
-
-> Utente: *"Sposta la funzione `determina_blocco_da_nome_file` da `app_desktop.py` a un nuovo file `service/blocchi_service.py`."*
->
-> Tu:
-> 1. *"Ok. Prima leggo `REPORT/AI_BRIEF.md` per capire lo stato."*
-> 2. *"La funzione è alla riga X di `app_desktop.py` e viene chiamata in Y punti. Sto per: creare il file `service/blocchi_service.py`, spostare la funzione lì, aggiornare gli import in `app_desktop.py`."*
-> 3. *"Fatto. Modifiche: nuovo file `service/blocchi_service.py` con la funzione; `app_desktop.py` aggiornato per importarla. Ora lancia `analisi_profonda.py` per verificare il changelog."*
-
-**Esempio di comportamento sbagliato (da evitare):**
-
-> Utente: *"Migliora l'app."*
->
-> Tu: *"Ho rifattorizzato `app_desktop.py`, spostato 20 funzioni, cambiato 5 import, aggiornato il database."*
-
-Se ti viene chiesto qualcosa di vago, **fermati e chiedi** cosa intende esattamente.
-
----
-
 ## OBIETTIVO A LUNGO TERMINE
 
 Il progetto deve diventare un'app multi-piattaforma (desktop, web, iOS, Android) per bikepacking, con funzionalità avanzate di pianificazione percorso, analisi clima, dogane internazionali, e certificazione di viaggi intercontinentali.
 
 Lavoriamo per passi. Preferiamo **una modifica piccola e sicura al giorno** a un refactor gigantesco che rompe tutto.
 
-## PROBLEMI ARCHITETTURALI NOTI (aggiornato 2026-09-29)
+---
+
+## PROBLEMI ARCHITETTURALI NOTI (aggiornato 2026-10-02)
+
+### Refactor prioritario: `gui/mappa.py`
+È diventato il file più grande del progetto (9 classi, 87 funzioni). Contiene:
+- Rendering MapLibre
+- Worker di caricamento
+- Cache per progetto
+- Proiezione globo
+- Pianificatore percorso
+- Gestione waypoint
+- Superfici, nomi luoghi, altimetria
+
+**Va spezzato in moduli più piccoli** (es. `mappa_worker.py`, `mappa_cache.py`, `mappa_pianificatore.py`). Da pianificare con calma.
 
 ### Duplicazioni tra `app_desktop.py` e `gui/dashboard.py`
 10 funzioni sono duplicate. Casi critici:
@@ -107,11 +129,23 @@ Lavoriamo per passi. Preferiamo **una modifica piccola e sicura al giorno** a un
 ### `calcola_distanza_haversine` in 3 file
 Definita in `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`. Da centralizzare in `service/geo_utils.py`.
 
+### Residui del database (da pulire)
+- Tappa "variante" (ID 43 o 1123) con stato anomalo
+- Gap ricomparso nella pagina Audit
+- Blocco Italia con nome incoerente tra `blocchi_ordine` e `tappe`
+- Cartella con nome generale nell'elenco percorsi
+- 21 violazioni di chiavi esterne in `allarmi_percorso` (20) e `trasferimenti` (1)
+- Tabelle vuote o inutilizzate (`dogane_percorso`, `anagrafica_paesi_mondo`)
+
 ### Priorità di intervento
-1. Risolvere bug `elimina_percorso_corrente` (pulizia DB incompleta)
-2. Allineare `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`
-3. Rimuovere copie morte: `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`
-4. Centralizzare `calcola_distanza_haversine` in `service/geo_utils.py`
+1. Refactor `gui/mappa.py` (God Object attuale)
+2. Risolvere bug `elimina_percorso_corrente` (pulizia DB incompleta)
+3. Pulire i residui del database
+4. Allineare `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`
+5. Rimuovere copie morte: `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`
+6. Centralizzare `calcola_distanza_haversine` in `service/geo_utils.py`
+
+---
 
 ## COSA LEGGERE E QUANDO
 
@@ -126,6 +160,15 @@ Prima di lavorare su CONFIGURAZIONE:
 
 Prima di lavorare su SERVIZI ESTERNI (Martin, tile server, ecc.):
 - Leggi `REPORT/EXTERNAL_SERVICES.md` per l'elenco dei servizi esterni.
+
+Prima di lavorare su CATENA STAGIONALE O CLIMA:
+- Leggi `REPORT/VISIONE_CATENA_STAGIONALE.md` (la visione)
+- Leggi `REPORT/PIANO_CATENA_STAGIONALE.md` (il piano)
+- Leggi `REPORT/ANALISI_CLIMA.md` (cosa fa oggi)
+
+Prima di lavorare su PRECALCOLO:
+- Leggi `REPORT/PIANO_PRECALCOLO.md` (il piano)
+- Leggi `REPORT/REGOLE_GPX.md` (le regole)
 
 Se ti serve un DETTAGLIO su un modulo specifico:
 - Leggi `REPORT/analisi.json` (dataset completo) oppure

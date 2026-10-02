@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-02 01:24*
+*Aggiornato: 2026-10-02 14:40*
 
 ## Come leggere il progetto
 
@@ -15,18 +15,18 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 35
-- Classi: 20
-- Funzioni: 306
+- Moduli Python: 37
+- Classi: 22
+- Funzioni: 329
 - Rotte Flask: 8
-- Tabelle DB: 23
-- Simboli orfani: 59
+- Tabelle DB: 24
+- Simboli orfani: 61
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
 - `gui/mappa.py` - score 473 - 9 classi, 87 funzioni, 0 anomalie
-- `app_desktop.py` - score 378 - 6 classi, 58 funzioni, 0 anomalie
+- `app_desktop.py` - score 421 - 8 classi, 69 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 162 - 2 classi, 20 funzioni, 0 anomalie
 - `service/stats_service.py` - score 110 - 0 classi, 14 funzioni, 0 anomalie
 - `service/superfici_service.py` - score 90 - 0 classi, 15 funzioni, 0 anomalie
@@ -46,6 +46,8 @@
 
 - `DoganeSignals` (classe) in `app_desktop.py`
 - `ClimaSignals` (classe) in `app_desktop.py`
+- `EstrazioneClimaWorker` (classe) in `app_desktop.py`
+- `ClimaSoglieDialog` (classe) in `app_desktop.py`
 - `DropAreaGPX` (classe) in `app_desktop.py`
 - `TimelineCatenaWidget` (classe) in `app_desktop.py`
 - `GestoreBlocchiWidget` (classe) in `app_desktop.py`
@@ -57,9 +59,7 @@
 - `esegui_backup_progetto` (funzione) in `backup.py`
 - `WizardNuovoPercorsoDialog` (classe) in `gui/dashboard.py`
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
-- `BarraSuperfici` (classe) in `gui/mappa.py`
-- `MapManagerDialog` (classe) in `gui/mappa.py`
-- ... e altri 44 (vedi report completo)
+- ... e altri 46 (vedi report completo)
 
 ## Duplicazioni rilevate
 
@@ -86,7 +86,7 @@
 ## Database
 
 - Percorso: `data/bikepacking_app.db`
-- Numero di tabelle: 19
+- Numero di tabelle: 20
 - `allarmi_percorso`: 28 righe
 - `anagrafica_paesi`: 198 righe
 - `anagrafica_paesi_mondo`: 12 righe
@@ -94,6 +94,7 @@
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
 - `cache_nomi_luoghi`: 995 righe
+- `clima_blocco_mese`: 12 righe
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
@@ -113,6 +114,7 @@
 - `http://127.0.0.1:8080/api/set-gpx-data`
 - `http://127.0.0.1:8080/map`
 - `http://localhost:3000`
+- `http://s3.amazonaws.com/doc/2006-03-01/`
 - `http://www.topografix.com/GPX/1/1`
 - `http://{BROUTER_HOST}:{BROUTER_PORT}`
 - `http://{BROUTER_HOST}:{BROUTER_PORT}/brouter`
@@ -120,10 +122,12 @@
 - `https://creativecommons.org/licenses/by/4.0/\n`
 - `https://download.geonames.org/export/dump/allCountries.zip`
 - `https://download.geonames.org/export/dump/alternateNamesV2.zip`
+- `https://os.unil.cloud.switch.ch/chelsa02`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles`
 - `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles`
+- `https://www.chelsa-climate.org/datasets/chelsa_monthly`
 - `https://www.geonames.org/\n`
 - `martin`
 - `redis`
@@ -141,15 +145,15 @@
 ## Moduli principali
 
 - `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 6 classi, 58 funzioni
+- `app_desktop.py`: 8 classi, 69 funzioni
 - `gui/dashboard.py`: 2 classi, 20 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
+- `service/catena_stagionale_service.py`: 0 classi, 13 funzioni
 - `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
 - `service/costa_service.py`: 0 classi, 8 funzioni
-- `service/precalcolo_service.py`: 0 classi, 8 funzioni
 
 ## Azioni consigliate
 

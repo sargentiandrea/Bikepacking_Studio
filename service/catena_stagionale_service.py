@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import sqlite3
-from collections import Counter
+from collections import Counter, defaultdict
 from contextlib import closing
 from datetime import date, datetime, timedelta
+import json
+import math
 from pathlib import Path
 from urllib.parse import quote
 
@@ -274,3 +276,308 @@ def proponi_scenario(
     return _calcola_da_blocchi(
         blocchi, data_iniziale, modificatore_riposo, ordine_proposto
     )
+
+
+SOGLIE_CLIMA_DEFAULT = {
+    "temperatura_rossa_bassa": 5.0,
+    "temperatura_verde_min": 15.0,
+    "temperatura_verde_max": 28.0,
+    "temperatura_rossa_alta": 35.0,
+    "pioggia_verde_max": 50.0,
+    "pioggia_gialla_max": 100.0,
+    "vento_verde_max": 20.0,
+    "vento_giallo_max": 35.0,
+}
+
+
+def _carica_clima_progetto(
+    progetto_id: int,
+) -> dict[tuple[str, int], sqlite3.Row]:
+    with closing(_connetti_sola_lettura()) as connessione:
+        tabella = connessione.execute(
+            """
+            SELECT 1 FROM sqlite_master
+            WHERE type = 'table' AND name = 'clima_blocco_mese'
+            """
+        ).fetchone()
+        if tabella is None:
+            return {}
+
+        colonne = _colonne_tabella(connessione, "clima_blocco_mese")
+        necessarie = {
+            "id_progetto",
+            "nome_blocco",
+            "mese",
+            "temperatura_media",
+            "temperatura_max",
+            "temperatura_min",
+            "precipitazioni_mm",
+            "vento_media",
+            "dataset_versione",
+            "aggiornato_il",
+            "copertura_pct",
+            "anni_coperti",
+        }
+        if not necessarie <= colonne:
+            mancanti = ", ".join(sorted(necessarie - colonne))
+            raise RuntimeError(
+                f"La tabella clima_blocco_mese non è aggiornata: mancano {mancanti}."
+            )
+        righe = connessione.execute(
+            """
+            SELECT *
+            FROM clima_blocco_mese
+            WHERE id_progetto = ?
+            """,
+            (progetto_id,),
+        ).fetchall()
+    return {
+        (str(riga["nome_blocco"]), int(riga["mese"])): riga
+        for riga in righe
+    }
+
+
+def _valuta_temperatura(
+    valore: float, soglie: dict[str, float]
+) -> tuple[int, str]:
+    if soglie["temperatura_verde_min"] <= valore <= soglie["temperatura_verde_max"]:
+        return 0, "verde"
+    if (
+        soglie["temperatura_rossa_bassa"]
+        <= valore
+        < soglie["temperatura_verde_min"]
+        or soglie["temperatura_verde_max"]
+        < valore
+        <= soglie["temperatura_rossa_alta"]
+    ):
+        return 1, "giallo"
+    return 2, "rosso"
+
+
+def _valuta_sopra_soglia(
+    valore: float, soglia_verde: float, soglia_rossa: float
+) -> tuple[int, str]:
+    if valore < soglia_verde:
+        return 0, "verde"
+    if valore <= soglia_rossa:
+        return 1, "giallo"
+    return 2, "rosso"
+
+
+def _media_pesata(
+    righe: list[tuple[sqlite3.Row, int]], nome_colonna: str
+) -> tuple[float | None, int]:
+    somma = 0.0
+    giorni_coperti = 0
+    for riga, giorni in righe:
+        valore = riga[nome_colonna]
+        if valore is None or not math.isfinite(float(valore)):
+            continue
+        somma += float(valore) * giorni
+        giorni_coperti += giorni
+    if not giorni_coperti:
+        return None, 0
+    return somma / giorni_coperti, giorni_coperti
+
+
+def _mesi_del_transito(
+    data_ingresso: date, data_uscita: date
+) -> list[tuple[int, int]]:
+    """Restituisce mese e giorni del blocco ricadenti in quel mese."""
+    risultato: list[tuple[int, int]] = []
+    mese_corrente = date(data_ingresso.year, data_ingresso.month, 1)
+    while mese_corrente <= data_uscita:
+        if mese_corrente.month == 12:
+            inizio_mese_successivo = date(mese_corrente.year + 1, 1, 1)
+        else:
+            inizio_mese_successivo = date(
+                mese_corrente.year, mese_corrente.month + 1, 1
+            )
+        fine_mese = inizio_mese_successivo - timedelta(days=1)
+        inizio_intersezione = max(data_ingresso, mese_corrente)
+        fine_intersezione = min(data_uscita, fine_mese)
+        giorni = (fine_intersezione - inizio_intersezione).days + 1
+        if giorni > 0:
+            risultato.append((mese_corrente.month, giorni))
+        mese_corrente = inizio_mese_successivo
+    return risultato
+
+
+def applica_semafori(
+    progetto_id: int,
+    risultati: list[dict[str, object]],
+    soglie: dict[str, float] | None = None,
+) -> list[dict[str, object]]:
+    """Aggiunge alla catena gli indicatori del transito e le relative motivazioni."""
+    soglie_attive = dict(SOGLIE_CLIMA_DEFAULT)
+    if soglie:
+        soglie_attive.update(soglie)
+    if (
+        soglie_attive["temperatura_rossa_bassa"]
+        >= soglie_attive["temperatura_verde_min"]
+        or soglie_attive["temperatura_verde_min"]
+        >= soglie_attive["temperatura_verde_max"]
+        or soglie_attive["temperatura_verde_max"]
+        >= soglie_attive["temperatura_rossa_alta"]
+        or soglie_attive["pioggia_verde_max"]
+        >= soglie_attive["pioggia_gialla_max"]
+        or soglie_attive["vento_verde_max"]
+        >= soglie_attive["vento_giallo_max"]
+    ):
+        raise ValueError("Le soglie climatiche devono essere crescenti.")
+
+    profilo = _carica_clima_progetto(progetto_id)
+    valutati: list[dict[str, object]] = []
+    colori = {
+        "verde": "#2e8b57",
+        "giallo": "#d6a500",
+        "rosso": "#c74634",
+        "Parziale": "#777777",
+        "N/D": "#555555",
+    }
+    for risultato in risultati:
+        riga = dict(risultato)
+        nome_blocco = str(riga["nome_blocco"])
+        data_ingresso = date.fromisoformat(str(riga["data_ingresso"]))
+        data_uscita = date.fromisoformat(str(riga["data_uscita"]))
+        giorni_totali = max(1, (data_uscita - data_ingresso).days + 1)
+        righe_mese = [
+            (profilo[(nome_blocco, mese)], giorni)
+            for mese, giorni in _mesi_del_transito(data_ingresso, data_uscita)
+            if (nome_blocco, mese) in profilo
+        ]
+
+        medie = {
+            "temperatura_media": _media_pesata(
+                righe_mese, "temperatura_media"
+            ),
+            "temperatura_max": _media_pesata(
+                righe_mese, "temperatura_max"
+            ),
+            "temperatura_min": _media_pesata(
+                righe_mese, "temperatura_min"
+            ),
+            "precipitazioni_mm": _media_pesata(
+                righe_mese, "precipitazioni_mm"
+            ),
+            "vento_media": _media_pesata(righe_mese, "vento_media"),
+        }
+        valori_fattori = [
+            medie["temperatura_media"],
+            medie["precipitazioni_mm"],
+            medie["vento_media"],
+        ]
+        note_fattori: list[str] = []
+        severita: list[int] = []
+        copertura_temporale = [
+            giorni_coperti / giorni_totali
+            for _, giorni_coperti in valori_fattori
+        ]
+        for nome, (valore, _) in zip(
+            ("Temperatura media", "Pioggia", "Vento"), valori_fattori
+        ):
+            if valore is None:
+                note_fattori.append(f"{nome}: dato non disponibile")
+                continue
+            if nome == "Temperatura media":
+                livello, colore = _valuta_temperatura(valore, soglie_attive)
+                note_fattori.append(
+                    f"Temperatura {valore:.1f} °C: {colore}"
+                )
+            elif nome == "Pioggia":
+                livello, colore = _valuta_sopra_soglia(
+                    valore,
+                    soglie_attive["pioggia_verde_max"],
+                    soglie_attive["pioggia_gialla_max"],
+                )
+                note_fattori.append(
+                    f"Pioggia {valore:.1f} mm/mese: {colore}"
+                )
+            else:
+                livello, colore = _valuta_sopra_soglia(
+                    valore,
+                    soglie_attive["vento_verde_max"],
+                    soglie_attive["vento_giallo_max"],
+                )
+                note_fattori.append(f"Vento {valore:.1f} km/h: {colore}")
+            severita.append(livello)
+
+        copertura_spaziale = min(
+            (
+                float(riga_mese["copertura_pct"] or 0.0)
+                for riga_mese, _ in righe_mese
+            ),
+            default=0.0,
+        )
+        copertura_tempo = min(copertura_temporale, default=0.0) * 100
+        copertura = min(copertura_spaziale, copertura_tempo)
+        completo = (
+            len(severita) == 3
+            and copertura >= 99.9
+            and all(giorni == giorni_totali for _, giorni in valori_fattori)
+        )
+
+        if not severita:
+            semaforo = "N/D"
+        elif not completo:
+            semaforo = "Parziale"
+        else:
+            semaforo = ("verde", "giallo", "rosso")[max(severita)]
+
+        anni_per_fattore: dict[str, list[int]] = defaultdict(list)
+        versioni: set[str] = set()
+        for riga_mese, _ in righe_mese:
+            versione = riga_mese["dataset_versione"]
+            if versione:
+                versioni.add(str(versione))
+            try:
+                anni = json.loads(riga_mese["anni_coperti"] or "{}")
+            except (TypeError, json.JSONDecodeError):
+                anni = {}
+            for variabile in ("tas", "tasmax", "tasmin", "pr", "sfcWind"):
+                conteggio_anni = len(anni.get(variabile, []))
+                if conteggio_anni:
+                    anni_per_fattore[variabile].append(conteggio_anni)
+
+        estremi = ""
+        temperatura_minima = medie["temperatura_min"][0]
+        temperatura_massima = medie["temperatura_max"][0]
+        if temperatura_minima is not None and temperatura_massima is not None:
+            estremi = (
+                f"; min/max medie {temperatura_minima:.1f}/"
+                f"{temperatura_massima:.1f} °C"
+            )
+        anni_descrizione = (
+            ", anni disponibili: "
+            + ", ".join(
+                (
+                    f"{variabile} {min(anni)}-{max(anni)}"
+                    if min(anni) != max(anni)
+                    else f"{variabile} {anni[0]}"
+                )
+                for variabile, anni in sorted(anni_per_fattore.items())
+                if anni
+            )
+            if anni_per_fattore
+            else ""
+        )
+        fonte = next(iter(versioni), "")
+        if fonte:
+            fonte = f"Fonte: {fonte}. "
+        spiegazione = (
+            "; ".join(note_fattori)
+            + estremi
+            + f". Copertura complessiva: {copertura:.0f}%"
+            + anni_descrizione
+            + (f". {fonte}" if fonte else "")
+        )
+        riga.update(
+            {
+                "semaforo": semaforo,
+                "semaforo_colore": colori[semaforo],
+                "spiegazione_clima": spiegazione,
+                "copertura_clima_pct": copertura,
+            }
+        )
+        valutati.append(riga)
+    return valutati

@@ -1,7 +1,7 @@
 # Schema del database SQLite
 
 - Percorso: `data/bikepacking_app.db`
-- Tabelle trovate: 19
+- Tabelle trovate: 20
 
 ## `allarmi_percorso`
 
@@ -160,6 +160,38 @@ Nessuna chiave esterna.
 ### Indici
 
 - `sqlite_autoindex_cache_nomi_luoghi_1` (UNIQUE): `lat_arrotondata`, `lon_arrotondata`
+
+### Chiavi esterne
+
+Nessuna chiave esterna.
+
+## `clima_blocco_mese`
+
+- Righe: 12
+
+### Colonne
+
+| Nome | Tipo | Vincoli |
+|---|---|---|
+| `id_progetto` | INTEGER | chiave primaria, NOT NULL |
+| `nome_blocco` | TEXT | chiave primaria, NOT NULL |
+| `mese` | INTEGER | chiave primaria, NOT NULL |
+| `temperatura_media` | REAL | — |
+| `temperatura_max` | REAL | — |
+| `temperatura_min` | REAL | — |
+| `precipitazioni_mm` | REAL | — |
+| `vento_media` | REAL | — |
+| `dataset_versione` | TEXT | NOT NULL |
+| `aggiornato_il` | TEXT | NOT NULL |
+| `copertura_pct` | REAL | NOT NULL, DEFAULT 0 |
+| `campioni_validi` | INTEGER | NOT NULL, DEFAULT 0 |
+| `campioni_totali` | INTEGER | NOT NULL, DEFAULT 0 |
+| `anni_coperti` | TEXT | NOT NULL, DEFAULT '{}' |
+
+### Indici
+
+- `idx_clima_blocco_mese_progetto` (non univoco): `id_progetto`, `nome_blocco`
+- `sqlite_autoindex_clima_blocco_mese_1` (UNIQUE): `id_progetto`, `nome_blocco`, `mese`
 
 ### Chiavi esterne
 

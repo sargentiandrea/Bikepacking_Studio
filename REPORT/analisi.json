@@ -1,20 +1,21 @@
 {
   "meta": {
-    "data_analisi": "2026-10-02T01:24:18.220855",
+    "data_analisi": "2026-10-02T14:40:28.065098",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 35,
-    "totale_classi": 20,
-    "totale_funzioni": 306,
+    "totale_moduli": 37,
+    "totale_classi": 22,
+    "totale_funzioni": 329,
     "totale_rotte_flask": 8,
-    "totale_tabelle": 23,
+    "totale_tabelle": 24,
     "tabelle_create": [
       "allarmi_percorso",
       "anagrafica_paesi",
       "blocchi_stagione",
       "cache_nomi_luoghi",
+      "clima_blocco_mese",
       "dogane_progetto",
       "geonames",
       "progetti",
@@ -34,6 +35,7 @@
       "blocchi_ordine",
       "blocchi_stagione",
       "cache_nomi_luoghi",
+      "clima_blocco_mese",
       "dogane_progetto",
       "geonames",
       "geonames_names",
@@ -78,8 +80,10 @@
       "logging",
       "mapbox_vector_tile",
       "math",
+      "numpy",
       "os",
       "pathlib",
+      "rasterio",
       "re",
       "reportlab.lib.pagesizes",
       "reportlab.pdfgen",
@@ -96,6 +100,7 @@
       "threading",
       "time",
       "typing",
+      "urllib.error",
       "urllib.parse",
       "urllib.request",
       "uuid",
@@ -122,6 +127,7 @@
         "service/__init__.py",
         "service/audit_service.py",
         "service/catena_stagionale_service.py",
+        "service/clima_estrattore.py",
         "service/clima_service.py",
         "service/config.py",
         "service/costa_service.py",
@@ -131,6 +137,7 @@
         "service/geonames_service.py",
         "service/gpx_metrics_service.py",
         "service/map_manager_service.py",
+        "service/migrazione_clima.py",
         "service/migrazione_tappa_analisi.py",
         "service/migrazione_tappa_costa.py",
         "service/migrazione_tappa_costa_metadati.py",
@@ -233,6 +240,16 @@
       },
       {
         "simbolo": "ClimaSignals",
+        "tipo": "classe",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "EstrazioneClimaWorker",
+        "tipo": "classe",
+        "file": "app_desktop.py"
+      },
+      {
+        "simbolo": "ClimaSoglieDialog",
         "tipo": "classe",
         "file": "app_desktop.py"
       },
@@ -668,19 +685,22 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/clima_service.py": [
-        "app_desktop"
-      ],
       "service/stats_service.py": [
-        "app_desktop"
-      ],
-      "service/catena_stagionale_service.py": [
         "app_desktop"
       ],
       "database/database_setup.py": [
         "app_desktop"
       ],
+      "service/clima_estrattore.py": [
+        "app_desktop"
+      ],
       "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "service/clima_service.py": [
+        "app_desktop"
+      ],
+      "service/catena_stagionale_service.py": [
         "app_desktop"
       ]
     }
@@ -690,12 +710,19 @@
       "classi": [
         "DoganeSignals",
         "ClimaSignals",
+        "EstrazioneClimaWorker",
+        "ClimaSoglieDialog",
         "DropAreaGPX",
         "TimelineCatenaWidget",
         "GestoreBlocchiWidget",
         "BikepackingStudioApp"
       ],
       "funzioni": [
+        "__init__",
+        "run",
+        "__init__",
+        "accept",
+        "valori",
         "determina_blocco_da_nome_file",
         "calcola_distanza_haversine",
         "__init__",
@@ -728,6 +755,12 @@
         "aggiorna_pagina_dogane",
         "aggiorna_pagina_clima",
         "calcola_pagina_clima",
+        "_carica_soglie_clima",
+        "apri_soglie_clima",
+        "avvia_estrazione_clima",
+        "_estrazione_clima_completata",
+        "_estrazione_clima_fallita",
+        "_estrazione_clima_terminata",
         "_aggiorna_controlli_scenario",
         "sposta_blocco_scenario",
         "ripristina_ordine_scenario",
@@ -761,6 +794,7 @@
         "gui.mappa.MappaWidget",
         "service.audit_service",
         "service.catena_stagionale_service",
+        "service.clima_estrattore",
         "service.clima_service",
         "service.config.DB_NAME",
         "service.dogane_service.analizza_dogane_progetto",
@@ -799,7 +833,9 @@
       "anomalie": [],
       "chiamate_funzioni": [
         "BikepackingStudioApp",
+        "ClimaSoglieDialog",
         "DashboardPage",
+        "EstrazioneClimaWorker",
         "GestoreBlocchiWidget",
         "MappaWidget",
         "QApplication",
@@ -808,6 +844,8 @@
         "QDate",
         "QDateEdit",
         "QDialog",
+        "QDialogButtonBox",
+        "QDoubleSpinBox",
         "QFont",
         "QFormLayout",
         "QFrame",
@@ -822,18 +860,21 @@
         "QPixmap",
         "QPushButton",
         "QScrollArea",
+        "QSettings",
         "QSize",
         "QSpinBox",
         "QStackedWidget",
         "QTabWidget",
         "QTableWidget",
         "QTableWidgetItem",
+        "QThread",
         "QVBoxLayout",
         "QWidget",
         "Signal",
         "TimelineCatenaWidget",
         "__init__",
         "_aggiorna_controlli_scenario",
+        "_carica_soglie_clima",
         "_imposta_righe_tabella",
         "_stile_pagina_servizio",
         "abs",
@@ -858,6 +899,7 @@
         "analizza_dogane_progetto",
         "any",
         "append",
+        "applica_semafori",
         "assicura_tabelle_clima",
         "atan2",
         "availableGeometry",
@@ -904,6 +946,7 @@
         "endswith",
         "enumerate",
         "esegui_audit_automatico",
+        "estrai_clima_per_tappe",
         "exec",
         "execute",
         "exists",
@@ -913,6 +956,7 @@
         "fillRect",
         "findChildren",
         "findData",
+        "float",
         "genera_raccordo_gpx",
         "get",
         "getOpenFileNames",
@@ -946,6 +990,7 @@
         "min",
         "month",
         "mostra_mappa_gap",
+        "moveToThread",
         "open",
         "ottieni_kpi_totali_progetto",
         "ottieni_ripartizione_fasce_mare",
@@ -983,6 +1028,7 @@
         "setCurrentRow",
         "setData",
         "setDate",
+        "setDecimals",
         "setDefaultSectionSize",
         "setDisplayFormat",
         "setEditTriggers",
@@ -990,6 +1036,7 @@
         "setFieldGrowthPolicy",
         "setFixedWidth",
         "setFont",
+        "setForeground",
         "setGeometry",
         "setHorizontalHeaderLabels",
         "setIcon",
@@ -1020,6 +1067,7 @@
         "sin",
         "split",
         "sqrt",
+        "start",
         "start_local_map_server",
         "startswith",
         "str",
@@ -1034,6 +1082,7 @@
         "update",
         "upper",
         "urls",
+        "valori",
         "value",
         "verifica_progetto_attivo",
         "verticalHeader",
@@ -1981,7 +2030,13 @@
         "_normalizza_data",
         "_calcola_da_blocchi",
         "calcola_catena",
-        "proponi_scenario"
+        "proponi_scenario",
+        "_carica_clima_progetto",
+        "_valuta_temperatura",
+        "_valuta_sopra_soglia",
+        "_media_pesata",
+        "_mesi_del_transito",
+        "applica_semafori"
       ],
       "import_interni": [
         "service.config.DB_NAME"
@@ -1991,12 +2046,15 @@
         "collections",
         "contextlib",
         "datetime",
+        "json",
+        "math",
         "pathlib",
         "sqlite3",
         "urllib.parse"
       ],
       "tabelle_usate": [
         "blocchi_ordine",
+        "clima_blocco_mese",
         "sqlite_master"
       ],
       "anomalie": [],
@@ -2008,25 +2066,44 @@
         "ValueError",
         "_calcola_da_blocchi",
         "_carica_blocchi",
+        "_carica_clima_progetto",
         "_colonne_tabella",
         "_connetti_sola_lettura",
+        "_media_pesata",
+        "_mesi_del_transito",
         "_normalizza_data",
+        "_valuta_sopra_soglia",
+        "_valuta_temperatura",
+        "add",
+        "all",
         "append",
         "as_posix",
         "casefold",
         "closing",
         "connect",
         "date",
+        "defaultdict",
+        "dict",
         "enumerate",
         "execute",
         "fetchall",
+        "fetchone",
+        "float",
+        "fromisoformat",
         "get",
+        "int",
+        "isfinite",
         "isinstance",
         "isoformat",
+        "items",
+        "iter",
         "join",
         "len",
         "list",
+        "loads",
         "max",
+        "min",
+        "next",
         "quote",
         "resolve",
         "set",
@@ -2035,7 +2112,107 @@
         "str",
         "sum",
         "timedelta",
-        "today"
+        "today",
+        "update",
+        "zip"
+      ]
+    },
+    "service/clima_estrattore.py": {
+      "classi": [],
+      "funzioni": [
+        "_lista_file_mensili",
+        "_valore_fisico",
+        "_prepara_tappe",
+        "estrai_clima_per_tappe"
+      ],
+      "import_interni": [
+        "service.migrazione_clima.assicura_schema_clima"
+      ],
+      "import_esterni": [
+        "__future__",
+        "collections",
+        "contextlib",
+        "datetime",
+        "json",
+        "math",
+        "numpy",
+        "pathlib",
+        "rasterio",
+        "sqlite3",
+        "typing",
+        "urllib.error",
+        "urllib.parse",
+        "urllib.request",
+        "xml.etree.ElementTree"
+      ],
+      "tabelle_usate": [
+        "clima_blocco_mese",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "Env",
+        "FileNotFoundError",
+        "Path",
+        "RuntimeError",
+        "ValueError",
+        "_lista_file_mensili",
+        "_prepara_tappe",
+        "_valore_fisico",
+        "add",
+        "any",
+        "append",
+        "as_posix",
+        "assicura_schema_clima",
+        "closing",
+        "commit",
+        "connect",
+        "defaultdict",
+        "dict",
+        "dumps",
+        "endswith",
+        "enumerate",
+        "execute",
+        "executemany",
+        "fetchall",
+        "findall",
+        "findtext",
+        "float",
+        "fromstring",
+        "get",
+        "int",
+        "is_file",
+        "is_masked",
+        "isfinite",
+        "isoformat",
+        "items",
+        "join",
+        "len",
+        "list",
+        "lower",
+        "max",
+        "min",
+        "mkdir",
+        "now",
+        "open",
+        "progress_callback",
+        "quote",
+        "range",
+        "read",
+        "replace",
+        "resolve",
+        "round",
+        "sample",
+        "set",
+        "sorted",
+        "split",
+        "str",
+        "tuple",
+        "urlopen",
+        "values",
+        "with_suffix",
+        "write_text",
+        "zip"
       ]
     },
     "service/clima_service.py": {
@@ -2576,6 +2753,42 @@
         "strip",
         "unquote",
         "which"
+      ]
+    },
+    "service/migrazione_clima.py": {
+      "classi": [],
+      "funzioni": [
+        "_crea_backup",
+        "assicura_schema_clima"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "__future__",
+        "contextlib",
+        "datetime",
+        "pathlib",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "clima_blocco_mese",
+        "sqlite_master"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "Path",
+        "_crea_backup",
+        "backup",
+        "closing",
+        "commit",
+        "connect",
+        "execute",
+        "fetchone",
+        "is_file",
+        "now",
+        "resolve",
+        "strftime",
+        "with_name"
       ]
     },
     "service/migrazione_tappa_analisi.py": {
@@ -9698,6 +9911,128 @@
         "chiavi_esterne": []
       },
       {
+        "nome": "clima_blocco_mese",
+        "righe": 12,
+        "errore_conteggio": null,
+        "colonne": [
+          {
+            "nome": "id_progetto",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria",
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "nome_blocco",
+            "tipo": "TEXT",
+            "vincoli": [
+              "chiave primaria",
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "mese",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "chiave primaria",
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "temperatura_media",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "temperatura_max",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "temperatura_min",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "precipitazioni_mm",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "vento_media",
+            "tipo": "REAL",
+            "vincoli": []
+          },
+          {
+            "nome": "dataset_versione",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "aggiornato_il",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL"
+            ]
+          },
+          {
+            "nome": "copertura_pct",
+            "tipo": "REAL",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "campioni_validi",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "campioni_totali",
+            "tipo": "INTEGER",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT 0"
+            ]
+          },
+          {
+            "nome": "anni_coperti",
+            "tipo": "TEXT",
+            "vincoli": [
+              "NOT NULL",
+              "DEFAULT '{}'"
+            ]
+          }
+        ],
+        "indici": [
+          {
+            "nome": "idx_clima_blocco_mese_progetto",
+            "univoco": false,
+            "colonne": [
+              "id_progetto",
+              "nome_blocco"
+            ]
+          },
+          {
+            "nome": "sqlite_autoindex_clima_blocco_mese_1",
+            "univoco": true,
+            "colonne": [
+              "id_progetto",
+              "nome_blocco",
+              "mese"
+            ]
+          }
+        ],
+        "chiavi_esterne": []
+      },
+      {
         "nome": "confini_box",
         "righe": 11,
         "errore_conteggio": null,
@@ -10661,6 +10996,7 @@
       "http://127.0.0.1:8080/api/set-gpx-data",
       "http://127.0.0.1:8080/map",
       "http://localhost:3000",
+      "http://s3.amazonaws.com/doc/2006-03-01/",
       "http://www.topografix.com/GPX/1/1",
       "http://{BROUTER_HOST}:{BROUTER_PORT}",
       "http://{BROUTER_HOST}:{BROUTER_PORT}/brouter",
@@ -10668,10 +11004,12 @@
       "https://creativecommons.org/licenses/by/4.0/\\n",
       "https://download.geonames.org/export/dump/allCountries.zip",
       "https://download.geonames.org/export/dump/alternateNamesV2.zip",
+      "https://os.unil.cloud.switch.ch/chelsa02",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles",
       "https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles",
+      "https://www.chelsa-climate.org/datasets/chelsa_monthly",
       "https://www.geonames.org/\\n",
       "martin",
       "redis"
@@ -10757,6 +11095,33 @@
           "https://www.geonames.org/\\n"
         ],
         "contesto": "\"https://www.geonames.org/\\n\""
+      },
+      {
+        "file": "service/clima_estrattore.py",
+        "riga": 24,
+        "termini": [],
+        "url": [
+          "https://os.unil.cloud.switch.ch/chelsa02"
+        ],
+        "contesto": "BASE_URL = \"https://os.unil.cloud.switch.ch/chelsa02\""
+      },
+      {
+        "file": "service/clima_estrattore.py",
+        "riga": 25,
+        "termini": [],
+        "url": [
+          "https://www.chelsa-climate.org/datasets/chelsa_monthly"
+        ],
+        "contesto": "DATASET_PAGE = \"https://www.chelsa-climate.org/datasets/chelsa_monthly\""
+      },
+      {
+        "file": "service/clima_estrattore.py",
+        "riga": 29,
+        "termini": [],
+        "url": [
+          "http://s3.amazonaws.com/doc/2006-03-01/"
+        ],
+        "contesto": "NAMESPACE_S3 = {\"s3\": \"http://s3.amazonaws.com/doc/2006-03-01/\"}"
       },
       {
         "file": "service/config.py",
@@ -10899,12 +11264,12 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 35,
-    "totale_classi": 20,
-    "totale_funzioni": 306,
+    "totale_moduli": 37,
+    "totale_classi": 22,
+    "totale_funzioni": 329,
     "endpoint_flask": 8,
-    "tabelle_rilevate": 23,
-    "simboli_orfani": 59,
+    "tabelle_rilevate": 24,
+    "simboli_orfani": 61,
     "moduli_chiave": [
       "gui/mappa.py",
       "app_desktop.py",
@@ -10912,10 +11277,10 @@
       "service/map_server.py",
       "service/superfici_service.py",
       "service/stats_service.py",
+      "service/catena_stagionale_service.py",
       "service/precalcolo_batch_service.py",
       "installa_geonames.py",
-      "service/costa_service.py",
-      "service/precalcolo_service.py"
+      "service/costa_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -10933,9 +11298,9 @@
       },
       {
         "file": "app_desktop.py",
-        "score": 378,
-        "classi": 6,
-        "funzioni": 58,
+        "score": 421,
+        "classi": 8,
+        "funzioni": 69,
         "anomalie": 0
       },
       {
@@ -10974,15 +11339,15 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 35,
-      "classi": 20,
-      "funzioni": 306,
+      "moduli": 37,
+      "classi": 22,
+      "funzioni": 329,
       "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 59",
+      "Simboli orfani: 61",
       "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -10990,14 +11355,14 @@
       "app_desktop.py",
       "gui/dashboard.py",
       "service/stats_service.py",
-      "service/superfici_service.py"
+      "service/clima_estrattore.py"
     ],
     "prossimi_passi": [
       "Rivedere i simboli orfani e decidere se integrarli, rimuoverli o spostarli.",
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 20 classi, 306 funzioni, 8 endpoint Flask, 59 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 329 funzioni, 8 endpoint Flask, 61 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 20 classi, 306 funzioni, 8 endpoint Flask, 59 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 329 funzioni, 8 endpoint Flask, 61 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

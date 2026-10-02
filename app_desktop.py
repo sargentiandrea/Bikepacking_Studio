@@ -19,7 +19,18 @@ import urllib.request
 from service.map_server import start_local_map_server
 # Avvia il server delle mappe locale su porta 8080
 start_local_map_server(port=8080)
-from PySide6.QtCore import Signal, QTimer, QObject, Qt, QUrl, QDate, QSize
+from PySide6.QtWidgets import QDialog
+from PySide6.QtCore import (
+    Signal,
+    QTimer,
+    QObject,
+    QSettings,
+    QThread,
+    Qt,
+    QUrl,
+    QDate,
+    QSize,
+)
 from datetime import datetime
 # -- Nuovi Moduli GUI --
 from gui.dashboard import DashboardPage
@@ -27,8 +38,101 @@ from gui.mappa import MappaWidget
 
 class DoganeSignals(QObject):
     finito = Signal(list)
+
+
 class ClimaSignals(QObject):
     finito = Signal(list)
+
+
+class EstrazioneClimaWorker(QObject):
+    """Esegue la lettura COG fuori dal thread dell'interfaccia."""
+
+    progresso = Signal(str)
+    completata = Signal(dict)
+    fallita = Signal(str)
+
+    def __init__(self, db_name, progetto_id):
+        super().__init__()
+        self.db_name = db_name
+        self.progetto_id = progetto_id
+
+    def run(self):
+        try:
+            import service.clima_estrattore
+
+            risultato = service.clima_estrattore.estrai_clima_per_tappe(
+                self.db_name,
+                self.progetto_id,
+                progress_callback=self.progresso.emit,
+            )
+        except Exception as errore:
+            self.fallita.emit(str(errore))
+        else:
+            self.completata.emit(risultato)
+
+
+class ClimaSoglieDialog(QDialog):
+    def __init__(self, soglie, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Soglie del semaforo climatico")
+        form = QFormLayout(self)
+        etichette = {
+            "temperatura_rossa_bassa": "Freddo critico (°C)",
+            "temperatura_verde_min": "Temperatura verde minima (°C)",
+            "temperatura_verde_max": "Temperatura verde massima (°C)",
+            "temperatura_rossa_alta": "Caldo critico (°C)",
+            "pioggia_verde_max": "Pioggia verde sotto (mm/mese)",
+            "pioggia_gialla_max": "Pioggia gialla fino a (mm/mese)",
+            "vento_verde_max": "Vento verde sotto (km/h)",
+            "vento_giallo_max": "Vento giallo fino a (km/h)",
+        }
+        self.campi = {}
+        for chiave, etichetta in etichette.items():
+            campo = QDoubleSpinBox()
+            if chiave.startswith("temperatura_"):
+                campo.setRange(-50, 70)
+            elif chiave.startswith("pioggia_"):
+                campo.setRange(0, 1000)
+            else:
+                campo.setRange(0, 300)
+            campo.setDecimals(1)
+            campo.setValue(float(soglie[chiave]))
+            self.campi[chiave] = campo
+            form.addRow(etichetta, campo)
+
+        pulsanti = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        pulsanti.accepted.connect(self.accept)
+        pulsanti.rejected.connect(self.reject)
+        form.addRow(pulsanti)
+
+    def accept(self):
+        valori = self.valori()
+        if (
+            valori["temperatura_rossa_bassa"]
+            >= valori["temperatura_verde_min"]
+            or valori["temperatura_verde_min"]
+            >= valori["temperatura_verde_max"]
+            or valori["temperatura_verde_max"]
+            >= valori["temperatura_rossa_alta"]
+            or valori["pioggia_verde_max"] >= valori["pioggia_gialla_max"]
+            or valori["vento_verde_max"] >= valori["vento_giallo_max"]
+        ):
+            QMessageBox.warning(
+                self,
+                "Soglie non valide",
+                "Le soglie devono essere in ordine crescente.",
+            )
+            return
+        super().accept()
+
+    def valori(self):
+        return {
+            chiave: campo.value() for chiave, campo in self.campi.items()
+        }
+
 
 # Import dei moduli interni del progetto
 import database.database_setup as database
@@ -40,7 +144,8 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout,
                              QFrame, QFileDialog, QTableWidget, QTableWidgetItem,
                              QHeaderView, QMessageBox, QDialog, QFormLayout, 
                              QLineEdit, QListWidget, QListWidgetItem, QComboBox, QTextEdit, QSizePolicy,
-                             QDateEdit, QSpinBox, QTabWidget, QScrollArea)
+                             QDateEdit, QSpinBox, QTabWidget, QScrollArea,
+                             QDoubleSpinBox, QDialogButtonBox)
 from PySide6.QtCore import Qt, Signal, QUrl
 from PySide6.QtGui import (
     QColor,
@@ -198,8 +303,7 @@ class TimelineCatenaWidget(QWidget):
             nome = f"{riga['nome_blocco']} ({durata} gg)"
             painter.setPen(QColor("#eeeeee"))
             painter.drawText(8, y + 16, nome[:28])
-            painter.setPen(QPen(QColor("#1677a8")))
-            painter.setBrush(QColor("#0e639c"))
+            painter.setBrush(QColor(riga.get("semaforo_colore", "#0e639c")))
             painter.drawRoundedRect(x, y + 5, larghezza, 14, 4, 4)
 
 
@@ -356,6 +460,8 @@ class BikepackingStudioApp(QMainWindow):
         self._clima_ordine_base = []
         self._clima_ordine_scenario = None
         self._clima_risultati_correnti = []
+        self._clima_thread = None
+        self._clima_worker = None
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -655,6 +761,21 @@ class BikepackingStudioApp(QMainWindow):
         controls.addWidget(btn_salva)
         layout.addLayout(controls)
 
+        controlli_clima = QHBoxLayout()
+        self.btn_estrai_clima = QPushButton("Estrai/aggiorna dati CHELSA")
+        self.btn_estrai_clima.clicked.connect(self.avvia_estrazione_clima)
+        controlli_clima.addWidget(self.btn_estrai_clima)
+        self.btn_soglie_clima = QPushButton("Impostazioni semaforo")
+        self.btn_soglie_clima.clicked.connect(self.apri_soglie_clima)
+        controlli_clima.addWidget(self.btn_soglie_clima)
+        controlli_clima.addWidget(
+            QLabel(
+                "Internet serve per l’estrazione; i riepiloghi restano poi offline."
+            )
+        )
+        controlli_clima.addStretch(1)
+        layout.addLayout(controlli_clima)
+
         controlli_scenario = QHBoxLayout()
         controlli_scenario.addWidget(QLabel("Sposta nello scenario"))
         self.combo_blocco_scenario = QComboBox()
@@ -697,10 +818,11 @@ class BikepackingStudioApp(QMainWindow):
         lbl_tabella.setStyleSheet("font-weight: bold; color: #cccccc;")
         layout.addWidget(lbl_tabella)
         self.table_clima = QTableWidget()
-        self.table_clima.setColumnCount(10)
+        self.table_clima.setColumnCount(12)
         self.table_clima.setHorizontalHeaderLabels([
             "Blocco", "Tappe", "Km", "Pedalata", "Riposo", "Buffer",
-            "Totale giorni", "Ingresso", "Uscita", "Nota"
+            "Totale giorni", "Ingresso", "Uscita", "Semaforo",
+            "Motivazione climatica", "Nota"
         ])
         self.table_clima.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table_clima.horizontalHeader().setStretchLastSection(True)
@@ -982,6 +1104,7 @@ class BikepackingStudioApp(QMainWindow):
             self._clima_ordine_base = []
             self._clima_ordine_scenario = None
             self._clima_risultati_correnti = []
+            self.btn_estrai_clima.setEnabled(False)
             self.lbl_stato_clima.setText("Apri un percorso per calcolare la catena.")
             self._imposta_righe_tabella(self.table_clima, [])
             self.timeline_clima.imposta_righe([])
@@ -993,6 +1116,7 @@ class BikepackingStudioApp(QMainWindow):
             self._clima_ordine_base = []
             self._clima_ordine_scenario = None
             self._clima_risultati_correnti = []
+            self.btn_estrai_clima.setEnabled(self._clima_thread is None)
             service.clima_service.assicura_tabelle_clima()
             with closing(sqlite3.connect(DB_NAME)) as conn:
                 cursor = conn.cursor()
@@ -1048,6 +1172,11 @@ class BikepackingStudioApp(QMainWindow):
                     self.input_riposo.value(),
                 )
 
+            risultati = service.catena_stagionale_service.applica_semafori(
+                self.current_progetto_id,
+                risultati,
+                self._carica_soglie_clima(),
+            )
             self._clima_risultati_correnti = risultati
             self._imposta_righe_tabella(
                 self.table_clima,
@@ -1066,11 +1195,27 @@ class BikepackingStudioApp(QMainWindow):
                         datetime.strptime(
                             risultato["data_uscita"], "%Y-%m-%d"
                         ).strftime("%d/%m/%Y"),
+                        risultato["semaforo"],
+                        risultato["spiegazione_clima"],
                         risultato["avviso"] or "—",
                     ]
                     for risultato in risultati
                 ],
             )
+            for indice, risultato in enumerate(risultati):
+                cella_semaforo = self.table_clima.item(indice, 9)
+                cella_motivazione = self.table_clima.item(indice, 10)
+                if cella_semaforo:
+                    cella_semaforo.setForeground(
+                        QColor(risultato["semaforo_colore"])
+                    )
+                    cella_semaforo.setToolTip(
+                        risultato["spiegazione_clima"]
+                    )
+                if cella_motivazione:
+                    cella_motivazione.setToolTip(
+                        risultato["spiegazione_clima"]
+                    )
             self.timeline_clima.imposta_righe(risultati)
             ordine_attivo = [
                 risultato["nome_blocco"] for risultato in risultati
@@ -1090,11 +1235,109 @@ class BikepackingStudioApp(QMainWindow):
                 descrizione += " Scenario non salvato."
             if avvisi:
                 descrizione += f" Attenzione: {avvisi} blocchi richiedono verifica."
+            numero_clima = sum(
+                risultato["semaforo"] in {"verde", "giallo", "rosso"}
+                for risultato in risultati
+            )
+            numero_parziali = sum(
+                risultato["semaforo"] == "Parziale"
+                for risultato in risultati
+            )
+            if numero_clima:
+                descrizione += (
+                    f" Semafori climatici disponibili per {numero_clima} blocchi."
+                )
+                if numero_parziali:
+                    descrizione += (
+                        f" Dati incompleti per altri {numero_parziali} blocchi."
+                    )
+            elif numero_parziali:
+                descrizione += (
+                    f" Dati climatici incompleti per {numero_parziali} blocchi; "
+                    "controlla la copertura."
+                )
+            else:
+                descrizione += (
+                    " Dati CHELSA non ancora disponibili o incompleti: "
+                    "avvia l’estrazione per questo progetto."
+                )
             self.lbl_stato_clima.setText(descrizione)
         except Exception as errore:
             self._imposta_righe_tabella(self.table_clima, [])
             self.timeline_clima.imposta_righe([])
             self.lbl_stato_clima.setText(f"Errore durante il calcolo stagionale: {errore}")
+
+    def _carica_soglie_clima(self):
+        impostazioni = QSettings("Bikepacking Studio", "Bikepacking Studio")
+        predefinite = service.catena_stagionale_service.SOGLIE_CLIMA_DEFAULT
+        return {
+            chiave: float(
+                impostazioni.value(f"clima/soglie/{chiave}", valore)
+            )
+            for chiave, valore in predefinite.items()
+        }
+
+    def apri_soglie_clima(self):
+        dialogo = ClimaSoglieDialog(self._carica_soglie_clima(), self)
+        if dialogo.exec() != QDialog.DialogCode.Accepted:
+            return
+        impostazioni = QSettings("Bikepacking Studio", "Bikepacking Studio")
+        for chiave, valore in dialogo.valori().items():
+            impostazioni.setValue(f"clima/soglie/{chiave}", valore)
+        self.calcola_pagina_clima()
+
+    def avvia_estrazione_clima(self):
+        if not self.current_progetto_id:
+            QMessageBox.information(
+                self,
+                "Percorso richiesto",
+                "Apri un percorso prima di estrarre i dati climatici.",
+            )
+            return
+        if self._clima_thread is not None:
+            return
+
+        self.btn_estrai_clima.setEnabled(False)
+        self.lbl_stato_clima.setText(
+            "Estrazione CHELSA avviata. La prima lettura richiede internet; "
+            "l’interfaccia resta utilizzabile."
+        )
+        self._clima_thread = QThread(self)
+        self._clima_worker = EstrazioneClimaWorker(
+            DB_NAME, self.current_progetto_id
+        )
+        self._clima_worker.moveToThread(self._clima_thread)
+        self._clima_thread.started.connect(self._clima_worker.run)
+        self._clima_worker.progresso.connect(self.lbl_stato_clima.setText)
+        self._clima_worker.completata.connect(
+            self._estrazione_clima_completata
+        )
+        self._clima_worker.fallita.connect(self._estrazione_clima_fallita)
+        self._clima_worker.completata.connect(self._clima_thread.quit)
+        self._clima_worker.fallita.connect(self._clima_thread.quit)
+        self._clima_worker.completata.connect(self._clima_worker.deleteLater)
+        self._clima_worker.fallita.connect(self._clima_worker.deleteLater)
+        self._clima_thread.finished.connect(self._clima_thread.deleteLater)
+        self._clima_thread.finished.connect(self._estrazione_clima_terminata)
+        self._clima_thread.start()
+
+    def _estrazione_clima_completata(self, risultato):
+        self.calcola_pagina_clima()
+        self.lbl_stato_clima.setText(
+            self.lbl_stato_clima.text()
+            + f" CHELSA aggiornato: {risultato['file_chelsa_letti']} "
+            "finestre raster lette."
+        )
+
+    def _estrazione_clima_fallita(self, messaggio):
+        self.lbl_stato_clima.setText(
+            f"Errore nell’estrazione CHELSA: {messaggio}"
+        )
+
+    def _estrazione_clima_terminata(self):
+        self._clima_thread = None
+        self._clima_worker = None
+        self.btn_estrai_clima.setEnabled(bool(self.current_progetto_id))
 
     def _aggiorna_controlli_scenario(self, ordine_blocchi):
         nome_selezionato = self.combo_blocco_scenario.currentData()
