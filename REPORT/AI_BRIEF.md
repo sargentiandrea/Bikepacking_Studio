@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-03 21:54*
+*Aggiornato: 2026-10-03 23:32*
 
 ## Come leggere il progetto
 
@@ -15,19 +15,19 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 47
-- Classi: 23
-- Funzioni: 384
+- Moduli Python: 66
+- Classi: 30
+- Funzioni: 455
 - Rotte Flask: 8
 - Tabelle DB: 27
-- Simboli orfani: 50
+- Simboli orfani: 51
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
-- `app_desktop.py` - score 412 - 5 classi, 66 funzioni, 0 anomalie
 - `gui/mappa_pianificatore.py` - score 211 - 1 classi, 31 funzioni, 0 anomalie
-- `gui/dashboard.py` - score 156 - 2 classi, 19 funzioni, 0 anomalie
+- `app_desktop.py` - score 201 - 1 classi, 43 funzioni, 0 anomalie
+- `gui/dashboard.py` - score 165 - 2 classi, 19 funzioni, 0 anomalie
 - `gui/mappa.py` - score 142 - 2 classi, 25 funzioni, 0 anomalie
 - `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
 
@@ -44,48 +44,48 @@
 
 ## Simboli orfani (top 15)
 
-- `EstrazioneClimaWorker` (classe) in `app_desktop.py`
-- `ClimaSoglieDialog` (classe) in `app_desktop.py`
-- `TimelineCatenaWidget` (classe) in `app_desktop.py`
-- `GestoreBlocchiWidget` (classe) in `app_desktop.py`
 - `BikepackingStudioApp` (classe) in `app_desktop.py`
-- `imposta_righe` (funzione) in `app_desktop.py`
-- `carica_blocchi` (funzione) in `app_desktop.py`
 - `esegui_backup_progetto` (funzione) in `backup.py`
 - `WizardNuovoPercorsoDialog` (classe) in `gui/dashboard.py`
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
 - `DropAreaGPX` (classe) in `gui/drop_area_gpx.py`
 - `WorkerCaricamentoMappa` (classe) in `gui/mappa.py`
 - `cancella_anteprima_percorso` (funzione) in `gui/mappa.py`
+- `carica_allarmi_attivi` (funzione) in `gui/pagine/pagina_audit.py`
+- `testo_card` (funzione) in `gui/pagine/pagina_statistiche.py`
+- `carica_trasferimenti` (funzione) in `gui/pagine/pagina_trasporti.py`
+- `recupera_nomi_tappe` (funzione) in `gui/pagine/pagina_trasporti.py`
 - `WizardNuovoPercorso` (classe) in `gui/wizard_percorso.py`
+- `EstrazioneClimaWorker` (classe) in `gui/worker_clima.py`
 - `genera_singolo_pdf` (funzione) in `resources/genera_catalogo_sprite.py`
-- ... e altri 35 (vedi report completo)
+- `compila_tutti_i_cataloghi` (funzione) in `resources/genera_catalogo_sprite.py`
+- ... e altri 36 (vedi report completo)
 
 ## Duplicazioni rilevate
 
-*23 funzioni/metodi definiti in più file:*
+*21 funzioni/metodi definiti in più file:*
 
+- `aggiorna` (5 copie) → `gui/pagine/controller_clima.py`, `gui/pagine/pagina_audit.py`, `gui/pagine/pagina_dogane.py`, `gui/pagine/pagina_statistiche.py`, `gui/pagine/pagina_trasporti.py`
 - `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `esegui_migrazione` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
-- `init_ui` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/wizard_percorso.py`
-- `paintEvent` (2 copie) → `app_desktop.py`, `gui/mappa_barra_superfici.py`
+- `crea_nuovo_progetto_dialog` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/dialog_nuovo_progetto.py`
+- `init_ui` (3 copie) → `gui/dashboard.py`, `gui/widget_blocchi.py`, `gui/wizard_percorso.py`
+- `raccorda_gap_selezionato` (2 copie) → `app_desktop.py`, `gui/pagine/pagina_trasporti.py`
 - `carica_lista_percorsi` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `apri_percorso_selezionato` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `crea_nuovo_progetto_dialog` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `salva` (2 copie) → `app_desktop.py`, `gui/mappa_cache.py`
 - `elabora_files_gpx` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `aggiorna_tabella_tappe` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `aggiorna_blocco_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `toggle_pausa_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `cambia_ruolo_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `elimina_singola_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `elimina_percorso_corrente` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `conferma_creazione` (2 copie) → `gui/dashboard.py`, `gui/wizard_percorso.py`
+- `salva` (2 copie) → `gui/dialog_nuovo_progetto.py`, `gui/mappa_cache.py`
 - `setup_ui` (2 copie) → `gui/mappa.py`, `gui/mappa_manager.py`
 - `showEvent` (2 copie) → `gui/mappa.py`, `gui/mappa_pianificatore.py`
 - `imposta_superfici` (2 copie) → `gui/mappa_barra_superfici.py`, `gui/mappa_dettagli.py`
+- `paintEvent` (2 copie) → `gui/mappa_barra_superfici.py`, `gui/widget_timeline_catena.py`
 - `imposta_stato` (2 copie) → `gui/mappa_dettagli.py`, `gui/mappa_pianificatore.py`
-- ... e altre 3
+- `conferma_scenario` (2 copie) → `gui/pagine/controller_clima.py`, `service/catena_stagionale_service.py`
+- `calcola_distanza_haversine` (2 copie) → `service/geo_utils.py`, `service/gpx_metrics_service.py`
+- `_crea_backup` (2 copie) → `service/migrazione_catena_stagionale.py`, `service/migrazione_clima.py`
+- ... e altre 1
 
 ## Database
 
@@ -106,13 +106,13 @@
 - `impostazioni_semaforo`: 0 righe
 - `progetti`: 3 righe
 - `progetto_stagione`: 1 righe
-- `scenari`: 0 righe
+- `scenari`: 1 righe
 - `superfici_tappa`: 984 righe
 - `tappa_analisi`: 985 righe
 - `tappa_costa_riepilogo`: 985 righe
 - `tappa_geometrie`: 984 righe
 - `tappa_segmenti`: 986 righe
-- `tappe`: 982 righe
+- `tappe`: 981 righe
 - `trasferimenti`: 28 righe
 
 ## Servizi esterni rilevati
@@ -151,16 +151,16 @@
 
 ## Moduli principali
 
-- `app_desktop.py`: 5 classi, 66 funzioni
+- `app_desktop.py`: 1 classi, 43 funzioni
 - `gui/mappa_pianificatore.py`: 1 classi, 31 funzioni
 - `gui/mappa.py`: 2 classi, 25 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
+- `gui/pagine/controller_clima.py`: 1 classi, 23 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni
 - `gui/mappa_worker.py`: 4 classi, 13 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
-- `service/punti_service.py`: 0 classi, 12 funzioni
 
 ## Azioni consigliate
 

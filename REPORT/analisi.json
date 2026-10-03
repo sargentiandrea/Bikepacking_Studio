@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T21:54:03.169046",
+    "data_analisi": "2026-10-03T23:32:14.835330",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 47,
-    "totale_classi": 23,
-    "totale_funzioni": 384,
+    "totale_moduli": 66,
+    "totale_classi": 30,
+    "totale_funzioni": 455,
     "totale_rotte_flask": 8,
     "totale_tabelle": 27,
     "tabelle_create": [
@@ -117,6 +117,10 @@
     "strati": {
       "ui": [
         "gui/dashboard.py",
+        "gui/dialog_clima_soglie.py",
+        "gui/dialog_elenco_paesi.py",
+        "gui/dialog_nuovo_progetto.py",
+        "gui/dialog_wizard_trasferimento.py",
         "gui/drop_area_gpx.py",
         "gui/mappa.py",
         "gui/mappa_barra_superfici.py",
@@ -126,7 +130,17 @@
         "gui/mappa_pianificatore.py",
         "gui/mappa_worker.py",
         "gui/mappa_worker_manager.py",
+        "gui/pagine/controller_clima.py",
+        "gui/pagine/pagina_audit.py",
+        "gui/pagine/pagina_clima.py",
+        "gui/pagine/pagina_dogane.py",
+        "gui/pagine/pagina_statistiche.py",
+        "gui/pagine/pagina_trasporti.py",
+        "gui/pagine/stile_pagina.py",
+        "gui/widget_blocchi.py",
+        "gui/widget_timeline_catena.py",
         "gui/wizard_percorso.py",
+        "gui/worker_clima.py",
         "service/mappa_dati_service.py"
       ],
       "database": [
@@ -138,6 +152,7 @@
       "core": [
         "service/__init__.py",
         "service/audit_service.py",
+        "service/blocchi_ordine_service.py",
         "service/catena_stagionale_service.py",
         "service/clima_estrattore.py",
         "service/clima_service.py",
@@ -160,10 +175,14 @@
         "service/migrazione_tappa_geometrie.py",
         "service/precalcolo_batch_service.py",
         "service/precalcolo_service.py",
+        "service/progetti_service.py",
         "service/punti_service.py",
         "service/salvataggio_tappa_service.py",
+        "service/sprite_bandiere_service.py",
         "service/stats_service.py",
-        "service/superfici_service.py"
+        "service/superfici_service.py",
+        "service/tappe_service.py",
+        "service/trasferimenti_service.py"
       ],
       "altro": [
         "app_desktop.py",
@@ -248,38 +267,8 @@
   "dipendenze": {
     "simboli_orfani": [
       {
-        "simbolo": "EstrazioneClimaWorker",
-        "tipo": "classe",
-        "file": "app_desktop.py"
-      },
-      {
-        "simbolo": "ClimaSoglieDialog",
-        "tipo": "classe",
-        "file": "app_desktop.py"
-      },
-      {
-        "simbolo": "TimelineCatenaWidget",
-        "tipo": "classe",
-        "file": "app_desktop.py"
-      },
-      {
-        "simbolo": "GestoreBlocchiWidget",
-        "tipo": "classe",
-        "file": "app_desktop.py"
-      },
-      {
         "simbolo": "BikepackingStudioApp",
         "tipo": "classe",
-        "file": "app_desktop.py"
-      },
-      {
-        "simbolo": "imposta_righe",
-        "tipo": "funzione",
-        "file": "app_desktop.py"
-      },
-      {
-        "simbolo": "carica_blocchi",
-        "tipo": "funzione",
         "file": "app_desktop.py"
       },
       {
@@ -313,9 +302,34 @@
         "file": "gui/mappa.py"
       },
       {
+        "simbolo": "carica_allarmi_attivi",
+        "tipo": "funzione",
+        "file": "gui/pagine/pagina_audit.py"
+      },
+      {
+        "simbolo": "testo_card",
+        "tipo": "funzione",
+        "file": "gui/pagine/pagina_statistiche.py"
+      },
+      {
+        "simbolo": "carica_trasferimenti",
+        "tipo": "funzione",
+        "file": "gui/pagine/pagina_trasporti.py"
+      },
+      {
+        "simbolo": "recupera_nomi_tappe",
+        "tipo": "funzione",
+        "file": "gui/pagine/pagina_trasporti.py"
+      },
+      {
         "simbolo": "WizardNuovoPercorso",
         "tipo": "classe",
         "file": "gui/wizard_percorso.py"
+      },
+      {
+        "simbolo": "EstrazioneClimaWorker",
+        "tipo": "classe",
+        "file": "gui/worker_clima.py"
       },
       {
         "simbolo": "genera_singolo_pdf",
@@ -359,6 +373,11 @@
       },
       {
         "simbolo": "popola_database_mondiale_completo",
+        "tipo": "funzione",
+        "file": "service/dogane_service.py"
+      },
+      {
+        "simbolo": "recupera_dogane_salvate",
         "tipo": "funzione",
         "file": "service/dogane_service.py"
       },
@@ -473,6 +492,11 @@
         "file": "service/punti_service.py"
       },
       {
+        "simbolo": "percorso_risorsa",
+        "tipo": "funzione",
+        "file": "service/sprite_bandiere_service.py"
+      },
+      {
         "simbolo": "ottieni_copertura_precalcolo_progetto",
         "tipo": "funzione",
         "file": "service/stats_service.py"
@@ -500,6 +524,17 @@
     ],
     "duplicazioni": [
       {
+        "nome": "aggiorna",
+        "file": [
+          "gui/pagine/controller_clima.py",
+          "gui/pagine/pagina_audit.py",
+          "gui/pagine/pagina_dogane.py",
+          "gui/pagine/pagina_statistiche.py",
+          "gui/pagine/pagina_trasporti.py"
+        ],
+        "numero_copie": 5
+      },
+      {
         "nome": "crea_backup",
         "file": [
           "service/migrazione_tappa_analisi.py",
@@ -520,19 +555,28 @@
         "numero_copie": 4
       },
       {
-        "nome": "init_ui",
+        "nome": "crea_nuovo_progetto_dialog",
         "file": [
           "app_desktop.py",
           "gui/dashboard.py",
+          "gui/dialog_nuovo_progetto.py"
+        ],
+        "numero_copie": 3
+      },
+      {
+        "nome": "init_ui",
+        "file": [
+          "gui/dashboard.py",
+          "gui/widget_blocchi.py",
           "gui/wizard_percorso.py"
         ],
         "numero_copie": 3
       },
       {
-        "nome": "paintEvent",
+        "nome": "raccorda_gap_selezionato",
         "file": [
           "app_desktop.py",
-          "gui/mappa_barra_superfici.py"
+          "gui/pagine/pagina_trasporti.py"
         ],
         "numero_copie": 2
       },
@@ -541,30 +585,6 @@
         "file": [
           "app_desktop.py",
           "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "apri_percorso_selezionato",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "crea_nuovo_progetto_dialog",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "salva",
-        "file": [
-          "app_desktop.py",
-          "gui/mappa_cache.py"
         ],
         "numero_copie": 2
       },
@@ -585,38 +605,6 @@
         "numero_copie": 2
       },
       {
-        "nome": "aggiorna_blocco_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "toggle_pausa_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "cambia_ruolo_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
-        "nome": "elimina_singola_tappa",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py"
-        ],
-        "numero_copie": 2
-      },
-      {
         "nome": "elimina_percorso_corrente",
         "file": [
           "app_desktop.py",
@@ -629,6 +617,14 @@
         "file": [
           "gui/dashboard.py",
           "gui/wizard_percorso.py"
+        ],
+        "numero_copie": 2
+      },
+      {
+        "nome": "salva",
+        "file": [
+          "gui/dialog_nuovo_progetto.py",
+          "gui/mappa_cache.py"
         ],
         "numero_copie": 2
       },
@@ -657,10 +653,26 @@
         "numero_copie": 2
       },
       {
+        "nome": "paintEvent",
+        "file": [
+          "gui/mappa_barra_superfici.py",
+          "gui/widget_timeline_catena.py"
+        ],
+        "numero_copie": 2
+      },
+      {
         "nome": "imposta_stato",
         "file": [
           "gui/mappa_dettagli.py",
           "gui/mappa_pianificatore.py"
+        ],
+        "numero_copie": 2
+      },
+      {
+        "nome": "conferma_scenario",
+        "file": [
+          "gui/pagine/controller_clima.py",
+          "service/catena_stagionale_service.py"
         ],
         "numero_copie": 2
       },
@@ -690,81 +702,87 @@
       }
     ],
     "mappa_dipendenze": {
+      "gui/dialog_nuovo_progetto.py": [
+        "app_desktop"
+      ],
+      "service/audit_service.py": [
+        "app_desktop",
+        "gui/pagine/pagina_trasporti"
+      ],
       "service/stats_service.py": [
+        "app_desktop",
+        "gui/pagine/pagina_statistiche"
+      ],
+      "gui/dialog_elenco_paesi.py": [
         "app_desktop"
       ],
-      "service/clima_estrattore.py": [
-        "app_desktop"
-      ],
-      "service/migrazione_catena_stagionale.py": [
-        "app_desktop"
+      "service/progetti_service.py": [
+        "app_desktop",
+        "gui/dashboard",
+        "gui/dialog_nuovo_progetto"
       ],
       "database/database_setup.py": [
         "app_desktop"
       ],
-      "service/audit_service.py": [
+      "gui/dialog_wizard_trasferimento.py": [
         "app_desktop"
       ],
-      "service/catena_stagionale_service.py": [
+      "service/trasferimenti_service.py": [
         "app_desktop"
       ],
-      "service/clima_service.py": [
-        "app_desktop"
+      "service/tappe_service.py": [
+        "gui/dashboard"
+      ],
+      "service/sprite_bandiere_service.py": [
+        "gui/dialog_elenco_paesi"
       ],
       "service/migrazione_clima.py": [
-        "app_desktop"
+        "gui/pagine/controller_clima"
+      ],
+      "service/catena_stagionale_service.py": [
+        "gui/pagine/controller_clima"
+      ],
+      "service/migrazione_catena_stagionale.py": [
+        "gui/pagine/controller_clima"
+      ],
+      "service/clima_service.py": [
+        "gui/pagine/controller_clima"
+      ],
+      "service/blocchi_ordine_service.py": [
+        "gui/widget_blocchi"
+      ],
+      "service/clima_estrattore.py": [
+        "gui/worker_clima"
       ]
     }
   },
   "moduli": {
     "app_desktop.py": {
       "classi": [
-        "EstrazioneClimaWorker",
-        "ClimaSoglieDialog",
-        "TimelineCatenaWidget",
-        "GestoreBlocchiWidget",
         "BikepackingStudioApp"
       ],
       "funzioni": [
-        "__init__",
-        "run",
-        "__init__",
-        "accept",
-        "valori",
-        "__init__",
-        "imposta_righe",
-        "paintEvent",
-        "__init__",
-        "init_ui",
-        "carica_blocchi",
-        "sposta_su",
-        "sposta_giu",
-        "applica_riordinamento",
         "__init__",
         "cambia_pagina",
         "gestisci_cambio_progetto",
         "crea_bottone_navigazione",
         "crea_pagina_mappa",
         "crea_pagina_audit",
-        "_stile_pagina_servizio",
         "crea_pagina_trasporti",
         "crea_pagina_dogane",
         "crea_pagina_clima",
+        "_esporta_controlli_clima",
         "crea_pagina_statistiche",
         "apri_finestra_elenco_paesi",
-        "_imposta_righe_tabella",
         "aggiorna_pagina_trasporti",
         "raccorda_gap_selezionato",
         "aggiorna_pagina_dogane",
         "aggiorna_pagina_clima",
+        "_aggiorna_controlli_scenario",
         "calcola_pagina_clima",
         "_carica_soglie_clima",
         "apri_soglie_clima",
         "avvia_estrazione_clima",
-        "_estrazione_clima_completata",
-        "_estrazione_clima_fallita",
-        "_estrazione_clima_terminata",
-        "_aggiorna_controlli_scenario",
         "sposta_blocco_scenario",
         "ripristina_ordine_scenario",
         "conferma_scenario_clima",
@@ -776,18 +794,13 @@
         "apri_pagina_statistiche",
         "verifica_progetto_attivo",
         "carica_lista_percorsi",
-        "apri_percorso_selezionato",
         "crea_nuovo_progetto_dialog",
-        "salva",
+        "on_creato",
         "apri_selettore_file",
         "elabora_files_gpx",
         "esegui_audit_automatico",
         "raccorda_traccia_istantaneo",
         "aggiorna_tabella_tappe",
-        "aggiorna_blocco_tappa",
-        "toggle_pausa_tappa",
-        "cambia_ruolo_tappa",
-        "elimina_singola_tappa",
         "elimina_percorso_corrente",
         "mostra_mappa_gap",
         "avvia_wizard_trasferimento",
@@ -796,99 +809,62 @@
       "import_interni": [
         "database.database_setup",
         "gui.dashboard.DashboardPage",
+        "gui.dialog_elenco_paesi",
+        "gui.dialog_nuovo_progetto",
+        "gui.dialog_wizard_trasferimento",
         "gui.mappa.MappaWidget",
+        "gui.pagine.controller_clima.ControllerClima",
+        "gui.pagine.pagina_audit.PaginaAudit",
+        "gui.pagine.pagina_clima.PaginaClima",
+        "gui.pagine.pagina_dogane.PaginaDogane",
+        "gui.pagine.pagina_statistiche.PaginaStatistiche",
+        "gui.pagine.pagina_trasporti.PaginaTrasporti",
+        "gui.widget_blocchi.GestoreBlocchiWidget",
         "service.audit_service",
-        "service.catena_stagionale_service",
-        "service.clima_estrattore",
-        "service.clima_service",
         "service.config.DB_NAME",
-        "service.dogane_service.analizza_dogane_progetto",
-        "service.dogane_service.recupera_dogane_salvate",
-        "service.geo_utils.calcola_distanza_haversine",
-        "service.gpx_paths.trova_percorso_gpx",
         "service.map_server.start_local_map_server",
-        "service.migrazione_catena_stagionale",
-        "service.migrazione_clima",
-        "service.stats_service"
+        "service.progetti_service",
+        "service.stats_service",
+        "service.trasferimenti_service"
       ],
       "import_esterni": [
         "PySide6.QtCore",
         "PySide6.QtGui",
         "PySide6.QtWidgets",
-        "contextlib",
-        "datetime",
-        "json",
-        "math",
         "os",
         "sqlite3",
         "sys"
       ],
-      "tabelle_usate": [
-        "allarmi_percorso",
-        "blocchi_ordine",
-        "progetti",
-        "progetto_stagione",
-        "tappe",
-        "trasferimenti"
-      ],
+      "tabelle_usate": [],
       "anomalie": [],
       "chiamate_funzioni": [
         "BikepackingStudioApp",
-        "ClimaSoglieDialog",
+        "ControllerClima",
         "DashboardPage",
-        "EstrazioneClimaWorker",
         "GestoreBlocchiWidget",
         "MappaWidget",
+        "PaginaAudit",
+        "PaginaClima",
+        "PaginaDogane",
+        "PaginaStatistiche",
+        "PaginaTrasporti",
         "QApplication",
-        "QColor",
-        "QComboBox",
-        "QDate",
-        "QDateEdit",
-        "QDialog",
-        "QDialogButtonBox",
-        "QDoubleSpinBox",
         "QFont",
-        "QFormLayout",
         "QFrame",
         "QHBoxLayout",
-        "QIcon",
         "QLabel",
-        "QLineEdit",
-        "QListWidget",
-        "QListWidgetItem",
-        "QPainter",
-        "QPen",
-        "QPixmap",
         "QPushButton",
-        "QScrollArea",
-        "QSize",
-        "QSpinBox",
         "QStackedWidget",
-        "QTabWidget",
-        "QTableWidget",
-        "QTableWidgetItem",
-        "QTextEdit",
-        "QThread",
         "QVBoxLayout",
         "QWidget",
-        "Signal",
-        "TimelineCatenaWidget",
         "__init__",
         "_aggiorna_controlli_scenario",
-        "_carica_soglie_clima",
-        "_imposta_righe_tabella",
-        "_stile_pagina_servizio",
-        "abs",
+        "_esporta_controlli_clima",
         "abspath",
-        "accept",
         "addItem",
-        "addItems",
-        "addLayout",
-        "addRow",
-        "addSpacing",
         "addStretch",
-        "addTab",
         "addWidget",
+        "aggiorna",
         "aggiorna_pagina_clima",
         "aggiorna_pagina_dogane",
         "aggiorna_pagina_statistiche",
@@ -896,35 +872,23 @@
         "aggiorna_tabella_allarmi",
         "aggiorna_tabella_tappe",
         "aggiorna_tabella_trasferimenti",
-        "all",
-        "analizza_dogane_progetto",
-        "annulla_scenario",
-        "any",
-        "append",
-        "assicura_schema_catena_stagionale",
-        "assicura_schema_clima",
-        "assicura_tabelle_clima",
+        "annulla_ultima_applicazione",
+        "apri_soglie",
         "availableGeometry",
-        "avvia_wizard_trasferimento",
-        "bool",
-        "calcola_catena",
-        "calcola_distanza_haversine",
-        "calcola_pagina_clima",
-        "calcola_semaforo",
+        "avvia_estrazione",
+        "calcola",
         "cambia_pagina",
+        "carica_allarme_gap",
         "carica_blocchi",
-        "carica_impostazioni_semaforo",
         "carica_lista_percorsi",
+        "carica_soglie",
+        "chiedi_dati_trasferimento",
         "clear",
-        "close",
-        "closing",
-        "columnCount",
-        "commit",
         "conferma_scenario",
         "connect",
-        "copy",
-        "count",
         "crea_bottone_navigazione",
+        "crea_elenco_paesi",
+        "crea_nuovo_progetto_dialog",
         "crea_pagina_audit",
         "crea_pagina_clima",
         "crea_pagina_dogane",
@@ -934,170 +898,58 @@
         "crea_pagina_trasporti",
         "critical",
         "currentData",
-        "currentDate",
-        "currentRow",
-        "currentText",
         "currentWidget",
-        "cursor",
-        "data",
-        "date",
-        "datetime",
-        "day",
-        "dict",
         "dirname",
-        "drawRoundedRect",
-        "drawText",
         "elabora_files_gpx",
-        "emit",
+        "elimina_progetto_completo",
         "enumerate",
         "esegui_audit_automatico",
-        "estrai_clima_per_tappe",
         "exec",
-        "execute",
-        "exists",
         "exit",
-        "fetchall",
-        "fetchone",
-        "fillRect",
-        "findChildren",
         "findData",
-        "float",
-        "font",
         "genera_raccordo_gpx",
-        "get",
         "getOpenFileNames",
         "get_paesi_attraversati_stats",
-        "getcwd",
         "hasattr",
         "height",
-        "horizontalHeader",
-        "icon",
-        "imposta_righe",
-        "index",
         "information",
-        "init_ui",
         "inizializza_database",
         "insert",
-        "insertItem",
         "int",
-        "isNull",
-        "isfinite",
-        "isinstance",
-        "item",
-        "items",
-        "join",
         "len",
-        "list",
-        "load",
-        "lower",
-        "max",
-        "min",
-        "month",
-        "mostra_mappa_gap",
-        "moveToThread",
-        "open",
-        "ottieni_kpi_totali_progetto",
-        "ottieni_ripartizione_fasce_mare",
-        "ottieni_scenario_in_sospeso",
-        "ottieni_statistiche_per_blocco",
-        "ottieni_ultima_applicazione_scenario",
-        "pop",
+        "nomi_tappe_gap",
         "primaryScreen",
-        "print",
-        "proponi_scenario",
         "question",
-        "raccorda_traccia_istantaneo",
-        "range",
-        "rect",
-        "remove",
-        "replace",
-        "resize",
-        "rileva_gap_progetto",
-        "rileva_strade_vietate_progetto",
-        "rollback",
+        "raccorda_gap_selezionato",
+        "ricalcola_allarmi_percorso",
+        "ripristina_ordine",
         "round",
-        "salva_impostazioni_semaforo",
-        "salva_impostazioni_stagione",
-        "scaled",
-        "scarta_scenario_in_sospeso",
-        "set",
-        "setAlignment",
-        "setAlternatingRowColors",
+        "salva_impostazioni",
+        "salva_trasferimento",
         "setAttribute",
-        "setBold",
-        "setBrush",
-        "setCalendarPopup",
-        "setCellWidget",
         "setCentralWidget",
-        "setColumnCount",
-        "setColumnWidth",
         "setContentsMargins",
         "setCurrentIndex",
-        "setCurrentRow",
-        "setData",
-        "setDate",
-        "setDecimals",
-        "setDefaultSectionSize",
-        "setDisplayFormat",
-        "setEditTriggers",
         "setEnabled",
-        "setFieldGrowthPolicy",
         "setFixedWidth",
         "setFont",
-        "setForeground",
         "setGeometry",
-        "setHorizontalHeaderLabels",
-        "setIcon",
-        "setIconSize",
-        "setItem",
-        "setMaximumHeight",
-        "setMaximumWidth",
-        "setMinimumHeight",
-        "setMinimumWidth",
-        "setPen",
-        "setPlaceholderText",
-        "setRange",
-        "setRenderHint",
-        "setRowCount",
-        "setSectionResizeMode",
         "setSpacing",
-        "setStretchLastSection",
         "setStyleSheet",
-        "setSuffix",
-        "setText",
-        "setTextAlignment",
         "setToolTip",
-        "setValue",
-        "setWidget",
-        "setWidgetResizable",
         "setWindowTitle",
-        "setWordWrap",
+        "setattr",
         "show",
         "split",
-        "start",
+        "sposta_blocco",
         "start_local_map_server",
-        "startswith",
-        "str",
-        "strftime",
-        "strip",
-        "strptime",
-        "sum",
         "super",
-        "takeItem",
-        "text",
-        "toPlainText",
-        "trova_percorso_gpx",
-        "update",
-        "upper",
-        "valori",
-        "value",
+        "valida_coordinate_gap",
         "verifica_progetto_attivo",
-        "verticalHeader",
         "warning",
         "width",
         "x",
-        "y",
-        "year"
+        "y"
       ]
     },
     "backup.py": {
@@ -1199,8 +1051,9 @@
         "service.config.DB_NAME",
         "service.geo_utils.calcola_distanza_haversine",
         "service.gpx_paths.percorso_gpx_progetto",
-        "service.gpx_paths.trova_percorso_gpx",
-        "service.precalcolo_service.precalcola_tappa"
+        "service.precalcolo_service.precalcola_tappa",
+        "service.progetti_service",
+        "service.tappe_service"
       ],
       "import_esterni": [
         "PySide6.QtCore",
@@ -1212,7 +1065,6 @@
         "sqlite3"
       ],
       "tabelle_usate": [
-        "progetti",
         "tappe"
       ],
       "anomalie": [],
@@ -1241,6 +1093,7 @@
         "addSpacing",
         "addStretch",
         "addWidget",
+        "aggiorna_blocco_per_sequenze",
         "aggiorna_blocco_tappa",
         "aggiorna_tabella_allarmi",
         "aggiorna_tabella_tappe",
@@ -1252,18 +1105,24 @@
         "cambia_pagina",
         "cambia_ruolo_tappa",
         "carica_lista_percorsi",
+        "carica_progetti_con_km",
+        "carica_tappe_elenco",
         "clear",
         "close",
         "commit",
         "connect",
         "copy2",
+        "crea_progetto",
         "critical",
         "currentItem",
         "currentText",
         "cursor",
         "data",
         "elabora_files_gpx",
+        "elimina_file_gpx",
+        "elimina_progetto_completo",
         "elimina_singola_tappa",
+        "elimina_tappa",
         "emit",
         "enumerate",
         "esegui_audit_automatico",
@@ -1276,6 +1135,8 @@
         "getcwd",
         "hasattr",
         "horizontalHeader",
+        "imposta_blocco_tappa",
+        "imposta_stato_tappa",
         "init_ui",
         "int",
         "item",
@@ -1290,7 +1151,6 @@
         "pyqtSignal",
         "question",
         "range",
-        "remove",
         "replace",
         "rigenera_mappa",
         "round",
@@ -1319,16 +1179,194 @@
         "setattr",
         "sorted",
         "split",
+        "stato_da_pausa",
+        "stato_da_ruolo",
         "str",
         "strip",
         "sum",
         "super",
         "text",
         "toggle_pausa_tappa",
-        "trova_percorso_gpx",
         "upper",
         "warning",
         "window"
+      ]
+    },
+    "gui/dialog_clima_soglie.py": {
+      "classi": [
+        "ClimaSoglieDialog"
+      ],
+      "funzioni": [
+        "__init__",
+        "accept",
+        "valori"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QComboBox",
+        "QDialogButtonBox",
+        "QDoubleSpinBox",
+        "QFormLayout",
+        "__init__",
+        "accept",
+        "addItem",
+        "addRow",
+        "connect",
+        "currentData",
+        "findData",
+        "float",
+        "get",
+        "int",
+        "items",
+        "max",
+        "setCurrentIndex",
+        "setDecimals",
+        "setRange",
+        "setValue",
+        "setWindowTitle",
+        "startswith",
+        "super",
+        "valori",
+        "value",
+        "warning"
+      ]
+    },
+    "gui/dialog_elenco_paesi.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_elenco_paesi"
+      ],
+      "import_interni": [
+        "service.sprite_bandiere_service"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QDialog",
+        "QIcon",
+        "QLabel",
+        "QPushButton",
+        "QSize",
+        "QTableWidget",
+        "QTableWidgetItem",
+        "QVBoxLayout",
+        "addWidget",
+        "carica_dati_sprite",
+        "carica_pixmap_sprite",
+        "connect",
+        "copy",
+        "enumerate",
+        "exec",
+        "get",
+        "horizontalHeader",
+        "icon",
+        "isNull",
+        "len",
+        "resize",
+        "risolvi_paese_sprite",
+        "scaled",
+        "setColumnCount",
+        "setDefaultSectionSize",
+        "setEditTriggers",
+        "setHorizontalHeaderLabels",
+        "setIcon",
+        "setIconSize",
+        "setItem",
+        "setRowCount",
+        "setStretchLastSection",
+        "setStyleSheet",
+        "setText",
+        "setTextAlignment",
+        "setWindowTitle",
+        "split",
+        "str",
+        "verticalHeader"
+      ]
+    },
+    "gui/dialog_nuovo_progetto.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_nuovo_progetto_dialog",
+        "salva"
+      ],
+      "import_interni": [
+        "service.progetti_service"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QComboBox",
+        "QDialog",
+        "QFormLayout",
+        "QLineEdit",
+        "QPushButton",
+        "accept",
+        "addItems",
+        "addRow",
+        "connect",
+        "crea_progetto",
+        "currentText",
+        "exec",
+        "on_creato",
+        "print",
+        "setFieldGrowthPolicy",
+        "setFixedWidth",
+        "setPlaceholderText",
+        "setStyleSheet",
+        "setWindowTitle",
+        "strip",
+        "text"
+      ]
+    },
+    "gui/dialog_wizard_trasferimento.py": {
+      "classi": [],
+      "funzioni": [
+        "chiedi_dati_trasferimento"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QComboBox",
+        "QDialog",
+        "QDialogButtonBox",
+        "QDoubleSpinBox",
+        "QFormLayout",
+        "QLabel",
+        "QLineEdit",
+        "QTextEdit",
+        "addItems",
+        "addRow",
+        "connect",
+        "currentText",
+        "exec",
+        "setDecimals",
+        "setMaximumHeight",
+        "setMinimumWidth",
+        "setPlaceholderText",
+        "setRange",
+        "setSuffix",
+        "setWindowTitle",
+        "strip",
+        "text",
+        "toPlainText",
+        "value"
       ]
     },
     "gui/drop_area_gpx.py": {
@@ -2041,6 +2079,600 @@
         "start"
       ]
     },
+    "gui/pagine/controller_clima.py": {
+      "classi": [
+        "ControllerClima"
+      ],
+      "funzioni": [
+        "__init__",
+        "azzera_stato",
+        "_prepara_progetto",
+        "_carica_impostazioni_stagione",
+        "_applica_impostazioni_stagione",
+        "aggiorna",
+        "calcola",
+        "_calcola_risultati",
+        "_righe_tabella",
+        "_applica_stile_celle",
+        "_descrizione_stato",
+        "_carica_soglie",
+        "apri_soglie",
+        "avvia_estrazione",
+        "_al_progresso",
+        "_estrazione_completata",
+        "_estrazione_fallita",
+        "_estrazione_terminata",
+        "sposta_blocco",
+        "ripristina_ordine",
+        "conferma_scenario",
+        "annulla_ultima_applicazione",
+        "salva_impostazioni"
+      ],
+      "import_interni": [
+        "gui.dialog_clima_soglie.ClimaSoglieDialog",
+        "gui.pagine.stile_pagina.imposta_righe_tabella",
+        "gui.worker_clima.GestoreEstrazioneClima",
+        "service.catena_stagionale_service",
+        "service.clima_service",
+        "service.config.DB_NAME",
+        "service.migrazione_catena_stagionale",
+        "service.migrazione_clima"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets",
+        "contextlib",
+        "datetime",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "progetto_stagione"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ClimaSoglieDialog",
+        "GestoreEstrazioneClima",
+        "QColor",
+        "QDate",
+        "_aggiorna_controlli_scenario",
+        "_applica_impostazioni_stagione",
+        "_applica_stile_celle",
+        "_calcola_risultati",
+        "_carica_impostazioni_stagione",
+        "_carica_soglie",
+        "_descrizione_stato",
+        "_prepara_progetto",
+        "_righe_tabella",
+        "aggiorna_pagina_clima",
+        "annulla_scenario",
+        "append",
+        "assicura_schema_catena_stagionale",
+        "assicura_schema_clima",
+        "assicura_tabelle_clima",
+        "avvia",
+        "azzera_stato",
+        "bool",
+        "calcola",
+        "calcola_catena",
+        "calcola_semaforo",
+        "carica_blocchi",
+        "carica_impostazioni_semaforo",
+        "closing",
+        "columnCount",
+        "conferma_scenario",
+        "connect",
+        "critical",
+        "currentData",
+        "currentDate",
+        "cursor",
+        "date",
+        "datetime",
+        "day",
+        "dict",
+        "enumerate",
+        "exec",
+        "execute",
+        "fetchone",
+        "font",
+        "get",
+        "imposta_righe",
+        "imposta_righe_tabella",
+        "index",
+        "information",
+        "insert",
+        "int",
+        "item",
+        "join",
+        "len",
+        "list",
+        "month",
+        "ottieni_scenario_in_sospeso",
+        "ottieni_ultima_applicazione_scenario",
+        "pop",
+        "proponi_scenario",
+        "question",
+        "range",
+        "salva_impostazioni_semaforo",
+        "salva_impostazioni_stagione",
+        "scarta_scenario_in_sospeso",
+        "setBold",
+        "setDate",
+        "setEnabled",
+        "setFont",
+        "setForeground",
+        "setText",
+        "setToolTip",
+        "setValue",
+        "str",
+        "strftime",
+        "strptime",
+        "sum",
+        "text",
+        "valori",
+        "value",
+        "year"
+      ]
+    },
+    "gui/pagine/pagina_audit.py": {
+      "classi": [
+        "PaginaAudit"
+      ],
+      "funzioni": [
+        "carica_allarmi_attivi",
+        "__init__",
+        "aggiorna",
+        "_popola_righe",
+        "_pannello_azioni"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "allarmi_percorso"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QFont",
+        "QHBoxLayout",
+        "QLabel",
+        "QPushButton",
+        "QTableWidget",
+        "QTableWidgetItem",
+        "QVBoxLayout",
+        "QWidget",
+        "__init__",
+        "_al_mappa_gap",
+        "_al_raccordo_traccia",
+        "_al_wizard_trasferimento",
+        "_pannello_azioni",
+        "_popola_righe",
+        "addSpacing",
+        "addWidget",
+        "carica_allarmi_attivi",
+        "close",
+        "connect",
+        "cursor",
+        "enumerate",
+        "execute",
+        "fetchall",
+        "horizontalHeader",
+        "len",
+        "setCellWidget",
+        "setColumnCount",
+        "setColumnWidth",
+        "setContentsMargins",
+        "setDefaultSectionSize",
+        "setFont",
+        "setHorizontalHeaderLabels",
+        "setItem",
+        "setRowCount",
+        "setSectionResizeMode",
+        "setSpacing",
+        "setStyleSheet",
+        "setText",
+        "setTextAlignment",
+        "super",
+        "verticalHeader"
+      ]
+    },
+    "gui/pagine/pagina_clima.py": {
+      "classi": [
+        "PaginaClima"
+      ],
+      "funzioni": [
+        "__init__",
+        "_etichetta_sezione",
+        "_crea_riga_parametri",
+        "_crea_riga_estrazione",
+        "_crea_riga_scenario"
+      ],
+      "import_interni": [
+        "gui.pagine.stile_pagina.applica_stile_servizio",
+        "gui.widget_timeline_catena.TimelineCatenaWidget"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QComboBox",
+        "QDateEdit",
+        "QFont",
+        "QHBoxLayout",
+        "QLabel",
+        "QPushButton",
+        "QScrollArea",
+        "QSpinBox",
+        "QTableWidget",
+        "QVBoxLayout",
+        "TimelineCatenaWidget",
+        "__init__",
+        "_crea_riga_estrazione",
+        "_crea_riga_parametri",
+        "_crea_riga_scenario",
+        "_etichetta_sezione",
+        "addLayout",
+        "addStretch",
+        "addWidget",
+        "applica_stile_servizio",
+        "connect",
+        "currentDate",
+        "horizontalHeader",
+        "len",
+        "setCalendarPopup",
+        "setColumnCount",
+        "setContentsMargins",
+        "setDate",
+        "setDisplayFormat",
+        "setFont",
+        "setHorizontalHeaderLabels",
+        "setMaximumHeight",
+        "setMinimumWidth",
+        "setRange",
+        "setSectionResizeMode",
+        "setStretchLastSection",
+        "setStyleSheet",
+        "setWidget",
+        "setWidgetResizable",
+        "setWordWrap",
+        "super"
+      ]
+    },
+    "gui/pagine/pagina_dogane.py": {
+      "classi": [
+        "PaginaDogane"
+      ],
+      "funzioni": [
+        "__init__",
+        "progetto_id",
+        "progetto_id",
+        "aggiorna"
+      ],
+      "import_interni": [
+        "gui.pagine.stile_pagina.applica_stile_servizio",
+        "gui.pagine.stile_pagina.imposta_righe_tabella",
+        "service.dogane_service.analizza_dogane_progetto"
+      ],
+      "import_esterni": [
+        "PySide6.QtGui",
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QFont",
+        "QLabel",
+        "QPushButton",
+        "QTableWidget",
+        "QVBoxLayout",
+        "__init__",
+        "addWidget",
+        "aggiorna",
+        "analizza_dogane_progetto",
+        "applica_stile_servizio",
+        "connect",
+        "getattr",
+        "horizontalHeader",
+        "imposta_righe_tabella",
+        "len",
+        "setColumnCount",
+        "setContentsMargins",
+        "setFont",
+        "setHorizontalHeaderLabels",
+        "setSectionResizeMode",
+        "setStretchLastSection",
+        "setStyleSheet",
+        "setText",
+        "super"
+      ]
+    },
+    "gui/pagine/pagina_statistiche.py": {
+      "classi": [
+        "PaginaStatistiche"
+      ],
+      "funzioni": [
+        "testo_card",
+        "__init__",
+        "_crea_card",
+        "_crea_tabella",
+        "_azzera",
+        "aggiorna"
+      ],
+      "import_interni": [
+        "gui.pagine.stile_pagina.applica_stile_servizio",
+        "gui.pagine.stile_pagina.imposta_righe_tabella",
+        "service.stats_service"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QFont",
+        "QHBoxLayout",
+        "QLabel",
+        "QPushButton",
+        "QTabWidget",
+        "QTableWidget",
+        "QVBoxLayout",
+        "__init__",
+        "_azzera",
+        "_crea_card",
+        "_crea_tabella",
+        "addLayout",
+        "addTab",
+        "addWidget",
+        "aggiorna",
+        "applica_stile_servizio",
+        "connect",
+        "get_paesi_attraversati_stats",
+        "horizontalHeader",
+        "imposta_righe_tabella",
+        "len",
+        "ottieni_kpi_totali_progetto",
+        "ottieni_ripartizione_fasce_mare",
+        "ottieni_statistiche_per_blocco",
+        "setAlignment",
+        "setAlternatingRowColors",
+        "setColumnCount",
+        "setContentsMargins",
+        "setDefaultSectionSize",
+        "setEditTriggers",
+        "setFont",
+        "setHorizontalHeaderLabels",
+        "setMaximumWidth",
+        "setMinimumHeight",
+        "setSectionResizeMode",
+        "setStyleSheet",
+        "setText",
+        "super",
+        "testo_card",
+        "verticalHeader"
+      ]
+    },
+    "gui/pagine/pagina_trasporti.py": {
+      "classi": [
+        "PaginaTrasporti"
+      ],
+      "funzioni": [
+        "carica_trasferimenti",
+        "recupera_nomi_tappe",
+        "__init__",
+        "aggiorna",
+        "raccorda_gap_selezionato"
+      ],
+      "import_interni": [
+        "gui.pagine.stile_pagina.applica_stile_servizio",
+        "gui.pagine.stile_pagina.imposta_righe_tabella",
+        "service.audit_service",
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "tappe",
+        "trasferimenti"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QFont",
+        "QLabel",
+        "QPushButton",
+        "QTabWidget",
+        "QTableWidget",
+        "QTableWidgetItem",
+        "QVBoxLayout",
+        "QWidget",
+        "__init__",
+        "_al_raccordo_gap",
+        "addTab",
+        "addWidget",
+        "aggiorna",
+        "applica_stile_servizio",
+        "carica_trasferimenti",
+        "close",
+        "connect",
+        "currentRow",
+        "cursor",
+        "data",
+        "enumerate",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "horizontalHeader",
+        "imposta_righe_tabella",
+        "information",
+        "item",
+        "len",
+        "recupera_nomi_tappe",
+        "rileva_gap_progetto",
+        "rileva_strade_vietate_progetto",
+        "setColumnCount",
+        "setContentsMargins",
+        "setData",
+        "setFont",
+        "setHorizontalHeaderLabels",
+        "setItem",
+        "setRowCount",
+        "setSectionResizeMode",
+        "setStyleSheet",
+        "setText",
+        "startswith",
+        "str",
+        "super",
+        "text"
+      ]
+    },
+    "gui/pagine/stile_pagina.py": {
+      "classi": [],
+      "funzioni": [
+        "applica_stile_servizio",
+        "imposta_righe_tabella"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QTableWidgetItem",
+        "enumerate",
+        "findChildren",
+        "len",
+        "setDefaultSectionSize",
+        "setItem",
+        "setRowCount",
+        "setStyleSheet",
+        "str",
+        "verticalHeader"
+      ]
+    },
+    "gui/widget_blocchi.py": {
+      "classi": [
+        "GestoreBlocchiWidget"
+      ],
+      "funzioni": [
+        "__init__",
+        "init_ui",
+        "carica_blocchi",
+        "sposta_su",
+        "sposta_giu",
+        "applica_riordinamento"
+      ],
+      "import_interni": [
+        "service.blocchi_ordine_service"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QFont",
+        "QHBoxLayout",
+        "QLabel",
+        "QListWidget",
+        "QListWidgetItem",
+        "QPushButton",
+        "QVBoxLayout",
+        "__init__",
+        "addItem",
+        "addLayout",
+        "addStretch",
+        "addWidget",
+        "aggiorna_tabella_allarmi",
+        "aggiorna_tabella_tappe",
+        "clear",
+        "connect",
+        "count",
+        "currentRow",
+        "data",
+        "esegui_audit_automatico",
+        "information",
+        "init_ui",
+        "insertItem",
+        "item",
+        "leggi_blocchi_ordinati",
+        "range",
+        "salva_ordine_blocchi",
+        "setContentsMargins",
+        "setCurrentRow",
+        "setData",
+        "setFont",
+        "setStyleSheet",
+        "super",
+        "takeItem",
+        "warning"
+      ]
+    },
+    "gui/widget_timeline_catena.py": {
+      "classi": [
+        "TimelineCatenaWidget"
+      ],
+      "funzioni": [
+        "__init__",
+        "imposta_righe",
+        "paintEvent"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "PySide6.QtGui",
+        "PySide6.QtWidgets",
+        "datetime"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QColor",
+        "QPainter",
+        "QPen",
+        "__init__",
+        "date",
+        "drawRoundedRect",
+        "drawText",
+        "enumerate",
+        "fillRect",
+        "get",
+        "int",
+        "len",
+        "max",
+        "min",
+        "rect",
+        "round",
+        "setBrush",
+        "setMinimumHeight",
+        "setMinimumWidth",
+        "setPen",
+        "setRenderHint",
+        "setStyleSheet",
+        "strftime",
+        "strip",
+        "strptime",
+        "super",
+        "update",
+        "width"
+      ]
+    },
     "gui/wizard_percorso.py": {
       "classi": [
         "WizardNuovoPercorso"
@@ -2087,6 +2719,42 @@
         "strip",
         "super",
         "text"
+      ]
+    },
+    "gui/worker_clima.py": {
+      "classi": [
+        "EstrazioneClimaWorker",
+        "GestoreEstrazioneClima"
+      ],
+      "funzioni": [
+        "__init__",
+        "run",
+        "__init__",
+        "attiva",
+        "avvia",
+        "_chiusa"
+      ],
+      "import_interni": [
+        "service.clima_estrattore"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "EstrazioneClimaWorker",
+        "QThread",
+        "Signal",
+        "__init__",
+        "_alla_chiusura",
+        "connect",
+        "emit",
+        "estrai_clima_per_tappe",
+        "moveToThread",
+        "start",
+        "str",
+        "super"
       ]
     },
     "installa_geonames.py": {
@@ -2237,6 +2905,7 @@
       "funzioni": [
         "rileva_gap_progetto",
         "rileva_strade_vietate_progetto",
+        "ricalcola_allarmi_percorso",
         "registra_trasferimento_gap",
         "genera_raccordo_gpx"
       ],
@@ -2256,6 +2925,7 @@
         "sqlite3"
       ],
       "tabelle_usate": [
+        "allarmi_percorso",
         "tappe",
         "trasferimenti",
         "trasferimenti_logistici"
@@ -2287,9 +2957,38 @@
         "print",
         "range",
         "round",
+        "set",
         "sum",
         "to_xml",
         "write"
+      ]
+    },
+    "service/blocchi_ordine_service.py": {
+      "classi": [],
+      "funzioni": [
+        "leggi_blocchi_ordinati",
+        "salva_ordine_blocchi"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "blocchi_ordine",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "append",
+        "close",
+        "commit",
+        "connect",
+        "cursor",
+        "enumerate",
+        "execute",
+        "fetchall"
       ]
     },
     "service/catena_stagionale_service.py": {
@@ -3604,6 +4303,35 @@
         "warning"
       ]
     },
+    "service/progetti_service.py": {
+      "classi": [],
+      "funzioni": [
+        "crea_progetto",
+        "carica_progetti_con_km",
+        "elimina_progetto_completo"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "progetti",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "append",
+        "close",
+        "commit",
+        "connect",
+        "cursor",
+        "execute",
+        "fetchall",
+        "fetchone"
+      ]
+    },
     "service/punti_service.py": {
       "classi": [],
       "funzioni": [
@@ -3693,6 +4421,42 @@
         "trova_percorso_gpx",
         "uuid4",
         "write"
+      ]
+    },
+    "service/sprite_bandiere_service.py": {
+      "classi": [],
+      "funzioni": [
+        "percorso_risorsa",
+        "carica_dati_sprite",
+        "carica_pixmap_sprite",
+        "risolvi_paese_sprite"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "PySide6.QtGui",
+        "json",
+        "os"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QPixmap",
+        "abspath",
+        "dirname",
+        "exists",
+        "get",
+        "isinstance",
+        "items",
+        "join",
+        "load",
+        "lower",
+        "open",
+        "percorso_risorsa",
+        "print",
+        "replace",
+        "str",
+        "strip",
+        "upper"
       ]
     },
     "service/stats_service.py": {
@@ -3933,6 +4697,82 @@
         "str",
         "tan",
         "trova_percorso_gpx"
+      ]
+    },
+    "service/tappe_service.py": {
+      "classi": [],
+      "funzioni": [
+        "carica_tappe_elenco",
+        "imposta_blocco_tappa",
+        "imposta_stato_tappa",
+        "stato_da_ruolo",
+        "stato_da_pausa",
+        "elimina_tappa",
+        "elimina_file_gpx",
+        "aggiorna_blocco_per_sequenze"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME",
+        "service.gpx_paths.trova_percorso_gpx"
+      ],
+      "import_esterni": [
+        "os",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "close",
+        "commit",
+        "connect",
+        "cursor",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "getcwd",
+        "join",
+        "print",
+        "remove",
+        "strip",
+        "trova_percorso_gpx"
+      ]
+    },
+    "service/trasferimenti_service.py": {
+      "classi": [],
+      "funzioni": [
+        "carica_allarme_gap",
+        "valida_coordinate_gap",
+        "nomi_tappe_gap",
+        "salva_trasferimento"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "contextlib",
+        "math",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "allarmi_percorso",
+        "trasferimenti"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "abs",
+        "all",
+        "any",
+        "closing",
+        "commit",
+        "connect",
+        "execute",
+        "fetchall",
+        "fetchone",
+        "float",
+        "isfinite",
+        "rollback"
       ]
     },
     "static/aggiorna_sprite.py": {
@@ -10968,7 +11808,7 @@
       },
       {
         "nome": "scenari",
-        "righe": 0,
+        "righe": 1,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11511,7 +12351,7 @@
       },
       {
         "nome": "tappe",
-        "righe": 982,
+        "righe": 981,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -12041,38 +12881,32 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 47,
-    "totale_classi": 23,
-    "totale_funzioni": 384,
+    "totale_moduli": 66,
+    "totale_classi": 30,
+    "totale_funzioni": 455,
     "endpoint_flask": 8,
     "tabelle_rilevate": 27,
-    "simboli_orfani": 50,
+    "simboli_orfani": 51,
     "moduli_chiave": [
       "app_desktop.py",
       "gui/mappa_pianificatore.py",
       "gui/mappa.py",
       "service/catena_stagionale_service.py",
+      "gui/pagine/controller_clima.py",
       "gui/dashboard.py",
       "gui/mappa_worker.py",
       "service/map_server.py",
       "service/superfici_service.py",
-      "service/stats_service.py",
-      "service/punti_service.py"
+      "service/stats_service.py"
     ],
     "warning_flags": [
-      "simboli_orfani_presenti"
+      "simboli_orfani_presenti",
+      "progetto_grande"
     ]
   },
   "agent_insights": {
     "livello_rischio": "alto",
     "hotspots": [
-      {
-        "file": "app_desktop.py",
-        "score": 412,
-        "classi": 5,
-        "funzioni": 66,
-        "anomalie": 0
-      },
       {
         "file": "gui/mappa_pianificatore.py",
         "score": 211,
@@ -12081,8 +12915,15 @@
         "anomalie": 0
       },
       {
+        "file": "app_desktop.py",
+        "score": 201,
+        "classi": 1,
+        "funzioni": 43,
+        "anomalie": 0
+      },
+      {
         "file": "gui/dashboard.py",
-        "score": 156,
+        "score": 165,
         "classi": 2,
         "funzioni": 19,
         "anomalie": 0
@@ -12108,38 +12949,38 @@
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
     "file_critici": [
-      "app_desktop.py",
       "gui/mappa_pianificatore.py",
+      "app_desktop.py",
       "gui/dashboard.py"
     ]
   },
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 47,
-      "classi": 23,
-      "funzioni": 384,
+      "moduli": 66,
+      "classi": 30,
+      "funzioni": 455,
       "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 50",
-      "File critici: app_desktop.py, gui/mappa_pianificatore.py, gui/dashboard.py"
+      "Simboli orfani: 51",
+      "File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
-      "app_desktop.py",
       "gui/mappa_pianificatore.py",
       "gui/dashboard.py",
+      "app_desktop.py",
       "gui/mappa.py",
-      "service/catena_stagionale_service.py"
+      "gui/pagine/controller_clima.py"
     ],
     "prossimi_passi": [
       "Rivedere i simboli orfani e decidere se integrarli, rimuoverli o spostarli.",
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 47 moduli, 23 classi, 384 funzioni, 8 endpoint Flask, 50 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa_pianificatore.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 66 moduli, 30 classi, 455 funzioni, 8 endpoint Flask, 51 simboli orfani. Rischio: alto. File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 47 moduli, 23 classi, 384 funzioni, 8 endpoint Flask, 50 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa_pianificatore.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 66 moduli, 30 classi, 455 funzioni, 8 endpoint Flask, 51 simboli orfani. Rischio: alto. File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

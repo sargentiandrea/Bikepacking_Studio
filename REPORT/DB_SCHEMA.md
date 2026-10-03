@@ -378,7 +378,7 @@ Nessuna chiave esterna.
 
 ## `scenari`
 
-- Righe: 0
+- Righe: 1
 
 ### Colonne
 
@@ -547,7 +547,7 @@ Nessun indice.
 
 ## `tappe`
 
-- Righe: 982
+- Righe: 981
 
 ### Colonne
 
