@@ -3,10 +3,7 @@ import json
 import sqlite3
 import threading
 import math
-import hashlib
-import uuid
 import re
-from contextlib import closing
 import requests
 import gpxpy
 import gpxpy.gpx
@@ -30,8 +27,17 @@ from service.geometria_service import (
 )
 from service.geonames_service import cerca_coordinate_luogo
 from service.map_manager_service import MapManagerService, DownloadWorker
-from service.precalcolo_service import precalcola_tappa
-from service.gpx_paths import percorso_gpx_progetto, trova_percorso_gpx
+from service.mappa_dati_service import (
+    carica_coordinate_tappa,
+    carica_tappe_attive,
+    costruisci_geojson_progetto,
+    firma_dati_mappa,
+)
+from service.salvataggio_tappa_service import (
+    rimuovi_gpx_se_esiste,
+    salva_tappa_pianificata,
+)
+from service.gpx_paths import trova_percorso_gpx
 from service.geo_utils import calcola_distanza_haversine
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
@@ -573,29 +579,9 @@ class PannelloPianificazioneWidget(QFrame):
         finestra_principale = getattr(self.mappa_widget, "parent_app", None)
         progetto = getattr(finestra_principale, "current_progetto_id", None)
         try:
-            with sqlite3.connect(DB_NAME, timeout=15.0) as conn:
-                riga = conn.execute(
-                    "SELECT nome_file FROM tappe WHERE id = ? AND id_progetto = ?",
-                    (tappa_id, progetto),
-                ).fetchone()
-            if not riga or not riga[0]:
-                raise ValueError("La tappa selezionata non è più presente nel progetto attivo.")
-
-            percorso_gpx = trova_percorso_gpx(
-                riga[0], progetto, directory_gpx=GPX_DIR
+            coordinate = carica_coordinate_tappa(
+                tappa_id, progetto, DB_NAME, directory_gpx=GPX_DIR
             )
-            if percorso_gpx is None:
-                raise FileNotFoundError(f"File GPX non trovato: {riga[0]}")
-            with open(percorso_gpx, "r", encoding="utf-8", errors="ignore") as file_gpx:
-                traccia = gpxpy.parse(file_gpx)
-            coordinate = [
-                (punto.latitude, punto.longitude)
-                for track in traccia.tracks
-                for segmento in track.segments
-                for punto in segmento.points
-            ]
-            if len(coordinate) < 2:
-                raise ValueError("La tappa non contiene abbastanza coordinate per essere ricalcolata.")
 
             self.input_partenza.setText(f"{coordinate[0][0]:.6f}, {coordinate[0][1]:.6f}")
             self.input_destinazione.setText(f"{coordinate[-1][0]:.6f}, {coordinate[-1][1]:.6f}")
@@ -674,16 +660,7 @@ class PannelloPianificazioneWidget(QFrame):
             return  # l'utente ha già iniziato a compilare i campi manualmente
 
         try:
-            with sqlite3.connect(DB_NAME, timeout=15.0) as conn:
-                tappe = conn.execute(
-                    """
-                    SELECT id, nome_file, start_lat, start_lon, end_lat, end_lon, distanza_km
-                    FROM tappe
-                    WHERE id_progetto = ? AND stato = 'ATTIVA' AND nome_file IS NOT NULL
-                    ORDER BY sequenza ASC
-                    """,
-                    (id_progetto,),
-                ).fetchall()
+            tappe = carica_tappe_attive(id_progetto, DB_NAME)
         except sqlite3.Error as errore:
             print(f"Nota: impossibile leggere le tappe del progetto per il wizard: {errore}")
             return
@@ -1239,125 +1216,24 @@ class PannelloPianificazioneWidget(QFrame):
             QMessageBox.warning(self, "Traccia non valida", "Il percorso calcolato non contiene una distanza valida.")
             return
 
-        conn = None
-        file_gpx = None
-        file_gpx_precedente = None
-        stato_precedente = "ATTIVA"
-        tappa_id = risultato.get("tappa_id")
-        tappa_in_aggiornamento = tappa_id is not None
-        precalcolo_riuscito = True
-        errore_precalcolo = None
+        # Il file GPX appena scritto serve a ripulire se un passo successivo della GUI fallisce.
+        stato_salvataggio = {}
         try:
-            os.makedirs(GPX_DIR, exist_ok=True)
-            conn = sqlite3.connect(DB_NAME, timeout=30.0)
-            with closing(conn):
-                with conn:
-                    cursor = conn.cursor()
-                    if tappa_id is not None:
-                        cursor.execute(
-                            "SELECT nome_file, stato FROM tappe WHERE id = ? AND id_progetto = ?",
-                            (tappa_id, id_progetto_corrente),
-                        )
-                        riga_tappa_esistente = cursor.fetchone()
-                        if not riga_tappa_esistente:
-                            raise ValueError("La tappa da aggiornare non è più presente nel progetto.")
-                        file_gpx_precedente = riga_tappa_esistente[0]
-                        stato_precedente = riga_tappa_esistente[1] or "ATTIVA"
-                    else:
-                        cursor.execute(
-                            "SELECT COALESCE(MAX(sequenza), 0) + 1 FROM tappe WHERE id_progetto = ?",
-                            (id_progetto_corrente,),
-                        )
-                        sequenza = cursor.fetchone()[0]
-
-                    nome_file = f"Pianificato_{id_progetto_corrente}_{uuid.uuid4().hex[:10]}.gpx"
-                    file_gpx = percorso_gpx_progetto(
-                        id_progetto_corrente,
-                        nome_file,
-                        directory_gpx=GPX_DIR,
-                    )
-                    os.makedirs(file_gpx.parent, exist_ok=True)
-
-                    traccia = gpxpy.gpx.GPX()
-                    traccia.creator = "Bikepacking Studio"
-                    segmento = gpxpy.gpx.GPXTrackSegment()
-                    for punto in coordinate:
-                        latitudine, longitudine = punto[:2]
-                        elevazione = float(punto[2]) if len(punto) > 2 else None
-                        segmento.points.append(
-                            gpxpy.gpx.GPXTrackPoint(latitudine, longitudine, elevation=elevazione)
-                        )
-                    track = gpxpy.gpx.GPXTrack(name=f"{partenza} - {destinazione}")
-                    track.segments.append(segmento)
-                    traccia.tracks.append(track)
-
-                    with open(file_gpx, "w", encoding="utf-8") as file:
-                        file.write(traccia.to_xml())
-
-                    valori_rotta = (
-                        nome_file,
-                        coordinate[0][0],
-                        coordinate[0][1],
-                        coordinate[-1][0],
-                        coordinate[-1][1],
-                        round(distanza_km, 2),
-                    )
-                    if tappa_id is not None:
-                        cursor.execute(
-                            """
-                            UPDATE tappe SET nome_file = ?, start_lat = ?, start_lon = ?,
-                                end_lat = ?, end_lon = ?, distanza_km = ?, stato = ?
-                            WHERE id = ? AND id_progetto = ?
-                            """,
-                            (*valori_rotta, stato_precedente, tappa_id, id_progetto_corrente),
-                        )
-                        if cursor.rowcount != 1:
-                            raise ValueError("La tappa non è stata aggiornata; verifica il progetto attivo.")
-                    else:
-                        cursor.execute(
-                            """
-                            INSERT INTO tappe (
-                                id_progetto, sequenza, blocco, nome_file,
-                                start_lat, start_lon, end_lat, end_lon,
-                                distanza_km, stato
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ATTIVA')
-                            """,
-                            (
-                                id_progetto_corrente,
-                                sequenza,
-                                "Pianificato",
-                                *valori_rotta,
-                            ),
-                        )
-                        tappa_id = cursor.lastrowid
-
-            try:
-                risultato_precalcolo = precalcola_tappa(
-                    tappa_id,
-                    file_gpx,
-                    DB_NAME,
-                )
-                if risultato_precalcolo.get("stato") == "ERRORE":
-                    precalcolo_riuscito = False
-                    errore_precalcolo = risultato_precalcolo.get(
-                        "errore", "errore durante il precalcolo"
-                    )
-            except Exception as errore:
-                precalcolo_riuscito = False
-                errore_precalcolo = str(errore)
-                print(f"Errore precalcolo tappa {tappa_id}: {errore}")
-
-            if file_gpx_precedente and precalcolo_riuscito:
-                percorso_precedente = trova_percorso_gpx(
-                    file_gpx_precedente,
-                    id_progetto_corrente,
-                    directory_gpx=GPX_DIR,
-                )
-                if percorso_precedente is not None:
-                    try:
-                        os.remove(percorso_precedente)
-                    except OSError as errore_file:
-                        print(f"Nota: non è stato possibile rimuovere il GPX precedente: {errore_file}")
+            # Scrittura GPX, SQLite e precalcolo: tutta la parte dati sta nel servizio.
+            esito = salva_tappa_pianificata(
+                id_progetto_corrente,
+                coordinate,
+                partenza,
+                destinazione,
+                distanza_km,
+                tappa_id=risultato.get("tappa_id"),
+                db_name=DB_NAME,
+                directory_gpx=GPX_DIR,
+                esito=stato_salvataggio,
+            )
+            tappa_in_aggiornamento = esito["aggiornata"]
+            precalcolo_riuscito = esito["precalcolo_riuscito"]
+            errore_precalcolo = esito["errore_precalcolo"]
 
             if hasattr(finestra_principale, "esegui_audit_automatico"):
                 finestra_principale.esegui_audit_automatico()
@@ -1392,11 +1268,7 @@ class PannelloPianificazioneWidget(QFrame):
                     "Il GPX precedente è stato conservato.",
                 )
         except Exception as errore_salvataggio:
-            if file_gpx and os.path.exists(file_gpx):
-                try:
-                    os.remove(file_gpx)
-                except OSError:
-                    pass
+            rimuovi_gpx_se_esiste(stato_salvataggio.get("file_gpx"))
             QMessageBox.critical(
                 self,
                 "Errore di salvataggio",
@@ -1788,36 +1660,7 @@ class MappaWidget(QWidget):
 
     def _firma_dati_mappa(self, id_progetto, db_name):
         """Crea una firma rapida dei campi DB usati per disegnare il progetto."""
-        try:
-            with closing(sqlite3.connect(db_name)) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    SELECT id, nome_file, sequenza, stato, blocco,
-                           start_lat, start_lon, end_lat, end_lon
-                    FROM tappe
-                    WHERE id_progetto = ?
-                    ORDER BY sequenza ASC, id ASC
-                    """,
-                    (id_progetto,),
-                )
-                tappe = cursor.fetchall()
-                cursor.execute(
-                    """
-                    SELECT tipo_mezzo, vettore, da_luogo, a_luogo,
-                           start_lat, start_lon, end_lat, end_lon
-                    FROM trasferimenti
-                    WHERE id_progetto = ?
-                    ORDER BY id ASC
-                    """,
-                    (id_progetto,),
-                )
-                trasferimenti = cursor.fetchall()
-            contenuto = repr((tappe, trasferimenti)).encode("utf-8")
-            return hashlib.sha256(contenuto).hexdigest()
-        except sqlite3.Error as errore:
-            print(f"Impossibile verificare la cache della mappa: {errore}")
-            return None
+        return firma_dati_mappa(id_progetto, db_name)
 
     def _ripulisci_mappa_worker(self, worker):
         """Rimuove dalla lista di sopravvivenza un worker di caricamento mappa che ha finito, e lo elimina."""
@@ -2108,257 +1951,8 @@ class WorkerCaricamentoMappa(QThread):
         self.leggi_token_corrente = leggi_token_corrente
 
     def run(self):
-        import sqlite3
-        import os
-        import gpxpy
-        
-        payload = {"type": "FeatureCollection", "features": [], "bbox": None}
-        bbox_progetto = None
-        
-        try:
-            conn = sqlite3.connect(self.db_n)
-            cursor = conn.cursor()
-            
-            # 1. ESTRAZIONE TAPPE GPX REALI
-            cursor.execute(
-                """
-                SELECT id, nome_file, sequenza, stato, blocco,
-                       start_lat, start_lon, end_lat, end_lon
-                FROM tappe
-                WHERE id_progetto = ?
-                ORDER BY sequenza ASC
-                """,
-                (self.p_id,),
-            )
-            tappe = cursor.fetchall()
-            geometrie_precalcolate = {}
-            try:
-                cursor.execute(
-                    """
-                    SELECT geometria.tappa_id, geometria.geometria_semplificata,
-                           geometria.bbox_min_lon, geometria.bbox_min_lat,
-                           geometria.bbox_max_lon, geometria.bbox_max_lat
-                    FROM tappe
-                    JOIN tappa_geometrie AS geometria
-                      ON geometria.tappa_id = tappe.id
-                    JOIN tappa_analisi AS analisi
-                      ON analisi.tappa_id = geometria.tappa_id
-                     AND analisi.gpx_sha256 = geometria.gpx_sha256
-                    WHERE tappe.id_progetto = ?
-                      AND geometria.versione_algoritmo = ?
-                    """,
-                    (self.p_id, VERSIONE_ALGORITMO_GEOMETRIA),
-                )
-                geometrie_precalcolate = {
-                    riga[0]: (riga[1], riga[2], riga[3], riga[4], riga[5])
-                    for riga in cursor.fetchall()
-                }
-            except sqlite3.OperationalError as errore_geometria:
-                print(
-                    "Geometrie precalcolate non disponibili; "
-                    f"uso il fallback GPX: {errore_geometria}"
-                )
-
-            cursor.execute(
-                """
-                SELECT lat_arrotondata, lon_arrotondata, nome
-                FROM cache_nomi_luoghi
-                WHERE nome IS NOT NULL AND nome != ''
-                """
-            )
-            nomi_luoghi = {
-                (round(lat, 5), round(lon, 5)): nome
-                for lat, lon, nome in cursor.fetchall()
-            }
-            coordinate_nomi_luoghi = list(nomi_luoghi.items())
-
-            def nome_luogo(lat, lon, lat_salvata, lon_salvata):
-                for latitudine, longitudine in (
-                    (lat, lon),
-                    (lat_salvata, lon_salvata),
-                ):
-                    if latitudine is None or longitudine is None:
-                        continue
-                    nome = nomi_luoghi.get(
-                        (round(float(latitudine), 5), round(float(longitudine), 5))
-                    )
-                    if nome:
-                        return str(nome)
-                latitudine = float(lat)
-                longitudine = float(lon)
-                fattore_longitudine = 111320 * max(
-                    0.01, abs(math.cos(math.radians(latitudine)))
-                )
-                distanza_minima = 250 ** 2
-                nome_piu_vicino = None
-                for (lat_cache, lon_cache), nome in coordinate_nomi_luoghi:
-                    distanza_quadrata = (
-                        ((lat_cache - latitudine) * 111320) ** 2
-                        + ((lon_cache - longitudine) * fattore_longitudine) ** 2
-                    )
-                    if distanza_quadrata < distanza_minima:
-                        distanza_minima = distanza_quadrata
-                        nome_piu_vicino = nome
-                if nome_piu_vicino:
-                    return str(nome_piu_vicino)
-                return f"{float(lat):.6f}, {float(lon):.6f}"
-            
-            for (
-                tappa_id, nome_file_db, seq, stato, blocco,
-                start_lat, start_lon, end_lat, end_lon,
-            ) in tappe:
-                if not nome_file_db: continue
-                solo_nome = os.path.basename(nome_file_db)
-                filepath = trova_percorso_gpx(
-                    solo_nome, self.p_id, directory_gpx=GPX_DIR
-                )
-                segmenti_coordinate = None
-                bbox_tappa = None
-
-                geometria_salvata = geometrie_precalcolate.get(tappa_id)
-                if geometria_salvata:
-                    try:
-                        segmenti_coordinate = decomprimi_segmenti(
-                            geometria_salvata[0]
-                        )
-                        bbox_tappa = list(geometria_salvata[1:])
-                    except (OSError, ValueError, TypeError) as errore:
-                        print(
-                            f"Geometria salvata non valida per la tappa "
-                            f"{tappa_id}; uso il GPX: {errore}"
-                        )
-
-                if segmenti_coordinate is None and filepath is not None and os.path.exists(filepath):
-                    try:
-                        with open(
-                            filepath, 'r', encoding='utf-8', errors='ignore'
-                        ) as gpx_file:
-                            gpx = gpxpy.parse(gpx_file)
-                            segmenti_coordinate = []
-                            for track in gpx.tracks:
-                                for segment in track.segments:
-                                    coords_segmento = [
-                                        [point.longitude, point.latitude]
-                                        for point in segment.points
-                                    ]
-                                    if coords_segmento:
-                                        segmenti_coordinate.append(coords_segmento)
-                    except Exception as errore:
-                        print(
-                            f"Errore lettura GPX per la tappa {tappa_id} "
-                            f"({solo_nome}): {errore}"
-                        )
-
-                punti_tappa = [
-                    punto
-                    for segmento in (segmenti_coordinate or [])
-                    for punto in segmento
-                ]
-                if punti_tappa:
-                    if bbox_tappa is None:
-                        bbox_tappa = [
-                            min(punto[0] for punto in punti_tappa),
-                            min(punto[1] for punto in punti_tappa),
-                            max(punto[0] for punto in punti_tappa),
-                            max(punto[1] for punto in punti_tappa),
-                        ]
-                    coordinate_partenza = punti_tappa[0]
-                    coordinate_arrivo = punti_tappa[-1]
-                    nome_partenza = nome_luogo(
-                        coordinate_partenza[1],
-                        coordinate_partenza[0],
-                        start_lat,
-                        start_lon,
-                    )
-                    nome_arrivo = nome_luogo(
-                        coordinate_arrivo[1],
-                        coordinate_arrivo[0],
-                        end_lat,
-                        end_lon,
-                    )
-                    if bbox_progetto is None:
-                        bbox_progetto = bbox_tappa.copy()
-                    else:
-                        bbox_progetto = [
-                            min(bbox_progetto[0], bbox_tappa[0]),
-                            min(bbox_progetto[1], bbox_tappa[1]),
-                            max(bbox_progetto[2], bbox_tappa[2]),
-                            max(bbox_progetto[3], bbox_tappa[3]),
-                        ]
-                    payload["features"].append({
-                        "type": "Feature",
-                        "geometry": geometria_geojson(segmenti_coordinate),
-                        "properties": {
-                            "tipo": "tappa", "tappa_id": tappa_id, "sequenza": seq,
-                            "blocco": str(blocco), "stato": str(stato),
-                            "nome_file": solo_nome,
-                            "nome_luogo_partenza": nome_partenza,
-                            "nome_luogo_arrivo": nome_arrivo,
-                        }
-                    })
-                    payload["features"].append({
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": coordinate_partenza,
-                        },
-                        "properties": {
-                            "tipo": "marker_inizio",
-                            "tappa_id": tappa_id,
-                            "sequenza": seq,
-                            "nome": f"Tappa {seq} - inizio",
-                            "nome_luogo": nome_partenza,
-                            "nome_file": solo_nome,
-                        }
-                    })
-                    payload["features"].append({
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": coordinate_arrivo,
-                        },
-                        "properties": {
-                            "tipo": "marker_fine",
-                            "tappa_id": tappa_id,
-                            "sequenza": seq,
-                            "nome": f"Tappa {seq} - fine",
-                            "nome_luogo": nome_arrivo,
-                            "nome_file": solo_nome,
-                        }
-                    })
-
-            # 2. ESTRAZIONE TRASFERIMENTI MANCANTI (Aereo, Nave, Treno)
-            cursor.execute("SELECT id, tipo_mezzo, vettore, da_luogo, a_luogo, start_lat, start_lon, end_lat, end_lon FROM trasferimenti WHERE id_progetto = ?", (self.p_id,))
-            trasferimenti = cursor.fetchall()
-            
-            for t_id, mezzo, vettore, da, a, s_lat, s_lon, e_lat, e_lon in trasferimenti:
-                if s_lat and s_lon and e_lat and e_lon:
-                    payload["features"].append({
-                        "type": "Feature",
-                        "geometry": {
-                            "type": "LineString",
-                            "coordinates": [[s_lon, s_lat], [e_lon, e_lat]]
-                        },
-                        "properties": {
-                            "tipo": "trasferimento", "mezzo": str(mezzo),
-                            "vettore": str(vettore), "da": str(da), "a": str(a), "nome_file": f"Trasferimento: {mezzo}"
-                        }
-                    })
-                    for longitudine, latitudine in ((s_lon, s_lat), (e_lon, e_lat)):
-                        if bbox_progetto is None:
-                            bbox_progetto = [
-                                longitudine, latitudine, longitudine, latitudine
-                            ]
-                        else:
-                            bbox_progetto[0] = min(bbox_progetto[0], longitudine)
-                            bbox_progetto[1] = min(bbox_progetto[1], latitudine)
-                            bbox_progetto[2] = max(bbox_progetto[2], longitudine)
-                            bbox_progetto[3] = max(bbox_progetto[3], latitudine)
-                    
-            payload["bbox"] = bbox_progetto
-            conn.close()
-        except Exception as err:
-            print(f"Errore database nel worker: {err}")
+        # La lettura di DB e GPX e la costruzione del GeoJSON stanno nel servizio (senza Qt).
+        payload = costruisci_geojson_progetto(self.p_id, self.db_n, directory_gpx=GPX_DIR)
 
         # I worker superati non devono sovrascrivere i dati correnti sul server Flask.
         if self.leggi_token_corrente() == self.token_caricamento:
