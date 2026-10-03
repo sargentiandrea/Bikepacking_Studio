@@ -31,34 +31,7 @@ from gui.dashboard import DashboardPage
 from gui.mappa import MappaWidget
 from gui.widget_blocchi import GestoreBlocchiWidget
 from gui.widget_timeline_catena import TimelineCatenaWidget
-
-class EstrazioneClimaWorker(QObject):
-    """Esegue la lettura COG fuori dal thread dell'interfaccia."""
-
-    progresso = Signal(str)
-    completata = Signal(dict)
-    fallita = Signal(str)
-
-    def __init__(self, db_name, progetto_id):
-        super().__init__()
-        self.db_name = db_name
-        self.progetto_id = progetto_id
-
-    def run(self):
-        try:
-            import service.clima_estrattore
-
-            risultato = service.clima_estrattore.estrai_clima_per_tappe(
-                self.db_name,
-                self.progetto_id,
-                progress_callback=self.progresso.emit,
-            )
-        except Exception as errore:
-            self.fallita.emit(str(errore))
-        else:
-            self.completata.emit(risultato)
-
-
+from gui.worker_clima import GestoreEstrazioneClima
 from gui.dialog_clima_soglie import ClimaSoglieDialog
 from gui import dialog_elenco_paesi
 from gui import dialog_nuovo_progetto
@@ -120,8 +93,15 @@ class BikepackingStudioApp(QMainWindow):
         self._clima_scenario_id = None
         self._clima_ultima_applicazione_id = None
         self._clima_risultati_correnti = []
-        self._clima_thread = None
-        self._clima_worker = None
+        # Il gestore incapsula thread e worker dell'estrazione clima.
+        self._clima_estrazione = GestoreEstrazioneClima(
+            self,
+            DB_NAME,
+            self._al_progresso_clima,
+            self._estrazione_clima_completata,
+            self._estrazione_clima_fallita,
+            self._estrazione_clima_terminata,
+        )
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -706,7 +686,7 @@ class BikepackingStudioApp(QMainWindow):
             self._clima_ordine_scenario = None
             self._clima_scenario_id = None
             self._clima_risultati_correnti = []
-            self.btn_estrai_clima.setEnabled(self._clima_thread is None)
+            self.btn_estrai_clima.setEnabled(not self._clima_estrazione.attiva)
             service.migrazione_catena_stagionale.assicura_schema_catena_stagionale(
                 DB_NAME
             )
@@ -960,6 +940,7 @@ class BikepackingStudioApp(QMainWindow):
             )
 
     def avvia_estrazione_clima(self):
+        """Avvia l'estrazione climatica CHELSA in background."""
         if not self.current_progetto_id:
             QMessageBox.information(
                 self,
@@ -967,7 +948,7 @@ class BikepackingStudioApp(QMainWindow):
                 "Apri un percorso prima di estrarre i dati climatici.",
             )
             return
-        if self._clima_thread is not None:
+        if self._clima_estrazione.attiva:
             return
 
         self.btn_estrai_clima.setEnabled(False)
@@ -975,26 +956,14 @@ class BikepackingStudioApp(QMainWindow):
             "Estrazione CHELSA avviata. La prima lettura richiede internet; "
             "l’interfaccia resta utilizzabile."
         )
-        self._clima_thread = QThread(self)
-        self._clima_worker = EstrazioneClimaWorker(
-            DB_NAME, self.current_progetto_id
-        )
-        self._clima_worker.moveToThread(self._clima_thread)
-        self._clima_thread.started.connect(self._clima_worker.run)
-        self._clima_worker.progresso.connect(self.lbl_stato_clima.setText)
-        self._clima_worker.completata.connect(
-            self._estrazione_clima_completata
-        )
-        self._clima_worker.fallita.connect(self._estrazione_clima_fallita)
-        self._clima_worker.completata.connect(self._clima_thread.quit)
-        self._clima_worker.fallita.connect(self._clima_thread.quit)
-        self._clima_worker.completata.connect(self._clima_worker.deleteLater)
-        self._clima_worker.fallita.connect(self._clima_worker.deleteLater)
-        self._clima_thread.finished.connect(self._clima_thread.deleteLater)
-        self._clima_thread.finished.connect(self._estrazione_clima_terminata)
-        self._clima_thread.start()
+        self._clima_estrazione.avvia(self.current_progetto_id)
+
+    def _al_progresso_clima(self, messaggio):
+        """Mostra l'avanzamento dell'estrazione nella barra di stato."""
+        self.lbl_stato_clima.setText(messaggio)
 
     def _estrazione_clima_completata(self, risultato):
+        """Ricalcola la pagina clima e comunica quante finestre sono state lette."""
         self.calcola_pagina_clima()
         self.lbl_stato_clima.setText(
             self.lbl_stato_clima.text()
@@ -1003,13 +972,13 @@ class BikepackingStudioApp(QMainWindow):
         )
 
     def _estrazione_clima_fallita(self, messaggio):
+        """Mostra l'errore avvenuto durante l'estrazione."""
         self.lbl_stato_clima.setText(
             f"Errore nell’estrazione CHELSA: {messaggio}"
         )
 
     def _estrazione_clima_terminata(self):
-        self._clima_thread = None
-        self._clima_worker = None
+        """Riabilita il pulsante di estrazione al termine del thread."""
         self.btn_estrai_clima.setEnabled(bool(self.current_progetto_id))
 
     def _aggiorna_controlli_scenario(self, ordine_blocchi):
