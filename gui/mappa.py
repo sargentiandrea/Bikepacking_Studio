@@ -35,8 +35,14 @@ from service.salvataggio_tappa_service import (
 from service.geo_utils import calcola_distanza_haversine
 from service.punti_service import (
     aggiorna_testi_tappe,
+    estremi_tappa,
     etichetta_punto,
+    firma_pianificazione,
+    indice_primo_punto_vuoto,
     prepara_tappe_intermedie,
+    testo_coordinate,
+    testo_segnaposto_punto,
+    valida_pianificazione,
     testo_intestazione_tappe_intermedie,
     testo_riga_tappa_intermedia,
 )
@@ -346,11 +352,11 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _firma_pianificazione(self):
         """Crea una chiave per sapere se l'anteprima corrisponde ai campi attuali."""
-        return (
+        return firma_pianificazione(
             getattr(getattr(self.mappa_widget, "parent_app", None), "current_progetto_id", None),
-            self.input_partenza.text().strip(),
-            tuple(punto["input"].text().strip() for punto in self.punti_passaggio),
-            self.input_destinazione.text().strip(),
+            self.input_partenza.text(),
+            [punto["input"].text() for punto in self.punti_passaggio],
+            self.input_destinazione.text(),
             self.combo_profilo.currentText(),
             self.tappa_in_modifica_id,
         )
@@ -358,26 +364,21 @@ class PannelloPianificazioneWidget(QFrame):
     def _valida_pianificazione(self, mostra_dialogo=True):
         """Controlla progetto e luoghi, restituendo i dati nell'ordine della rotta."""
         progetto = getattr(getattr(self.mappa_widget, "parent_app", None), "current_progetto_id", None)
-        partenza = self.input_partenza.text().strip()
-        destinazione = self.input_destinazione.text().strip()
-        punti = [punto["input"].text().strip() for punto in self.punti_passaggio]
-
-        messaggio = None
-        titolo = "Pianificazione non valida"
-        if not progetto:
-            titolo, messaggio = "Percorso richiesto", "Apri o crea un percorso dalla Dashboard prima di pianificare."
-        elif not partenza or not destinazione:
-            titolo, messaggio = "Campi incompleti", "Inserisci sia partenza che destinazione."
-        elif any(not punto for punto in punti):
-            titolo, messaggio = "Punto incompleto", "Completa oppure rimuovi ogni punto di passaggio."
-
-        if messaggio:
+        # Le regole di validazione stanno nel servizio; qui si mostra solo l'errore.
+        dati, errore = valida_pianificazione(
+            progetto,
+            self.input_partenza.text(),
+            self.input_destinazione.text(),
+            [punto["input"].text() for punto in self.punti_passaggio],
+        )
+        if errore:
+            titolo, messaggio = errore
             if mostra_dialogo:
                 QMessageBox.warning(self, titolo, messaggio)
             else:
                 self.lbl_stato_superfici.setText(messaggio)
             return None
-        return progetto, partenza, punti, destinazione
+        return dati
 
     def _avvia_worker_rotta(self, callback, etichetta_pulsante, mostra_dialogo=True):
         """Avvia il calcolo della rotta in background senza bloccare la mappa."""
@@ -444,11 +445,11 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _aggiungi_waypoint_da_coordinate(self, latitudine, longitudine):
         """Inserisce nel form un punto ricevuto dalla mappa e aggiorna l'anteprima."""
-        punto_vuoto = next((punto for punto in self.punti_passaggio if not punto["input"].text().strip()), None)
-        if punto_vuoto is None:
+        indice_vuoto = indice_primo_punto_vuoto([punto["input"].text() for punto in self.punti_passaggio])
+        if indice_vuoto is None:
             self._aggiungi_punto_passaggio()
-            punto_vuoto = self.punti_passaggio[-1]
-        punto_vuoto["input"].setText(f"{latitudine:.6f}, {longitudine:.6f}")
+            indice_vuoto = len(self.punti_passaggio) - 1
+        self.punti_passaggio[indice_vuoto]["input"].setText(testo_coordinate(latitudine, longitudine))
         self._ricalcola_anteprima()
 
     def _prepara_modifica_tappa(self, tappa_id, latitudine, longitudine):
@@ -460,8 +461,9 @@ class PannelloPianificazioneWidget(QFrame):
                 tappa_id, progetto, DB_NAME, directory_gpx=GPX_DIR
             )
 
-            self.input_partenza.setText(f"{coordinate[0][0]:.6f}, {coordinate[0][1]:.6f}")
-            self.input_destinazione.setText(f"{coordinate[-1][0]:.6f}, {coordinate[-1][1]:.6f}")
+            testo_partenza, testo_destinazione = estremi_tappa(coordinate)
+            self.input_partenza.setText(testo_partenza)
+            self.input_destinazione.setText(testo_destinazione)
             while self.punti_passaggio:
                 self._rimuovi_punto_passaggio(self.punti_passaggio[-1]["widget"])
             self.tappa_in_modifica_id = tappa_id
@@ -862,7 +864,7 @@ class PannelloPianificazioneWidget(QFrame):
         lbl_punto.setStyleSheet("color: #38bdf8; font-weight: bold;")
 
         campo = QLineEdit()
-        campo.setPlaceholderText(f"Punto di passaggio {etichetta}...")
+        campo.setPlaceholderText(testo_segnaposto_punto(etichetta))
 
         btn_rimuovi = QPushButton("−")
         btn_rimuovi.setFixedSize(28, 28)
@@ -892,7 +894,7 @@ class PannelloPianificazioneWidget(QFrame):
         for indice, punto in enumerate(self.punti_passaggio):
             etichetta = etichetta_punto(indice)
             punto["label"].setText(etichetta)
-            punto["input"].setPlaceholderText(f"Punto di passaggio {etichetta}...")
+            punto["input"].setPlaceholderText(testo_segnaposto_punto(etichetta))
 
     def _toggle_elenco_tappe_intermedie(self):
         """Apre/chiude l'elenco a scorrimento delle tappe intermedie del percorso caricato."""

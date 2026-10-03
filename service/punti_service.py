@@ -72,3 +72,71 @@ def aggiorna_testi_tappe(dati_tappe, testi_per_id):
             tappa["testo"] = nuovo_testo
             modificati.append(indice)
     return modificati
+
+
+# ---------------------------------------------------------------------------
+# Form dei punti di passaggio (sotto-fase 3.2)
+# ---------------------------------------------------------------------------
+
+def testo_segnaposto_punto(etichetta):
+    """Testo guida (placeholder) di un campo punto di passaggio, es. 'Punto di passaggio B...'."""
+    return f"Punto di passaggio {etichetta}..."
+
+
+def pulisci_testi(testi):
+    """Restituisce i testi dei campi senza spazi iniziali/finali, nello stesso ordine."""
+    return [testo.strip() for testo in testi]
+
+
+def firma_pianificazione(progetto, partenza, punti, destinazione, profilo, tappa_in_modifica_id):
+    """
+    Crea la chiave che dice se un'anteprima calcolata corrisponde ancora ai campi
+    del form: se cambia anche solo un campo, la chiave è diversa.
+    I testi vengono ripuliti dagli spazi; i punti di passaggio diventano una tupla.
+    """
+    return (
+        progetto,
+        partenza.strip(),
+        tuple(pulisci_testi(punti)),
+        destinazione.strip(),
+        profilo,
+        tappa_in_modifica_id,
+    )
+
+
+def valida_pianificazione(progetto, partenza, destinazione, punti):
+    """
+    Controlla progetto e luoghi del form. I testi vengono ripuliti dagli spazi.
+
+    Restituisce (dati, errore):
+    - se tutto è valido: dati = (progetto, partenza, punti, destinazione), errore = None
+    - se non è valido: dati = None, errore = (titolo, messaggio) da mostrare all'utente
+    """
+    partenza = partenza.strip()
+    destinazione = destinazione.strip()
+    punti = pulisci_testi(punti)
+
+    if not progetto:
+        return None, ("Percorso richiesto", "Apri o crea un percorso dalla Dashboard prima di pianificare.")
+    if not partenza or not destinazione:
+        return None, ("Campi incompleti", "Inserisci sia partenza che destinazione.")
+    if any(not punto for punto in punti):
+        return None, ("Punto incompleto", "Completa oppure rimuovi ogni punto di passaggio.")
+    return (progetto, partenza, punti, destinazione), None
+
+
+def indice_primo_punto_vuoto(testi):
+    """Indice del primo campo vuoto (spazi compresi) tra i testi dei punti di passaggio, o None se sono tutti pieni."""
+    for indice, testo in enumerate(testi):
+        if not testo.strip():
+            return indice
+    return None
+
+
+def estremi_tappa(coordinate):
+    """
+    Dalle coordinate [(lat, lon), ...] di una tappa esistente ricava i testi di
+    partenza e destinazione per il form: (testo_partenza, testo_destinazione).
+    Solleva IndexError se la lista è vuota.
+    """
+    return testo_coordinate(*coordinate[0][:2]), testo_coordinate(*coordinate[-1][:2])
