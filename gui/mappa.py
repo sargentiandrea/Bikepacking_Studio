@@ -1557,7 +1557,7 @@ class MappaWidget(QWidget):
             elif evento.get("action") == "cancel_interaction":
                 self.web_view.page().runJavaScript(
                     "if(window.impostaModalitaInterazioneMappa) "
-                    f"window.impostaModalitaInterazioneMappa(null, {int(id_progetto_corrente)});"
+                    f"window.impostaModalitaInterazioneMappa(null, {int(id_progetto)});"
                 )
                 self.pannello_pianificazione.lbl_stato_superfici.setText("Modalità mappa disattivata.")
             self._poll_interazioni_timer.stop()
