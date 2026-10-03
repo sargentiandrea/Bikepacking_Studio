@@ -31,6 +31,12 @@ from gui.dashboard import DashboardPage
 from gui.mappa import MappaWidget
 from gui.widget_blocchi import GestoreBlocchiWidget
 from gui.widget_timeline_catena import TimelineCatenaWidget
+from gui.pagine.pagina_clima import PaginaClima
+from gui.pagine.pagina_statistiche import PaginaStatistiche
+from gui.pagine.pagina_audit import PaginaAudit
+from gui.pagine.pagina_trasporti import PaginaTrasporti
+from gui.pagine.pagina_dogane import PaginaDogane
+from gui.pagine.stile_pagina import imposta_righe_tabella
 from gui.worker_clima import GestoreEstrazioneClima
 from gui.dialog_clima_soglie import ClimaSoglieDialog
 from gui import dialog_elenco_paesi
@@ -252,324 +258,74 @@ class BikepackingStudioApp(QMainWindow):
         return self.page_mappa
     
     def crea_pagina_audit(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(25, 25, 25, 25)
+        """Crea la pagina Audit e la registra come `page_audit`."""
+        self.page_audit = PaginaAudit(
+            self.mostra_mappa_gap,
+            self.raccorda_traccia_istantaneo,
+            self.avvia_wizard_trasferimento,
+            self,
+        )
+        return self.page_audit
 
-        lbl_titolo = QLabel("⚠️ Control Room & Audit Qualità Percorso")
-        lbl_titolo.setFont(QFont("Arial", 16, QFont.Bold))
-        lbl_titolo.setStyleSheet("color: #0e639c;")
-        layout.addWidget(lbl_titolo)
-
-        self.lbl_stato_health = QLabel("Seleziona un percorso per verificare gli allarmi.")
-        self.lbl_stato_health.setFont(QFont("Arial", 11))
-        layout.addWidget(self.lbl_stato_health)
-
-        layout.addSpacing(10)
-
-        self.table_allarmi = QTableWidget()
-        self.table_allarmi.setColumnCount(4)
-        self.table_allarmi.setHorizontalHeaderLabels(["Tipo Criticità", "Messaggio / Dettaglio Completo", "Stato", "Opzioni & Soluzioni Proposte"])
-        
-        self.table_allarmi.verticalHeader().setDefaultSectionSize(55)
-        header = self.table_allarmi.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Interactive)
-        header.setSectionResizeMode(1, QHeaderView.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.Interactive)
-        header.setSectionResizeMode(3, QHeaderView.Interactive)
-
-        self.table_allarmi.setColumnWidth(0, 160)
-        self.table_allarmi.setColumnWidth(2, 90)
-        self.table_allarmi.setColumnWidth(3, 380)
-
-        self.table_allarmi.setStyleSheet("""
-            QTableWidget { background-color: #252526; gridline-color: #3e3e42; color: #ffffff; border: 1px solid #3e3e42; border-radius: 5px; }
-            QTableWidget::item { padding: 6px; }
-            QHeaderView::section { background-color: #2d2d30; color: #a93226; font-weight: bold; padding: 8px; }
-        """)
-        layout.addWidget(self.table_allarmi)
-        return widget
-
-    def _stile_pagina_servizio(self, widget):
-        widget.setStyleSheet("""
-            QLabel { font-family: Arial; color: #cccccc; }
-            QTableWidget { background-color: #252526; gridline-color: #3e3e42; color: #ffffff; border: 1px solid #3e3e42; border-radius: 5px; }
-            QTableWidget::item { padding: 6px; }
-            QHeaderView::section { background-color: #2d2d30; color: #a93226; font-weight: bold; padding: 8px; }
-            QDateEdit, QSpinBox { background-color: #3e3e42; color: #ffffff; border: 1px solid #555555; padding: 5px; }
-            QPushButton { background-color: #3e3e42; color: #ffffff; border: 1px solid #555555; padding: 8px 10px; border-radius: 4px; }
-            QPushButton:hover { background-color: #0e639c; border-color: #0e639c; }
-            QTabWidget::pane { border: 1px solid #3e3e42; background-color: #252526; }
-            QTabBar::tab { background-color: #2d2d30; color: #cccccc; padding: 8px 12px; border: 1px solid #3e3e42; }
-            QTabBar::tab:selected { background-color: #0e639c; color: #ffffff; }
-        """)
-        for table in widget.findChildren(QTableWidget):
-            table.verticalHeader().setDefaultSectionSize(55)
+    def _imposta_righe_tabella(self, tabella, righe):
+        """Delega al helper condiviso il riempimento di una tabella."""
+        imposta_righe_tabella(tabella, righe)
 
     def crea_pagina_trasporti(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(25, 25, 25, 25)
-        lbl = QLabel("🚢 Logistica e Trasferimenti Intermodali")
-        lbl.setFont(QFont("Arial", 16, QFont.Bold))
-        lbl.setStyleSheet("color: #0e639c;")
-        layout.addWidget(lbl)
-
-        self.lbl_stato_trasporti = QLabel("Seleziona un percorso per visualizzare trasferimenti e interruzioni.")
-        layout.addWidget(self.lbl_stato_trasporti)
-
-        tabs = QTabWidget()
-        self.table_trasferimenti = QTableWidget()
-        self.table_trasferimenti.setColumnCount(7)
-        self.table_trasferimenti.setHorizontalHeaderLabels([
-            "Mezzo", "Vettore", "Da", "A", "Durata", "Costo EUR", "Note"
-        ])
-        self.table_trasferimenti.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        tabs.addTab(self.table_trasferimenti, "Trasferimenti salvati")
-
-        gap_page = QWidget()
-        gap_layout = QVBoxLayout(gap_page)
-        self.table_gap_trasporti = QTableWidget()
-        self.table_gap_trasporti.setColumnCount(3)
-        self.table_gap_trasporti.setHorizontalHeaderLabels(["Tipo", "Tappa di partenza", "Dettaglio"])
-        self.table_gap_trasporti.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        gap_layout.addWidget(self.table_gap_trasporti)
-        btn_raccorda_gap = QPushButton("🔗 Genera raccordo GPX per il gap selezionato")
-        btn_raccorda_gap.clicked.connect(self.raccorda_gap_selezionato)
-        gap_layout.addWidget(btn_raccorda_gap)
-        tabs.addTab(gap_page, "Interruzioni rilevate")
-        layout.addWidget(tabs)
-
-        btn_aggiorna = QPushButton("🔄 Aggiorna dati logistici")
-        btn_aggiorna.clicked.connect(self.aggiorna_pagina_trasporti)
-        layout.addWidget(btn_aggiorna)
-        self._stile_pagina_servizio(widget)
-        return widget
+        """Crea la pagina Trasporti e la registra come `page_trasporti`."""
+        self.page_trasporti = PaginaTrasporti(
+            self.raccorda_traccia_istantaneo, self
+        )
+        return self.page_trasporti
 
     def crea_pagina_dogane(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(25, 25, 25, 25)
-        lbl = QLabel("🛂 Dogane & Requisiti di Ingresso")
-        lbl.setFont(QFont("Arial", 16, QFont.Bold))
-        lbl.setStyleSheet("color: #0e639c;")
-        layout.addWidget(lbl)
-
-        self.lbl_stato_dogane = QLabel("Seleziona un percorso per visualizzare i dati doganali salvati.")
-        layout.addWidget(self.lbl_stato_dogane)
-        self.table_dogane = QTableWidget()
-        self.table_dogane.setColumnCount(9)
-        self.table_dogane.setHorizontalHeaderLabels([
-            "Ordine", "ISO", "Paese", "Area", "Passaporto", "Visto",
-            "Valuta", "Roaming", "Drone"
-        ])
-        self.table_dogane.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.table_dogane.horizontalHeader().setStretchLastSection(True)
-        layout.addWidget(self.table_dogane)
-
-        btn_aggiorna = QPushButton("🔄 Ricarica dati doganali")
-        btn_aggiorna.clicked.connect(self.aggiorna_pagina_dogane)
-        layout.addWidget(btn_aggiorna)
-        self._stile_pagina_servizio(widget)
-        return widget
+        """Crea la pagina Dogane e la registra come `page_dogane`."""
+        self.page_dogane = PaginaDogane(self)
+        return self.page_dogane
 
     def crea_pagina_clima(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(25, 25, 25, 25)
-        lbl = QLabel("🗓️ Catena Stagionale & Clima")
-        lbl.setFont(QFont("Arial", 16, QFont.Bold))
-        lbl.setStyleSheet("color: #0e639c;")
-        layout.addWidget(lbl)
+        """Crea la pagina Clima, la registra come `page_clima` e ne espone i controlli.
 
-        controls = QHBoxLayout()
-        controls.addWidget(QLabel("Data di partenza"))
-        self.input_data_partenza = QDateEdit()
-        self.input_data_partenza.setCalendarPopup(True)
-        self.input_data_partenza.setDisplayFormat("dd/MM/yyyy")
-        self.input_data_partenza.setDate(QDate.currentDate())
-        controls.addWidget(self.input_data_partenza)
-        controls.addWidget(QLabel("Modificatore giorni di riposo"))
-        self.input_riposo = QSpinBox()
-        self.input_riposo.setRange(-10, 10)
-        controls.addWidget(self.input_riposo)
-        btn_calcola = QPushButton("Calcola")
-        btn_calcola.clicked.connect(self.calcola_pagina_clima)
-        controls.addWidget(btn_calcola)
-        btn_salva = QPushButton("Salva impostazioni")
-        btn_salva.clicked.connect(self.salva_impostazioni_clima)
-        controls.addWidget(btn_salva)
-        layout.addLayout(controls)
-
-        controlli_clima = QHBoxLayout()
-        self.btn_estrai_clima = QPushButton(
-            "Estrai/aggiorna dati CHELSA per paese"
-        )
-        self.btn_estrai_clima.clicked.connect(self.avvia_estrazione_clima)
-        controlli_clima.addWidget(self.btn_estrai_clima)
-        self.btn_soglie_clima = QPushButton("Impostazioni semaforo")
-        self.btn_soglie_clima.clicked.connect(self.apri_soglie_clima)
-        controlli_clima.addWidget(self.btn_soglie_clima)
-        controlli_clima.addWidget(
-            QLabel(
-                "Internet serve per l’estrazione; i riepiloghi restano poi offline."
-            )
-        )
-        controlli_clima.addStretch(1)
-        layout.addLayout(controlli_clima)
-
-        controlli_scenario = QHBoxLayout()
-        controlli_scenario.addWidget(QLabel("Sposta nello scenario"))
-        self.combo_blocco_scenario = QComboBox()
-        self.combo_blocco_scenario.setMinimumWidth(180)
-        controlli_scenario.addWidget(self.combo_blocco_scenario)
-        controlli_scenario.addWidget(QLabel("nuova posizione"))
-        self.combo_posizione_scenario = QComboBox()
-        controlli_scenario.addWidget(self.combo_posizione_scenario)
-        self.btn_applica_scenario = QPushButton("Prova spostamento")
-        self.btn_applica_scenario.clicked.connect(self.sposta_blocco_scenario)
-        controlli_scenario.addWidget(self.btn_applica_scenario)
-        self.btn_ripristina_scenario = QPushButton("Ripristina ordine")
-        self.btn_ripristina_scenario.clicked.connect(self.ripristina_ordine_scenario)
-        controlli_scenario.addWidget(self.btn_ripristina_scenario)
-        self.btn_conferma_scenario = QPushButton("Conferma scenario")
-        self.btn_conferma_scenario.clicked.connect(
-            self.conferma_scenario_clima
-        )
-        controlli_scenario.addWidget(self.btn_conferma_scenario)
-        self.btn_annulla_scenario = QPushButton(
-            "Annulla ultima applicazione"
-        )
-        self.btn_annulla_scenario.clicked.connect(
-            self.annulla_ultima_applicazione_scenario
-        )
-        controlli_scenario.addWidget(self.btn_annulla_scenario)
-        layout.addLayout(controlli_scenario)
-
-        self.lbl_stato_clima = QLabel(
-            "Stima con margini: la proiezione non è una probabilità matematica."
-        )
-        layout.addWidget(self.lbl_stato_clima)
-        self.lbl_regole_clima = QLabel(
-            "1 tappa = 1 giorno; 1 riposo ogni 5 tappe; buffer: 5 giorni per "
-            "mese di calendario attraversato e 7 giorni ogni 4 mesi. "
-            "I buffer non ne generano altri."
-        )
-        self.lbl_regole_clima.setWordWrap(True)
-        layout.addWidget(self.lbl_regole_clima)
-
-        lbl_timeline = QLabel("Timeline del viaggio")
-        lbl_timeline.setStyleSheet("font-weight: bold; color: #cccccc;")
-        layout.addWidget(lbl_timeline)
-        self.timeline_clima = TimelineCatenaWidget()
-        self.area_timeline_clima = QScrollArea()
-        self.area_timeline_clima.setWidgetResizable(True)
-        self.area_timeline_clima.setMaximumHeight(190)
-        self.area_timeline_clima.setWidget(self.timeline_clima)
-        layout.addWidget(self.area_timeline_clima)
-
-        lbl_tabella = QLabel("Dettaglio per blocco e paese")
-        lbl_tabella.setStyleSheet("font-weight: bold; color: #cccccc;")
-        layout.addWidget(lbl_tabella)
-        self.table_clima = QTableWidget()
-        self.table_clima.setColumnCount(12)
-        self.table_clima.setHorizontalHeaderLabels([
-            "Blocco / paese", "Tappe", "Km", "Pedalata", "Riposo", "Buffer",
-            "Totale giorni", "Ingresso", "Uscita", "Semaforo",
-            "Motivazione climatica", "Nota"
-        ])
-        self.table_clima.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.table_clima.horizontalHeader().setStretchLastSection(True)
-        self.table_clima.setMaximumHeight(450)
-        layout.addWidget(self.table_clima)
+        I controlli restano raggiungibili anche come attributi della finestra
+        (`lbl_stato_clima`, `table_clima`, ...): la logica esistente li usa
+        senza modifiche, mentre costruzione e layout vivono nel modulo.
+        """
+        self.page_clima = PaginaClima(self, self)
+        self._esporta_controlli_clima(self.page_clima)
         self._aggiorna_controlli_scenario([])
-        self._stile_pagina_servizio(widget)
-        return widget
+        return self.page_clima
+
+    def _esporta_controlli_clima(self, pagina):
+        """Collega alla finestra i controlli della pagina clima.
+
+        :param pagina: istanza di `PaginaClima` già costruita.
+        """
+        coppie = (
+            ("lbl_stato_clima", pagina.lbl_stato),
+            ("lbl_regole_clima", pagina.lbl_regole),
+            ("timeline_clima", pagina.timeline),
+            ("area_timeline_clima", pagina.area_timeline),
+            ("table_clima", pagina.tabella),
+            ("input_data_partenza", pagina.input_data_partenza),
+            ("input_riposo", pagina.input_riposo),
+            ("btn_estrai_clima", pagina.btn_estrai_clima),
+            ("btn_soglie_clima", pagina.btn_soglie_clima),
+            ("combo_blocco_scenario", pagina.combo_blocco_scenario),
+            ("combo_posizione_scenario", pagina.combo_posizione_scenario),
+            ("btn_applica_scenario", pagina.btn_applica_scenario),
+            ("btn_ripristina_scenario", pagina.btn_ripristina_scenario),
+            ("btn_conferma_scenario", pagina.btn_conferma_scenario),
+            ("btn_annulla_scenario", pagina.btn_annulla_scenario),
+        )
+        for nome, controllo in coppie:
+            setattr(self, nome, controllo)
 
     def crea_pagina_statistiche(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(25, 20, 25, 20)
-        lbl = QLabel("📊 Totali & Statistiche Avanzate")
-        lbl.setFont(QFont("Arial", 16, QFont.Bold))
-        lbl.setStyleSheet("color: #0e639c;")
-        layout.addWidget(lbl)
-
-        self.lbl_stato_statistiche = QLabel("Seleziona un percorso per calcolare le statistiche.")
-        layout.addWidget(self.lbl_stato_statistiche)
-
-        kpi_layout = QHBoxLayout()
-        card_style = """
-            QLabel {
-                background-color: #252526;
-                color: #ffffff;
-                border: 1px solid #3e3e42;
-                border-radius: 6px;
-                padding: 10px;
-            }
-        """
-        self.card_stats_km = QLabel("<b>KM TOTALI</b><br><span style='font-size:18pt;'>-</span>")
-        self.card_stats_dplus = QLabel("<b>DISLIVELLO +</b><br><span style='font-size:18pt;'>-</span>")
-        self.card_stats_dminus = QLabel("<b>DISLIVELLO -</b><br><span style='font-size:18pt;'>-</span>")
-        self.card_stats_quota = QLabel("<b>QUOTA MAX</b><br><span style='font-size:18pt;'>-</span>")
-        self.card_stats_pendenza = QLabel("<b>PENDENZA MEDIA</b><br><span style='font-size:18pt;'>-</span>")
-        for card in (
-            self.card_stats_km,
-            self.card_stats_dplus,
-            self.card_stats_dminus,
-            self.card_stats_quota,
-            self.card_stats_pendenza,
-        ):
-            card.setStyleSheet(card_style)
-            card.setAlignment(Qt.AlignCenter)
-            kpi_layout.addWidget(card)
-        layout.addLayout(kpi_layout)
-
-        paesi_layout = QVBoxLayout()
-        self.card_stats_paesi = QLabel("<b>PAESI ATTRAVERSATI</b><br><span style='font-size:14pt;'>-</span>")
-        self.card_stats_paesi.setStyleSheet(card_style)
-        self.card_stats_paesi.setAlignment(Qt.AlignCenter)
-        self.card_stats_paesi.setMaximumWidth(440)
-        self.card_stats_paesi.setMinimumHeight(62)
-        paesi_layout.addWidget(self.card_stats_paesi, alignment=Qt.AlignCenter)
-        self.btn_apri_paesi = QPushButton("🌐 Visualizza paesi e bandiere")
-        self.btn_apri_paesi.setStyleSheet("background-color: #0e639c; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px;")
-        self.btn_apri_paesi.clicked.connect(self.apri_finestra_elenco_paesi)
-        paesi_layout.addWidget(self.btn_apri_paesi, alignment=Qt.AlignCenter)
-        layout.addLayout(paesi_layout)
-
-        tabs = QTabWidget()
-        self.table_statistiche_blocchi = QTableWidget()
-        self.table_statistiche_blocchi.setColumnCount(8)
-        self.table_statistiche_blocchi.setHorizontalHeaderLabels([
-            "Ordine", "Blocco", "Tappe", "Distanza", "Dislivello +",
-            "Dislivello -", "Quota max", "Pendenza media"
-        ])
-        self.table_statistiche_blocchi.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        tabs.addTab(self.table_statistiche_blocchi, "Per blocco")
-
-        self.table_statistiche_costa = QTableWidget()
-        self.table_statistiche_costa.setColumnCount(4)
-        self.table_statistiche_costa.setHorizontalHeaderLabels([
-            "Fascia costiera", "Tappe coinvolte", "Km totali", "Percentuale viaggio"
-        ])
-        self.table_statistiche_costa.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        tabs.addTab(self.table_statistiche_costa, "Distanza dalla costa")
-        layout.addWidget(tabs)
-
-        btn_aggiorna = QPushButton("🔄 Ricalcola statistiche")
-        btn_aggiorna.clicked.connect(self.aggiorna_pagina_statistiche)
-        layout.addWidget(btn_aggiorna)
-        self._stile_pagina_servizio(widget)
-        for table in (self.table_statistiche_blocchi, self.table_statistiche_costa):
-            table.setStyleSheet("""
-                QTableWidget { background-color: #252526; alternate-background-color: #2a2a2d; gridline-color: #3e3e42; color: #ffffff; border: 1px solid #3e3e42; border-radius: 5px; }
-                QTableWidget::item { padding: 4px 6px; }
-                QHeaderView::section { background-color: #2d2d30; color: #0e639c; font-weight: bold; padding: 7px; border: 1px solid #3e3e42; }
-            """)
-            table.setAlternatingRowColors(True)
-            table.verticalHeader().setDefaultSectionSize(40)
-        return widget
+        """Crea la pagina Statistiche e la registra come `page_stats`."""
+        self.page_stats = PaginaStatistiche(
+            self.apri_finestra_elenco_paesi, self
+        )
+        return self.page_stats
 
     def apri_finestra_elenco_paesi(self):
         """Mostra il dialogo con l'elenco dei paesi attraversati dal percorso."""
@@ -581,89 +337,17 @@ class BikepackingStudioApp(QMainWindow):
         lista_paesi, totale_paesi, _ = stats_service.get_paesi_attraversati_stats(self.current_progetto_id)
         dialog_elenco_paesi.crea_elenco_paesi(self, lista_paesi, totale_paesi)
 
-    def _imposta_righe_tabella(self, tabella, righe):
-        tabella.setRowCount(len(righe))
-        for row_index, riga in enumerate(righe):
-            for col_index, valore in enumerate(riga):
-                testo = "" if valore is None else str(valore)
-                tabella.setItem(row_index, col_index, QTableWidgetItem(testo))
-
     def aggiorna_pagina_trasporti(self):
-        if not self.current_progetto_id:
-            self.lbl_stato_trasporti.setText("Apri un percorso per visualizzare i dati logistici.")
-            self._imposta_righe_tabella(self.table_trasferimenti, [])
-            self._imposta_righe_tabella(self.table_gap_trasporti, [])
-            return
-
-        try:
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT tipo_mezzo, vettore, da_luogo, a_luogo, durata, costo_eur, note
-                FROM trasferimenti WHERE id_progetto = ? ORDER BY id
-            """, (self.current_progetto_id,))
-            trasferimenti = cursor.fetchall()
-            conn.close()
-
-            gaps = service.audit_service.rileva_gap_progetto(self.current_progetto_id)
-            strade_vietate = service.audit_service.rileva_strade_vietate_progetto(self.current_progetto_id)
-            allarmi = gaps + strade_vietate
-            self._imposta_righe_tabella(self.table_trasferimenti, trasferimenti)
-            self.table_gap_trasporti.setRowCount(len(allarmi))
-            for row_index, gap in enumerate(allarmi):
-                item_tipo = QTableWidgetItem(gap["tipo"])
-                item_tipo.setData(Qt.UserRole, (gap["id_tappa_origine"], gap["id_tappa_destinazione"]))
-                self.table_gap_trasporti.setItem(row_index, 0, item_tipo)
-                self.table_gap_trasporti.setItem(row_index, 1, QTableWidgetItem(str(gap["id_tappa_origine"])))
-                self.table_gap_trasporti.setItem(row_index, 2, QTableWidgetItem(gap["messaggio"]))
-
-            self.lbl_stato_trasporti.setText(
-                f"{len(trasferimenti)} trasferimenti salvati; {len(gaps)} interruzioni e "
-                f"{len(strade_vietate)} tratti vietati alle bici da valutare."
-            )
-        except Exception as errore:
-            self.lbl_stato_trasporti.setText(f"Errore durante il caricamento logistico: {errore}")
+        """Ricarica la pagina Trasporti per il percorso corrente."""
+        self.page_trasporti.aggiorna(self.current_progetto_id)
 
     def raccorda_gap_selezionato(self):
-        row = self.table_gap_trasporti.currentRow()
-        if row < 0:
-            QMessageBox.information(self, "Selezione richiesta", "Seleziona prima un'interruzione.")
-            return
-
-        tipo_selezionato = self.table_gap_trasporti.item(row, 0).text()
-        if not tipo_selezionato.startswith("GAP_"):
-            QMessageBox.information(
-                self, "Raccordo non disponibile",
-                "Questo allarme non è un'interruzione di percorso: non prevede la generazione automatica di un raccordo GPX."
-            )
-            return
-
-        ids = self.table_gap_trasporti.item(row, 0).data(Qt.UserRole)
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT nome_file FROM tappe WHERE id = ?", (ids[0],))
-        origine = cursor.fetchone()
-        cursor.execute("SELECT nome_file FROM tappe WHERE id = ?", (ids[1],))
-        destinazione = cursor.fetchone()
-        conn.close()
-        if origine and destinazione:
-            self.raccorda_traccia_istantaneo(ids[0], ids[1], origine[0], destinazione[0])
+        """Delega alla pagina Trasporti la generazione del raccordo GPX."""
+        self.page_trasporti.raccorda_gap_selezionato()
 
     def aggiorna_pagina_dogane(self):
-        if not self.current_progetto_id:
-            self.lbl_stato_dogane.setText("Apri un percorso per visualizzare i dati doganali salvati.")
-            self._imposta_righe_tabella(self.table_dogane, [])
-            return
-
-        try:
-            righe = analizza_dogane_progetto(self.current_progetto_id)
-            self._imposta_righe_tabella(self.table_dogane, righe)
-            if righe:
-                self.lbl_stato_dogane.setText(f"{len(righe)} attraversamenti doganali salvati.")
-            else:
-                self.lbl_stato_dogane.setText("Nessun dato doganale salvato per questo percorso.")
-        except Exception as errore:
-            self.lbl_stato_dogane.setText(f"Errore durante il caricamento dogane: {errore}")
+        """Ricarica la pagina Dogane per il percorso corrente."""
+        self.page_dogane.aggiorna(self.current_progetto_id)
 
     def aggiorna_pagina_clima(self):
         if not self.current_progetto_id:
@@ -1149,51 +833,8 @@ class BikepackingStudioApp(QMainWindow):
             self.lbl_stato_clima.setText(f"Errore durante il salvataggio clima: {errore}")
 
     def aggiorna_pagina_statistiche(self):
-        if not self.current_progetto_id:
-            self.lbl_stato_statistiche.setText("Apri un percorso per calcolare le statistiche.")
-            self.card_stats_km.setText("<b>KM TOTALI</b><br><span style='font-size:18pt;'>-</span>")
-            self.card_stats_dplus.setText("<b>DISLIVELLO +</b><br><span style='font-size:18pt;'>-</span>")
-            self.card_stats_dminus.setText("<b>DISLIVELLO -</b><br><span style='font-size:18pt;'>-</span>")
-            self.card_stats_quota.setText("<b>QUOTA MAX</b><br><span style='font-size:18pt;'>-</span>")
-            self.card_stats_pendenza.setText("<b>PENDENZA MEDIA</b><br><span style='font-size:18pt;'>-</span>")
-            self.card_stats_paesi.setText("<b>PAESI ATTRAVERSATI</b><br><span style='font-size:14pt;'>-</span>")
-            self._imposta_righe_tabella(self.table_statistiche_blocchi, [])
-            self._imposta_righe_tabella(self.table_statistiche_costa, [])
-            return
-
-        try:
-            from service import stats_service
-            kpi = stats_service.ottieni_kpi_totali_progetto(self.current_progetto_id)
-            blocchi = stats_service.ottieni_statistiche_per_blocco(self.current_progetto_id)
-            _, totale_paesi, descrizione_paesi = stats_service.get_paesi_attraversati_stats(self.current_progetto_id)
-            costa = stats_service.ottieni_ripartizione_fasce_mare(self.current_progetto_id)
-
-            self.card_stats_km.setText(
-                f"<b>KM TOTALI</b><br><span style='font-size:18pt; color:#4ec9b0;'>{kpi['km_totali']} km</span>"
-            )
-            self.card_stats_dplus.setText(
-                f"<b>DISLIVELLO +</b><br><span style='font-size:18pt; color:#ce9178;'>{kpi['dislivello_pos']} m</span>"
-            )
-            self.card_stats_dminus.setText(
-                f"<b>DISLIVELLO -</b><br><span style='font-size:18pt; color:#ce9178;'>{kpi['dislivello_neg']} m</span>"
-            )
-            self.card_stats_quota.setText(
-                f"<b>QUOTA MAX</b><br><span style='font-size:18pt; color:#569cd6;'>{kpi['quota_max']} m</span>"
-            )
-            self.card_stats_pendenza.setText(
-                f"<b>PENDENZA MEDIA</b><br><span style='font-size:18pt; color:#dcdcaa;'>{kpi['pendenza_media']} %</span>"
-            )
-            self.card_stats_paesi.setText(
-                f"<b>PAESI ATTRAVERSATI ({totale_paesi})</b><br><span style='font-size:14pt; color:#4ec9b0;'>{descrizione_paesi}</span>"
-            )
-
-            self._imposta_righe_tabella(self.table_statistiche_blocchi, blocchi)
-            self._imposta_righe_tabella(self.table_statistiche_costa, costa)
-            self.table_statistiche_blocchi.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            self.table_statistiche_costa.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            self.lbl_stato_statistiche.setText("Statistiche aggiornate.")
-        except Exception as errore:
-            self.lbl_stato_statistiche.setText(f"Errore durante il calcolo statistiche: {errore}")
+        """Ricalcola la pagina Statistiche per il percorso corrente."""
+        self.page_stats.aggiorna(self.current_progetto_id)
 
     def crea_pagina_placeholder(self, titolo, desc):
         widget = QWidget()
@@ -1545,74 +1186,8 @@ class BikepackingStudioApp(QMainWindow):
         )
 
     def aggiorna_tabella_allarmi(self):
-        if not self.verifica_progetto_attivo():
-            if hasattr(self, 'table_allarmi'):
-                self.table_allarmi.setRowCount(0)
-            return
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT a.tipo_allarme, a.messaggio, a.risolto, a.tappa_origine_id, a.tappa_destinazione_id,
-                   t1.nome_file, t2.nome_file, a.id, t1.end_lat, t1.end_lon, t2.start_lat, t2.start_lon
-            FROM allarmi_percorso a
-            LEFT JOIN tappe t1 ON a.tappa_origine_id = t1.id
-            LEFT JOIN tappe t2 ON a.tappa_destinazione_id = t2.id
-            WHERE a.id_progetto = ? AND a.risolto = 0
-        """, (self.current_progetto_id,))
-        rows = cursor.fetchall()
-        conn.close()
-
-        if hasattr(self, 'lbl_stato_health'):
-            if not rows:
-                self.lbl_stato_health.setText("🟢 Nessun allarme attivo: la rotta è continua o coperta da logistica!")
-                self.lbl_stato_health.setStyleSheet("color: #28a745; font-weight: bold;")
-            else:
-                self.lbl_stato_health.setText(f"🔴 Rilevati {len(rows)} GAP/Interruzioni da risolvere lungo il tracciato!")
-                self.lbl_stato_health.setStyleSheet("color: #e74c3c; font-weight: bold;")
-
-        self.table_allarmi.setRowCount(len(rows))
-        for row_idx, data in enumerate(rows):
-            tipo, msg, risolto, t1_id, t2_id, t1_nome, t2_nome, allarme_id, end_lat, end_lon, start_lat, start_lon = data
-
-            item_tipo = QTableWidgetItem("🔗 TERRA" if tipo == 'GAP_TERRA' else "⚠️ GAP AMPIO")
-            item_tipo.setTextAlignment(Qt.AlignCenter)
-            self.table_allarmi.setItem(row_idx, 0, item_tipo)
-
-            item_msg = QTableWidgetItem(msg)
-            item_msg.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            self.table_allarmi.setItem(row_idx, 1, item_msg)
-
-            item_st = QTableWidgetItem("Attivo")
-            item_st.setTextAlignment(Qt.AlignCenter)
-            self.table_allarmi.setItem(row_idx, 2, item_st)
-
-            panel_azioni = QWidget()
-            layout_azioni = QHBoxLayout(panel_azioni)
-            layout_azioni.setContentsMargins(2, 2, 2, 2)
-            layout_azioni.setSpacing(4)
-
-            # 1. NUOVO PULSANTE: Visualizza Mappa GAP
-            btn_mappa_gap = QPushButton("👁️ Mappa GAP")
-            btn_mappa_gap.setStyleSheet("background-color: #e67e22; color: white; font-weight: bold; font-size: 11px; padding: 4px;")
-            btn_mappa_gap.clicked.connect(lambda _, e_l=end_lat, e_o=end_lon, s_l=start_lat, s_o=start_lon, n1=t1_nome, n2=t2_nome: 
-                self.mostra_mappa_gap(e_l, e_o, s_l, s_o, n1, n2)
-            )
-
-            # 2. PULSANTE: Raccorda GPX
-            btn_raccorda = QPushButton("🔗 Raccorda GPX")
-            btn_raccorda.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold; font-size: 11px; padding: 4px;")
-            btn_raccorda.clicked.connect(lambda _, id1=t1_id, id2=t2_id, n1=t1_nome, n2=t2_nome: self.raccorda_traccia_istantaneo(id1, id2, n1, n2))
-
-            # 3. PULSANTE: Logistica
-            btn_trasferimento = QPushButton("🚢 Logistica/Mezzo")
-            btn_trasferimento.setStyleSheet("background-color: #2980b9; color: white; font-weight: bold; font-size: 11px; padding: 4px;")
-            btn_trasferimento.clicked.connect(lambda _, aid=allarme_id: self.avvia_wizard_trasferimento(aid))
-
-            layout_azioni.addWidget(btn_mappa_gap)
-            layout_azioni.addWidget(btn_raccorda)
-            layout_azioni.addWidget(btn_trasferimento)
-            self.table_allarmi.setCellWidget(row_idx, 3, panel_azioni)
+        """Ricarica la tabella degli allarmi per il percorso corrente."""
+        self.page_audit.aggiorna(self.current_progetto_id)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
