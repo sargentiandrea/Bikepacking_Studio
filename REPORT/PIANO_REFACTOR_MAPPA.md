@@ -206,3 +206,134 @@ Fermarsi e tornare al backup se: la mappa non carica, l'anteprima rotta non comp
 | Regressione del percorso GPX | I GPX ora stanno in `gpx/{id_progetto}/` e `gpx_paths.py` è nuovo e non ancora committato | Eseguire il refactor **dopo** il commit delle modifiche GPX attualmente in sospeso, per avere un punto di ritorno pulito |
 | Mancanza di test | Non esistono | Confronto prima/dopo del GeoJSON (hash) e prove manuali per ogni fase |
 | Conflitto con il refactor di `app_desktop.py` | Entrambi toccano `parent_app` | Non cambiare l'interfaccia verso `app_desktop.py` finché non è stabilizzato |
+
+
+---
+
+## 6. Fase 3 — dettaglio (analisi del 2026-10-03)
+
+> Stato: **solo analisi, nessun codice modificato.** Righe riferite a `gui/mappa.py` dopo i commit `6ba8db0`, `2f555b1`, `5f01818`, `9cf2d74` (1970 righe; il pannello occupa le righe 181-1277, circa 1097).
+
+### 6.0 Cosa è cambiato rispetto al piano originale
+
+| Punto del piano | Stato reale |
+|---|---|
+| Fase 1.1 `geo_utils.py` | **Fatto** |
+| Fase 2.1 / 2.2 (servizi dati e salvataggio) | **Fatto**, in `service/mappa_dati_service.py` e `service/salvataggio_tappa_service.py` |
+| Fase 1.2 (spostare i 4 worker in `gui/mappa_worker.py`) | **Non fatta** |
+| Fase 1.3 (`BarraSuperfici`, `MapManagerDialog` in file propri) | **Non fatta** |
+| Fase 2.3 (cache in `gui/mappa_cache.py`) | **Non fatta** |
+
+Il pannello non è più "da ~1230 righe": dopo la Fase 2 ha 38 metodi e circa 1097 righe, di cui **287 sono solo costruzione grafica** (`__init__`, righe 183-469).
+
+### 6.1 Metodo per metodo
+
+Legenda "tocca": **W** = widget, **DB** = SQLite, **F** = file, **T** = thread/worker, **M** = `MappaWidget`/mappa, **—** = niente.
+
+| # | Metodo | Righe | Cosa fa | Tocca | Chiamato da → chiama |
+|---|---|---|---|---|---|
+| 1 | `__init__` | 183-469 | Crea stato (token, worker, punti), stile, tutti i campi e pulsanti | W | Qt → `_adatta_altezza_al_contenuto` |
+| 2 | `_firma_pianificazione` | 470 | Chiave "l'anteprima corrisponde ai campi?" | W, M (`parent_app`) | rotta, salvataggio |
+| 3 | `_valida_pianificazione` | 481 | Controlla progetto e campi; mostra avviso | W, M | salvataggio, `_avvia_worker_rotta` |
+| 4 | `_avvia_worker_rotta` | 505 | Lancia `PianificazionePercorsoWorker` | W, T | `_ricalcola_anteprima`, salvataggio |
+| 5 | `_completamento_worker_pianificazione` | 532 | Inoltra l'esito al callback corrente | — | worker → callback |
+| 6 | `_worker_pianificazione_terminato` | 542 | Riabilita il pulsante salva | W | `finished` del worker |
+| 7 | `_ricalcola_anteprima` | 546 | Anteprima senza scrivere nel DB | T | `_aggiungi_waypoint_da_coordinate` |
+| 8 | `_anteprima_rotta_completata` | 554 | Mostra l'anteprima sulla mappa | W, M | worker |
+| 9 | `_aggiungi_waypoint_da_coordinate` | 568 | Inserisce un punto ricevuto dalla mappa | W | **`MappaWidget._leggi_interazioni_mappa`**, `_prepara_modifica_tappa` |
+| 10 | `_prepara_modifica_tappa` | 577 | Carica gli estremi della tappa trascinata (usa `carica_coordinate_tappa`) | W, DB/F (via servizio), M | **`MappaWidget._leggi_interazioni_mappa`** |
+| 11 | `sincronizza_stato_percorso` | 596-730 | Al cambio progetto svuota il pannello, invalida token, ferma worker, legge le tappe, precompila | W, DB (via servizio), T, M | **`MappaWidget.showEvent`** (QTimer) |
+| 12-15 | `_avvia_risoluzione_nomi_luoghi`, `_avvia_worker_nomi_luoghi`, `_ripulisci_worker_nomi`, `_fine_risoluzione_nomi_luoghi` | 731-801 | Ciclo di vita del worker nomi + applicazione ai campi | T, W | `sincronizza_stato_percorso` |
+| 16-19 | `_avvia_analisi_superfici_offline`, `_avvia_worker_superfici`, `_ripulisci_worker_superfici`, `_fine_analisi_superfici_offline` | 802-879 | Idem per le superfici | T, W | `sincronizza_stato_percorso` |
+| 20-23 | `_avvia_analisi_altimetria`, `_avvia_worker_altimetria`, `_ripulisci_worker_altimetria`, `_fine_analisi_altimetria` | 880-939 | Idem per le quote | T, W | `sincronizza_stato_percorso` |
+| 24 | `showEvent` | 940 | Adatta l'altezza dopo la visualizzazione | W | Qt |
+| 25 | `_adatta_altezza_al_contenuto` | 944 | Calcola l'altezza del pannello | W | ovunque, **anche `MappaWidget`** (righe 1478, 1522) |
+| 26-28 | `_aggiungi_punto_passaggio`, `_rimuovi_punto_passaggio`, `_rinumera_punti_passaggio` | 978-1024 | Form dei punti di passaggio | W | pulsanti, #9, #10, #11 |
+| 29 | `_toggle_elenco_tappe_intermedie` | 1025 | Apre/chiude l'elenco | W | pulsante |
+| 30-32 | `_costruisci_riga_tappa_intermedia`, `_popola_tappe_intermedie`, `_aggiorna_testo_tappe_intermedie` | 1033-1083 | Elenco consultabile delle tappe | W | #11, #15 |
+| 33 | `_popola_legenda_superfici` | 1084 | Griglia legenda | W | #8, #11, #16, #34 |
+| 34 | `_evidenzia_tappa_su_mappa` | 1102 | Chiede alla mappa di evidenziare una tappa | M | pulsanti, #11, #30 |
+| 35 | `_aggiorna_dettagli_rotta` | 1107 | Barra superfici, legenda, KPI | W | #8, `_salvataggio_percorso_completato` |
+| 36 | `_etichetta_punto` (statico) | 1150 | Indice → A, B, ..., AA | — (funzione pura) | #26 |
+| 37 | `_gestisci_salvataggio_percorso` | 1159 | Salva l'anteprima o calcola la rotta | W, T | pulsante "Salva" |
+| 38 | `_salvataggio_percorso_completato` | 1180-1277 | Validazioni, chiama `salva_tappa_pianificata`, poi aggiorna audit/allarmi/dashboard/mappa e mostra i messaggi | W, M, `parent_app` | worker/#37 |
+
+### 6.2 Responsabilità del pannello (fatti verificati)
+
+| Responsabilità | Metodi | Nota |
+|---|---|---|
+| A. Grafica statica e dimensioni | #1, #24, #25 | 287 righe di `__init__` |
+| B. Form punti di passaggio | #9, #26-28, #36 | |
+| C. Modifica tratta (partenza dalla mappa) | #10 | Il **trascinamento vero e proprio non è nel pannello**: è in JavaScript (`templates/map_view.html`) e nel polling di `MappaWidget._leggi_interazioni_mappa`. Il pannello riceve solo l'esito (#9, #10) |
+| D. Calcolo rotta (BRouter) | #2-8 | La chiamata di rete sta nel worker `PianificazionePercorsoWorker`, non nel pannello |
+| E. Salvataggio tappa | #37, #38 | La parte dati è già nel servizio; resta la parte GUI |
+| F. Sincronizzazione con il progetto attivo | #11 | Contiene la logica più intrecciata |
+| G. Tre cicli di worker quasi identici | #12-23 | ~210 righe copiate 3 volte |
+| H. Elenco tappe intermedie | #29-32, #34 | |
+| I. Dettagli rotta (barra superfici, legenda, KPI) | #33, #35 | |
+
+**Cosa NON c'è nel pannello** (importante per le divisioni proposte dall'utente): nessuna chiamata a Flask (`requests`), nessun `runJavaScript`, nessun accesso diretto a BRouter. Tutto questo vive in `MappaWidget` e nei worker. Quindi **non servono** moduli "comunicazione con Flask" o "comunicazione con JavaScript" per il pannello, e `mappa_trascinamento.py` sarebbe un modulo quasi vuoto lato pannello (vedi domanda 6.5.1).
+
+### 6.3 Accoppiamenti da conoscere prima di toccare
+
+| Da → a | Cosa | Perché conta |
+|---|---|---|
+| `MappaWidget` → pannello | `btn_chiudi_pannello`, `lbl_stato_superfici`, `_aggiungi_waypoint_da_coordinate`, `_prepara_modifica_tappa`, `_adatta_altezza_al_contenuto`, `sincronizza_stato_percorso`, `show/hide/raise_` | Sono **l'interfaccia di fatto**: se si spostano o rinominano, il polling e `showEvent` si rompono |
+| Pannello → `MappaWidget` | `parent_app` (progetto, audit, allarmi, dashboard), `mostra_anteprima_percorso`, `cancella_anteprima_percorso`, `evidenzia_tappa`, `attiva_modalita_interazione`, `rigenera_mappa` | Letti con `getattr(..., "parent_app")` in 6 punti |
+| #11 → tre cicli worker | Incrementa direttamente i token e chiama `request_stop()` sui tre worker | Un gestore generico deve esporre "invalida e ferma" |
+| Cicli → stato | 4 campi per ciclo: worker corrente, lista di sopravvivenza, richiesta in sospeso, token | Nei tre cicli la richiesta in sospeso ha tipi diversi (superfici: id progetto; nomi e quote: liste) |
+
+### 6.4 Proposta di divisione (rivista)
+
+**Scelta di struttura:** composizione (classi di supporto che il pannello possiede), **non** ereditarietà multipla/mixin. I mixin spezzerebbero il file ma non l'accoppiamento: tutti i metodi continuerebbero a toccare lo stesso `self`. Il pannello resta il proprietario dei widget.
+
+| Modulo | Contiene | Tocca Qt? | Usato da | Dipende da |
+|---|---|---|---|---|
+| `gui/mappa_worker_manager.py` | `GestoreWorkerSingolo`: worker corrente, lista di sopravvivenza, richiesta in sospeso, token; metodi `richiedi(dati)`, `invalida()` (token+stop), `e_corrente(token)` | Sì (`QThread`) | pannello (3 istanze) | `PySide6.QtCore` |
+| `gui/mappa_dettagli.py` | `PannelloDettagliRotta` (widget): barra superfici, legenda, 4 KPI, messaggio di stato; metodi `imposta_statistiche()`, `azzera()`, `imposta_stato(testo)`, `imposta_altimetria(max,min)`, `imposta_distanza()` | Sì | pannello e (via `imposta_stato`) `MappaWidget` | `BarraSuperfici` |
+| `gui/mappa_tappe_intermedie.py` | `ElencoTappeIntermedie` (widget): toggle, scroll, righe; segnale `tappa_selezionata(id)` | Sì | pannello | — |
+| `gui/mappa_waypoint.py` | `FormPuntiPassaggio` (widget): lista campi, aggiungi/rimuovi/rinumera, `testi()`, `aggiungi_da_coordinate()`; `etichetta_punto()` come funzione pura | Sì | pannello | — |
+| `gui/mappa_pianificatore.py` | `PannelloPianificazioneWidget` ridotto: assemblaggio dei sotto-widget, validazione, rotta, salvataggio (parte GUI), sincronizzazione | Sì | `MappaWidget` | tutti i precedenti, servizi |
+| `gui/mappa_worker.py` | I 4 worker (Fase 1.2, ancora da fare) | Sì | pannello | servizi |
+| `gui/mappa.py` | `MappaWidget` + re-export | Sì | `app_desktop.py` | tutto |
+
+Stima righe dopo la Fase 3: pannello ~450, dettagli ~160, tappe intermedie ~110, waypoint ~120, gestore ~80. Nessun file oltre ~500.
+
+**Non proposti** (e perché): `mappa_trascinamento.py` (la logica è JS + `MappaWidget`, vedi 6.2.C), `mappa_comunicazione_*` (il pannello non comunica né con Flask né con JS).
+
+### 6.5 Piano a sotto-fasi (dal più semplice)
+
+| Sotto-fase | Cosa | File | Rischio | Beneficio | Come verificare |
+|---|---|---|---|---|---|
+| **3.0** *(prerequisito)* | Eseguire Fase 1.2/1.3: spostare i 4 worker, `BarraSuperfici`, `MapManagerDialog` in file propri | `gui/mappa_worker.py` e altri 2, `gui/mappa.py` | Basso (copia esatta) | -430 righe; i nuovi moduli potranno importare i worker senza cicli | Import, Pylance, apertura pagina Mappa |
+| **3.1** | `etichetta_punto` → funzione pura in `mappa_waypoint.py` (con test su A…Z, AA, AB); poi `ElencoTappeIntermedie` | `gui/mappa_waypoint.py`, `gui/mappa_tappe_intermedie.py` | Basso (solo widget, nessun thread) | Primi ~110 righe fuori, sperimentazione del metodo | Elenco vuoto/pieno, click riga → evidenzia, toggle |
+| **3.2** | `FormPuntiPassaggio` (punti di passaggio) | `gui/mappa_waypoint.py` | Medio-basso: `_firma_pianificazione`, `_valida_pianificazione` e `sincronizza_stato_percorso` leggono `punti_passaggio` | -120 righe | Aggiungere/rimuovere punti, firma anteprima, waypoint da mappa |
+| **3.3** | `GestoreWorkerSingolo` e sostituzione dei 3 cicli **uno per volta**: altimetria → nomi → superfici (un commit ciascuno) | `gui/mappa_worker_manager.py`, pannello | **Medio-alto**: token e richieste in sospeso prevengono crash noti | -150 righe, una sola copia della logica "ciclo di vita" | Cambio rapido di progetto più volte; chiusura app con worker attivo |
+| **3.4** | `PannelloDettagliRotta` (barra, legenda, KPI, stato) | `gui/mappa_dettagli.py`, pannello, `MappaWidget` (usa `lbl_stato_superfici`) | Medio: tocca anche `MappaWidget` (righe 1397, 1439) | -160 righe, ultimo accesso diretto a un campo privato rimosso | Anteprima, salvataggio, modalità mappa on/off |
+| **3.5** | Spostare il pannello ridotto in `gui/mappa_pianificatore.py`; sostituire gli accessi privati da `MappaWidget` con metodi pubblici (`aggiungi_waypoint`, `prepara_modifica_tappa`, `imposta_stato`, `adatta_altezza`) | `gui/mappa_pianificatore.py`, `gui/mappa.py` | Medio | `gui/mappa.py` = solo `MappaWidget` | Flusso completo: crea percorso, waypoint, trascinamento, salva |
+
+**Ordine obbligato:** 3.0 → 3.1 → 3.2 → 3.3 → 3.4 → 3.5. Un commit per sotto-fase (3.3: uno per ciclo). Dopo ciascuna, avvio app e prova manuale.
+
+**Criteri di stop (ereditati da §3 e aggiornati):** la pagina Mappa non carica; l'anteprima non compare; un click sulla mappa in modalità waypoint non aggiunge il punto; il trascinamento non apre la modifica; crash alla chiusura o dopo un cambio rapido di progetto ("Internal C++ object already deleted").
+
+### 6.6 Cosa si può e non si può verificare
+
+| Verifica | Possibile? |
+|---|---|
+| Sintassi, Pylance, import, `git diff --check` | Sì |
+| Funzioni pure (`etichetta_punto`) e logica del gestore con thread finti | Sì, senza finestra |
+| Widget con `QT_QPA_PLATFORM=offscreen` (creazione, aggiungi/rimuovi punti, popola elenco/legenda) | Sì, ma non copre mouse e rendering reale |
+| Flusso con mappa visibile, trascinamento, polling dal browser, crash alla chiusura | **No** da terminale: serve la prova manuale dell'utente |
+
+### 6.7 Domande aperte
+
+| # | Questione | Opzioni / trade-off | Raccomandazione |
+|---|---|---|---|
+| 6.7.1 | **Modulo `mappa_trascinamento.py`**: nel pannello non c'è logica di trascinamento (è JS + polling in `MappaWidget`) | Non crearlo; oppure estrarre il polling (`attiva_modalita_interazione`, `_leggi_interazioni_mappa`) in un modulo della mappa | Non crearlo ora; valutare l'estrazione del polling in una fase separata sulla parte `MappaWidget` |
+| 6.7.2 | **Eseguire prima la 3.0** (Fase 1.2/1.3 mai fatta)? | Sì = più passi ma meno rischi di import circolari; no = nuovi moduli importano ancora da `gui/mappa.py` | Sì |
+| 6.7.3 | **Composizione o mixin** | Composizione = interfacce chiare, più lavoro; mixin = meno lavoro, l'accoppiamento resta | Composizione |
+| 6.7.4 | **Interfaccia `MappaWidget` ↔ pannello**: metodi pubblici o segnali Qt | Metodi pubblici = semplice; segnali = più pulito ma più modifiche | Metodi pubblici ora, segnali dopo il refactor di `app_desktop.py` (coerente con 4.3) |
+| 6.7.5 | **`GestoreWorkerSingolo` accetta anche la "richiesta in sospeso" con tipi diversi** (id progetto vs liste) | Un solo gestore con payload generico, oppure sottoclassi | Un gestore con payload generico |
+| 6.7.6 | **Ordine in `_fine_*`**: oggi la richiesta in sospeso viene riavviata **prima** di controllare il token | Preservare esattamente (come il timer, non cambiare comportamento) o correggere dopo | Preservare; eventuale ottimizzazione in un intervento separato |
+| 6.7.7 | **Test automatici** (già 4.6) | Script manuali su DB temporaneo, o `pytest` (nuova dipendenza: serve permesso) | Script manuali; per i widget `offscreen` |
+| 6.7.8 | **Informazioni mancanti** | Non ho letto riga per riga `__init__` (righe 183-345) né l'inizio di `_valida_pianificazione` fuori da quanto riportato; i confini esatti dei widget (3.1-3.4) vanno confermati alla vigilia di ciascuna sotto-fase | Rileggere il blocco interessato prima di ogni sotto-fase |

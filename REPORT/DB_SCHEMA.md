@@ -146,7 +146,7 @@ Nessuna chiave esterna.
 
 ## `cache_nomi_luoghi`
 
-- Righe: 997
+- Righe: 998
 
 ### Colonne
 

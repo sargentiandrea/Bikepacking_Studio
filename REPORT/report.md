@@ -1,15 +1,15 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-03 alle 10:35:17*
+*Generato il 2026-10-03 alle 11:04:39*
 
 ## 1. Sintesi
 
-- Moduli Python: **37**
-- Classi: **22**
-- Funzioni globali: **353**
+- Moduli Python: **41**
+- Classi: **23**
+- Funzioni globali: **358**
 - Rotte Flask: **8**
 - Tabelle rilevate: **27**
-- Simboli orfani: **66**
+- Simboli orfani: **58**
 
 ## Database
 
@@ -24,7 +24,7 @@
 | `blocchi_ordine` | 24 | id (PK), id_progetto (FK → progetti.id) |
 | `blocchi_stagione` | 18 | id (PK) |
 | `cache_geo_paesi` | 2 | lat_griglia (PK), lon_griglia (PK) |
-| `cache_nomi_luoghi` | 997 | lat_arrotondata (PK), lon_arrotondata (PK) |
+| `cache_nomi_luoghi` | 998 | lat_arrotondata (PK), lon_arrotondata (PK) |
 | `clima_blocco_mese` | 288 | id_progetto (PK), nome_blocco (PK), mese (PK) |
 | `clima_paese_mese` | 540 | id_progetto (PK), paese (PK), mese (PK) |
 | `confini_box` | 11 | id (PK) |
@@ -78,9 +78,13 @@
 
 ## 2. Architettura (per strato)
 
-**ui** (4 file)
+**ui** (8 file)
 - `gui/dashboard.py`
 - `gui/mappa.py`
+- `gui/mappa_barra_superfici.py`
+- `gui/mappa_cache.py`
+- `gui/mappa_manager.py`
+- `gui/mappa_worker.py`
 - `gui/wizard_percorso.py`
 - `service/mappa_dati_service.py`
 
@@ -133,7 +137,7 @@
 
 ## 5. Simboli orfani
 
-*66 simboli definiti ma mai citati altrove:*
+*58 simboli definiti ma mai citati altrove:*
 
 - **classe** `DoganeSignals` in `app_desktop.py`
 - **classe** `ClimaSignals` in `app_desktop.py`
@@ -150,43 +154,43 @@
 - **funzione** `esegui_backup_progetto` in `backup.py`
 - **classe** `WizardNuovoPercorsoDialog` in `gui/dashboard.py`
 - **funzione** `carica_tappe_progetto` in `gui/dashboard.py`
-- **classe** `BarraSuperfici` in `gui/mappa.py`
-- **classe** `MapManagerDialog` in `gui/mappa.py`
 - **classe** `PannelloPianificazioneWidget` in `gui/mappa.py`
-- **classe** `WorkerAnalisiSuperficiOffline` in `gui/mappa.py`
-- **classe** `WorkerNomiLuoghi` in `gui/mappa.py`
-- **classe** `WorkerAltimetria` in `gui/mappa.py`
-- **classe** `PianificazionePercorsoWorker` in `gui/mappa.py`
 - **classe** `WorkerCaricamentoMappa` in `gui/mappa.py`
-- **funzione** `imposta_superfici` in `gui/mappa.py`
 - **funzione** `sincronizza_stato_percorso` in `gui/mappa.py`
 - **funzione** `attiva_modalita_interazione` in `gui/mappa.py`
 - **funzione** `mostra_anteprima_percorso` in `gui/mappa.py`
 - **funzione** `cancella_anteprima_percorso` in `gui/mappa.py`
 - **funzione** `evidenzia_tappa` in `gui/mappa.py`
-- **funzione** `request_stop` in `gui/mappa.py`
-- ... e altri 36
+- **classe** `WizardNuovoPercorso` in `gui/wizard_percorso.py`
+- **funzione** `genera_singolo_pdf` in `resources/genera_catalogo_sprite.py`
+- **funzione** `compila_tutti_i_cataloghi` in `resources/genera_catalogo_sprite.py`
+- **funzione** `registra_trasferimento_gap` in `service/audit_service.py`
+- **funzione** `valuta_paese` in `service/catena_stagionale_service.py`
+- **funzione** `applica_semafori` in `service/catena_stagionale_service.py`
+- **funzione** `determina_mesi_ideali_automatici` in `service/clima_service.py`
+- **funzione** `calcola_catena_stagionale` in `service/clima_service.py`
+- ... e altri 28
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 85 funzioni
 - `app_desktop.py`: 8 classi, 70 funzioni
+- `gui/mappa.py`: 3 classi, 63 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni
+- `gui/mappa_worker.py`: 4 classi, 13 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
 - `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
-- `service/costa_service.py`: 0 classi, 8 funzioni
 
 ## 7. Livello di rischio e file critici
 
 **Livello di rischio:** `alto`
 
 **File critici (da guardare per primi):**
-- `gui/mappa.py`
 - `app_desktop.py`
+- `gui/mappa.py`
 - `gui/dashboard.py`
 
 **Azioni consigliate:**

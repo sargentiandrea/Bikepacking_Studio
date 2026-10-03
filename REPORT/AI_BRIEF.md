@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-03 10:35*
+*Aggiornato: 2026-10-03 11:04*
 
 ## Come leggere il progetto
 
@@ -15,18 +15,18 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 37
-- Classi: 22
-- Funzioni: 353
+- Moduli Python: 41
+- Classi: 23
+- Funzioni: 358
 - Rotte Flask: 8
 - Tabelle DB: 27
-- Simboli orfani: 66
+- Simboli orfani: 58
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 444 - 9 classi, 85 funzioni, 0 anomalie
 - `app_desktop.py` - score 438 - 8 classi, 70 funzioni, 0 anomalie
+- `gui/mappa.py` - score 341 - 3 classi, 63 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 156 - 2 classi, 19 funzioni, 0 anomalie
 - `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
 - `service/stats_service.py` - score 107 - 0 classi, 14 funzioni, 0 anomalie
@@ -59,19 +59,20 @@
 - `esegui_backup_progetto` (funzione) in `backup.py`
 - `WizardNuovoPercorsoDialog` (classe) in `gui/dashboard.py`
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
-- ... e altri 51 (vedi report completo)
+- ... e altri 43 (vedi report completo)
 
 ## Duplicazioni rilevate
 
-*18 funzioni/metodi definiti in più file:*
+*20 funzioni/metodi definiti in più file:*
 
 - `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `esegui_migrazione` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `init_ui` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/wizard_percorso.py`
-- `paintEvent` (2 copie) → `app_desktop.py`, `gui/mappa.py`
+- `paintEvent` (2 copie) → `app_desktop.py`, `gui/mappa_barra_superfici.py`
 - `carica_lista_percorsi` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `apri_percorso_selezionato` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `crea_nuovo_progetto_dialog` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
+- `salva` (2 copie) → `app_desktop.py`, `gui/mappa_cache.py`
 - `elabora_files_gpx` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `aggiorna_tabella_tappe` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `aggiorna_blocco_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
@@ -80,6 +81,7 @@
 - `elimina_singola_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `elimina_percorso_corrente` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `conferma_creazione` (2 copie) → `gui/dashboard.py`, `gui/wizard_percorso.py`
+- `setup_ui` (2 copie) → `gui/mappa.py`, `gui/mappa_manager.py`
 - `calcola_distanza_haversine` (2 copie) → `service/geo_utils.py`, `service/gpx_metrics_service.py`
 - `_crea_backup` (2 copie) → `service/migrazione_catena_stagionale.py`, `service/migrazione_clima.py`
 - `_trova_percorso_gpx` (2 copie) → `service/stats_service.py`, `service/superfici_service.py`
@@ -94,7 +96,7 @@
 - `blocchi_ordine`: 24 righe
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
-- `cache_nomi_luoghi`: 997 righe
+- `cache_nomi_luoghi`: 998 righe
 - `clima_blocco_mese`: 288 righe
 - `clima_paese_mese`: 540 righe
 - `confini_box`: 11 righe
@@ -148,16 +150,16 @@
 
 ## Moduli principali
 
-- `gui/mappa.py`: 9 classi, 85 funzioni
 - `app_desktop.py`: 8 classi, 70 funzioni
+- `gui/mappa.py`: 3 classi, 63 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni
+- `gui/mappa_worker.py`: 4 classi, 13 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
 - `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
 - `installa_geonames.py`: 0 classi, 8 funzioni
-- `service/costa_service.py`: 0 classi, 8 funzioni
 
 ## Azioni consigliate
 

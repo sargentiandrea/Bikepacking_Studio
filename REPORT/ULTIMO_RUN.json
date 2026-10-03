@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T10:35:17.545937",
+    "data_analisi": "2026-10-03T11:04:39.601483",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 37,
-    "totale_classi": 22,
-    "totale_funzioni": 353,
+    "totale_moduli": 41,
+    "totale_classi": 23,
+    "totale_funzioni": 358,
     "totale_rotte_flask": 8,
     "totale_tabelle": 27,
     "tabelle_create": [
@@ -120,6 +120,10 @@
       "ui": [
         "gui/dashboard.py",
         "gui/mappa.py",
+        "gui/mappa_barra_superfici.py",
+        "gui/mappa_cache.py",
+        "gui/mappa_manager.py",
+        "gui/mappa_worker.py",
         "gui/wizard_percorso.py",
         "service/mappa_dati_service.py"
       ],
@@ -315,48 +319,13 @@
         "file": "gui/dashboard.py"
       },
       {
-        "simbolo": "BarraSuperfici",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "MapManagerDialog",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
         "simbolo": "PannelloPianificazioneWidget",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "WorkerAnalisiSuperficiOffline",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "WorkerNomiLuoghi",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "WorkerAltimetria",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "PianificazionePercorsoWorker",
         "tipo": "classe",
         "file": "gui/mappa.py"
       },
       {
         "simbolo": "WorkerCaricamentoMappa",
         "tipo": "classe",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "imposta_superfici",
-        "tipo": "funzione",
         "file": "gui/mappa.py"
       },
       {
@@ -381,11 +350,6 @@
       },
       {
         "simbolo": "evidenzia_tappa",
-        "tipo": "funzione",
-        "file": "gui/mappa.py"
-      },
-      {
-        "simbolo": "request_stop",
         "tipo": "funzione",
         "file": "gui/mappa.py"
       },
@@ -604,7 +568,7 @@
         "nome": "paintEvent",
         "file": [
           "app_desktop.py",
-          "gui/mappa.py"
+          "gui/mappa_barra_superfici.py"
         ],
         "numero_copie": 2
       },
@@ -629,6 +593,14 @@
         "file": [
           "app_desktop.py",
           "gui/dashboard.py"
+        ],
+        "numero_copie": 2
+      },
+      {
+        "nome": "salva",
+        "file": [
+          "app_desktop.py",
+          "gui/mappa_cache.py"
         ],
         "numero_copie": 2
       },
@@ -697,6 +669,14 @@
         "numero_copie": 2
       },
       {
+        "nome": "setup_ui",
+        "file": [
+          "gui/mappa.py",
+          "gui/mappa_manager.py"
+        ],
+        "numero_copie": 2
+      },
+      {
         "nome": "calcola_distanza_haversine",
         "file": [
           "service/geo_utils.py",
@@ -722,28 +702,28 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/clima_service.py": [
-        "app_desktop"
-      ],
-      "service/catena_stagionale_service.py": [
-        "app_desktop"
-      ],
-      "service/clima_estrattore.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
       "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/stats_service.py": [
         "app_desktop"
       ],
       "service/migrazione_clima.py": [
         "app_desktop"
       ],
       "service/migrazione_catena_stagionale.py": [
+        "app_desktop"
+      ],
+      "service/clima_estrattore.py": [
+        "app_desktop"
+      ],
+      "service/clima_service.py": [
+        "app_desktop"
+      ],
+      "service/stats_service.py": [
+        "app_desktop"
+      ],
+      "service/catena_stagionale_service.py": [
+        "app_desktop"
+      ],
+      "service/audit_service.py": [
         "app_desktop"
       ]
     }
@@ -1389,26 +1369,11 @@
     },
     "gui/mappa.py": {
       "classi": [
-        "BarraSuperfici",
-        "MapManagerDialog",
         "PannelloPianificazioneWidget",
         "MappaWidget",
-        "WorkerAnalisiSuperficiOffline",
-        "WorkerNomiLuoghi",
-        "WorkerAltimetria",
-        "PianificazionePercorsoWorker",
         "WorkerCaricamentoMappa"
       ],
       "funzioni": [
-        "__init__",
-        "imposta_superfici",
-        "paintEvent",
-        "__init__",
-        "setup_ui",
-        "refresh_catalog",
-        "on_item_selected",
-        "start_download",
-        "on_download_finished",
         "__init__",
         "_firma_pianificazione",
         "_valida_pianificazione",
@@ -1471,42 +1436,28 @@
         "_mostra_cache_progetto",
         "open_map_manager",
         "__init__",
-        "request_stop",
-        "run",
-        "__init__",
-        "request_stop",
-        "run",
-        "__init__",
-        "request_stop",
-        "run",
-        "__init__",
-        "_geocodifica",
-        "_profilo_brouter",
-        "run",
-        "__init__",
         "run"
       ],
       "import_interni": [
+        "gui.mappa_barra_superfici.BarraSuperfici",
+        "gui.mappa_cache.CacheMappaProgetto",
+        "gui.mappa_manager.MapManagerDialog",
+        "gui.mappa_worker.PianificazionePercorsoWorker",
+        "gui.mappa_worker.WorkerAltimetria",
+        "gui.mappa_worker.WorkerAnalisiSuperficiOffline",
+        "gui.mappa_worker.WorkerNomiLuoghi",
         "service.config.BASE_DIR",
-        "service.config.BROUTER_URL",
         "service.config.DB_NAME",
         "service.geo_utils.calcola_distanza_haversine",
-        "service.geocodifica_offline_service.nome_luogo_da_coordinate",
         "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
         "service.geometria_service.decomprimi_segmenti",
         "service.geometria_service.geometria_geojson",
-        "service.geonames_service.cerca_coordinate_luogo",
-        "service.gpx_paths.trova_percorso_gpx",
-        "service.map_manager_service.DownloadWorker",
-        "service.map_manager_service.MapManagerService",
         "service.mappa_dati_service.carica_coordinate_tappa",
         "service.mappa_dati_service.carica_tappe_attive",
         "service.mappa_dati_service.costruisci_geojson_progetto",
         "service.mappa_dati_service.firma_dati_mappa",
         "service.salvataggio_tappa_service.rimuovi_gpx_se_esiste",
-        "service.salvataggio_tappa_service.salva_tappa_pianificata",
-        "service.stats_service.analizza_dati_rotta_brouter",
-        "service.superfici_service.analizza_superfici_progetto"
+        "service.salvataggio_tappa_service.salva_tappa_pianificata"
       ],
       "import_esterni": [
         "PySide6.QtCore",
@@ -1514,12 +1465,9 @@
         "PySide6.QtWebEngineCore",
         "PySide6.QtWebEngineWidgets",
         "PySide6.QtWidgets",
-        "gpxpy",
-        "gpxpy.gpx",
         "json",
         "math",
         "os",
-        "re",
         "requests",
         "sqlite3",
         "threading"
@@ -1528,7 +1476,7 @@
       "anomalie": [],
       "chiamate_funzioni": [
         "BarraSuperfici",
-        "DownloadWorker",
+        "CacheMappaProgetto",
         "MapManagerDialog",
         "PannelloPianificazioneWidget",
         "PianificazionePercorsoWorker",
@@ -1539,10 +1487,6 @@
         "QHBoxLayout",
         "QLabel",
         "QLineEdit",
-        "QListWidget",
-        "QListWidgetItem",
-        "QPainter",
-        "QProgressBar",
         "QPushButton",
         "QScrollArea",
         "QTimer",
@@ -1551,7 +1495,6 @@
         "QWidget",
         "Signal",
         "Thread",
-        "ValueError",
         "WorkerAltimetria",
         "WorkerAnalisiSuperficiOffline",
         "WorkerCaricamentoMappa",
@@ -1578,13 +1521,11 @@
         "_fine_risoluzione_nomi_luoghi",
         "_firma_dati_mappa",
         "_firma_pianificazione",
-        "_geocodifica",
         "_imposta_pagina_sospesa",
         "_mostra_cache_progetto",
         "_popola_legenda_superfici",
         "_popola_tappe_intermedie",
         "_prepara_modifica_tappa",
-        "_profilo_brouter",
         "_ricalcola_anteprima",
         "_ridimensiona_mappa",
         "_rimuovi_punto_passaggio",
@@ -1595,19 +1536,14 @@
         "_ripulisci_worker_superfici",
         "_salvataggio_percorso_completato",
         "_valida_pianificazione",
-        "abspath",
         "activate",
-        "addItem",
         "addItems",
         "addLayout",
         "addStretch",
         "addWidget",
         "adjustSize",
-        "adjusted",
         "aggiorna_tabella_allarmi",
         "aggiorna_tabella_tappe",
-        "analizza_dati_rotta_brouter",
-        "analizza_superfici_progetto",
         "any",
         "append",
         "attiva_modalita_interazione",
@@ -1617,8 +1553,6 @@
         "callback_worker_pianificazione",
         "carica_coordinate_tappa",
         "carica_tappe_attive",
-        "casefold",
-        "cerca_coordinate_luogo",
         "chr",
         "clear",
         "connect",
@@ -1626,31 +1560,21 @@
         "costruisci_geojson_progetto",
         "count",
         "critical",
-        "currentItem",
         "currentText",
-        "data",
         "deleteLater",
         "dict",
-        "dirname",
         "divmod",
-        "drawRect",
-        "drawRoundedRect",
         "dumps",
+        "e_valida",
         "emit",
-        "end",
         "enumerate",
         "esegui_audit_automatico",
         "evidenzia_tappa",
         "exec",
-        "extend",
         "firma_dati_mappa",
-        "float",
-        "fullmatch",
         "get",
-        "get_available_catalog",
         "get_lifecycle_state",
         "getattr",
-        "groups",
         "hasattr",
         "height",
         "hide",
@@ -1667,53 +1591,44 @@
         "join",
         "json",
         "layout",
-        "left",
         "leggi_token_corrente",
         "len",
         "list",
         "lower",
-        "map",
         "max",
         "maximumHeight",
         "min",
         "mostra_anteprima_percorso",
         "move",
         "next",
-        "nome_luogo_da_coordinate",
-        "open",
         "openUrl",
         "ord",
+        "ottieni",
         "page",
         "parentWidget",
-        "parse",
         "post",
         "print",
         "raise_",
         "raise_for_status",
         "range",
-        "rect",
-        "refresh_catalog",
         "reload_map",
         "remove",
         "removeWidget",
         "request_stop",
-        "resize",
         "resizeEvent",
         "rigenera_mappa",
         "rimuovi_gpx_se_esiste",
         "round",
         "runJavaScript",
+        "salva",
         "salva_tappa_pianificata",
-        "set",
         "setAlignment",
         "setBlurRadius",
-        "setBrush",
         "setCheckable",
         "setChecked",
         "setColor",
         "setContentsMargins",
         "setCursor",
-        "setData",
         "setEnabled",
         "setFeaturePermission",
         "setFixedHeight",
@@ -1725,12 +1640,9 @@
         "setInterval",
         "setMaximumHeight",
         "setMaximumWidth",
-        "setMinimumHeight",
         "setMinimumWidth",
         "setOffset",
-        "setPen",
         "setPlaceholderText",
-        "setRenderHint",
         "setSizeConstraint",
         "setSizePolicy",
         "setSpacing",
@@ -1738,12 +1650,10 @@
         "setText",
         "setToolTip",
         "setUrl",
-        "setValue",
         "setVerticalSpacing",
         "setVisible",
         "setWidget",
         "setWidgetResizable",
-        "setWindowTitle",
         "setWordWrap",
         "setZoomFactor",
         "set_lifecycle_state",
@@ -1765,15 +1675,215 @@
         "text",
         "toString",
         "top",
-        "trova_percorso_gpx",
         "tuple",
-        "update",
         "updateGeometry",
         "url",
         "warning",
         "widget",
-        "width",
         "window"
+      ]
+    },
+    "gui/mappa_barra_superfici.py": {
+      "classi": [
+        "BarraSuperfici"
+      ],
+      "funzioni": [
+        "__init__",
+        "imposta_superfici",
+        "paintEvent"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtGui",
+        "PySide6.QtWidgets"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "QColor",
+        "QPainter",
+        "__init__",
+        "adjusted",
+        "drawRect",
+        "drawRoundedRect",
+        "end",
+        "enumerate",
+        "float",
+        "get",
+        "height",
+        "left",
+        "len",
+        "list",
+        "max",
+        "rect",
+        "round",
+        "setBrush",
+        "setMaximumHeight",
+        "setMinimumHeight",
+        "setPen",
+        "setRenderHint",
+        "sum",
+        "super",
+        "top",
+        "update",
+        "width"
+      ]
+    },
+    "gui/mappa_cache.py": {
+      "classi": [
+        "CacheMappaProgetto"
+      ],
+      "funzioni": [
+        "__init__",
+        "ottieni",
+        "firma",
+        "salva",
+        "e_valida"
+      ],
+      "import_interni": [],
+      "import_esterni": [],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "firma",
+        "get"
+      ]
+    },
+    "gui/mappa_manager.py": {
+      "classi": [
+        "MapManagerDialog"
+      ],
+      "funzioni": [
+        "__init__",
+        "setup_ui",
+        "refresh_catalog",
+        "on_item_selected",
+        "start_download",
+        "on_download_finished"
+      ],
+      "import_interni": [
+        "service.map_manager_service.DownloadWorker",
+        "service.map_manager_service.MapManagerService"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets",
+        "os"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "DownloadWorker",
+        "QHBoxLayout",
+        "QLabel",
+        "QListWidget",
+        "QListWidgetItem",
+        "QProgressBar",
+        "QPushButton",
+        "QVBoxLayout",
+        "__init__",
+        "abspath",
+        "addItem",
+        "addLayout",
+        "addWidget",
+        "clear",
+        "connect",
+        "critical",
+        "currentItem",
+        "data",
+        "dirname",
+        "get_available_catalog",
+        "information",
+        "join",
+        "refresh_catalog",
+        "resize",
+        "setData",
+        "setEnabled",
+        "setStyleSheet",
+        "setText",
+        "setValue",
+        "setVisible",
+        "setWindowTitle",
+        "setWordWrap",
+        "setup_ui",
+        "start",
+        "super",
+        "warning"
+      ]
+    },
+    "gui/mappa_worker.py": {
+      "classi": [
+        "WorkerAnalisiSuperficiOffline",
+        "WorkerNomiLuoghi",
+        "WorkerAltimetria",
+        "PianificazionePercorsoWorker"
+      ],
+      "funzioni": [
+        "__init__",
+        "request_stop",
+        "run",
+        "__init__",
+        "request_stop",
+        "run",
+        "__init__",
+        "request_stop",
+        "run",
+        "__init__",
+        "_geocodifica",
+        "_profilo_brouter",
+        "run"
+      ],
+      "import_interni": [
+        "service.config.BASE_DIR",
+        "service.config.BROUTER_URL",
+        "service.geocodifica_offline_service.nome_luogo_da_coordinate",
+        "service.geonames_service.cerca_coordinate_luogo",
+        "service.gpx_paths.trova_percorso_gpx",
+        "service.stats_service.analizza_dati_rotta_brouter",
+        "service.superfici_service.analizza_superfici_progetto"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "gpxpy",
+        "os",
+        "re",
+        "requests"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "Signal",
+        "ValueError",
+        "__init__",
+        "_geocodifica",
+        "_profilo_brouter",
+        "analizza_dati_rotta_brouter",
+        "analizza_superfici_progetto",
+        "append",
+        "casefold",
+        "cerca_coordinate_luogo",
+        "emit",
+        "extend",
+        "float",
+        "fullmatch",
+        "get",
+        "groups",
+        "join",
+        "json",
+        "len",
+        "list",
+        "map",
+        "max",
+        "min",
+        "nome_luogo_da_coordinate",
+        "open",
+        "parse",
+        "print",
+        "raise_for_status",
+        "set",
+        "str",
+        "super",
+        "trova_percorso_gpx"
       ]
     },
     "gui/wizard_percorso.py": {
@@ -10031,7 +10141,7 @@
       },
       {
         "nome": "cache_nomi_luoghi",
-        "righe": 997,
+        "righe": 998,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11481,7 +11591,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1332,
+        "riga": 1202,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -11490,7 +11600,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1407,
+        "riga": 1277,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -11499,7 +11609,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1608,
+        "riga": 1470,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11508,7 +11618,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1961,
+        "riga": 1603,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11719,23 +11829,23 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 37,
-    "totale_classi": 22,
-    "totale_funzioni": 353,
+    "totale_moduli": 41,
+    "totale_classi": 23,
+    "totale_funzioni": 358,
     "endpoint_flask": 8,
     "tabelle_rilevate": 27,
-    "simboli_orfani": 66,
+    "simboli_orfani": 58,
     "moduli_chiave": [
-      "gui/mappa.py",
       "app_desktop.py",
+      "gui/mappa.py",
       "service/catena_stagionale_service.py",
       "gui/dashboard.py",
+      "gui/mappa_worker.py",
       "service/map_server.py",
       "service/superfici_service.py",
       "service/stats_service.py",
       "service/precalcolo_batch_service.py",
-      "installa_geonames.py",
-      "service/costa_service.py"
+      "installa_geonames.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -11745,17 +11855,17 @@
     "livello_rischio": "alto",
     "hotspots": [
       {
-        "file": "gui/mappa.py",
-        "score": 444,
-        "classi": 9,
-        "funzioni": 85,
-        "anomalie": 0
-      },
-      {
         "file": "app_desktop.py",
         "score": 438,
         "classi": 8,
         "funzioni": 70,
+        "anomalie": 0
+      },
+      {
+        "file": "gui/mappa.py",
+        "score": 341,
+        "classi": 3,
+        "funzioni": 63,
         "anomalie": 0
       },
       {
@@ -11786,24 +11896,24 @@
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
     "file_critici": [
-      "gui/mappa.py",
       "app_desktop.py",
+      "gui/mappa.py",
       "gui/dashboard.py"
     ]
   },
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 37,
-      "classi": 22,
-      "funzioni": 353,
+      "moduli": 41,
+      "classi": 23,
+      "funzioni": 358,
       "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 66",
-      "File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py"
+      "Simboli orfani: 58",
+      "File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
       "app_desktop.py",
@@ -11817,7 +11927,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 353 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 41 moduli, 23 classi, 358 funzioni, 8 endpoint Flask, 58 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 353 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 41 moduli, 23 classi, 358 funzioni, 8 endpoint Flask, 58 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }
