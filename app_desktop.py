@@ -29,6 +29,8 @@ from datetime import datetime
 # -- Nuovi Moduli GUI --
 from gui.dashboard import DashboardPage
 from gui.mappa import MappaWidget
+from gui.widget_blocchi import GestoreBlocchiWidget
+from gui.widget_timeline_catena import TimelineCatenaWidget
 
 class EstrazioneClimaWorker(QObject):
     """Esegue la lettura COG fuori dal thread dell'interfaccia."""
@@ -137,15 +139,13 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout,
                              QVBoxLayout, QPushButton, QLabel, QStackedWidget, 
                              QFrame, QFileDialog, QTableWidget, QTableWidgetItem,
                              QHeaderView, QMessageBox, QDialog, QFormLayout, 
-                             QLineEdit, QListWidget, QListWidgetItem, QComboBox, QTextEdit,
+                             QLineEdit, QComboBox, QTextEdit,
                              QDateEdit, QSpinBox, QTabWidget, QScrollArea,
                              QDoubleSpinBox, QDialogButtonBox)
 from PySide6.QtGui import (
     QColor,
     QFont,
     QIcon,
-    QPainter,
-    QPen,
     QPixmap,
 )
 # --- FORZATURA ACCELERAZIONE HARDWARE (ANTI-SCHERMO BIANCO) ---
@@ -156,213 +156,6 @@ QApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
 from service.config import DB_NAME
 
-
-class TimelineCatenaWidget(QWidget):
-    """Disegna una timeline compatta delle date previste per i blocchi."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._righe = []
-        self._altezza_riga = 26
-        self.setMinimumWidth(520)
-        self.setMinimumHeight(70)
-        self.setStyleSheet("background-color: #252526;")
-
-    def imposta_righe(self, righe):
-        self._righe = [
-            paese
-            for blocco in righe
-            for paese in blocco.get("paesi", [])
-        ]
-        self.setMinimumHeight(44 + max(1, len(self._righe)) * self._altezza_riga)
-        self.update()
-
-    def paintEvent(self, _event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.fillRect(_event.rect(), QColor("#252526"))
-
-        if not self._righe:
-            painter.setPen(QColor("#aaaaaa"))
-            painter.drawText(12, 30, "La timeline apparirà dopo il calcolo della catena.")
-            return
-
-        date_ingressi = [
-            datetime.strptime(riga["data_ingresso"], "%Y-%m-%d").date()
-            for riga in self._righe
-        ]
-        date_uscite = [
-            datetime.strptime(riga["data_uscita"], "%Y-%m-%d").date()
-            for riga in self._righe
-        ]
-        data_iniziale = min(date_ingressi)
-        data_finale = max(date_uscite)
-        intervallo_giorni = max(1, (data_finale - data_iniziale).days + 1)
-
-        margine_sinistro = 205
-        margine_destro = 12
-        larghezza_traccia = max(1, self.width() - margine_sinistro - margine_destro)
-        painter.setPen(QPen(QColor("#aaaaaa")))
-        painter.drawText(margine_sinistro, 18, data_iniziale.strftime("%d/%m/%Y"))
-        painter.drawText(
-            self.width() - margine_destro - 82,
-            18,
-            data_finale.strftime("%d/%m/%Y"),
-        )
-
-        for indice, riga in enumerate(self._righe):
-            y = 28 + indice * self._altezza_riga
-            data_riga = datetime.strptime(
-                riga["data_ingresso"], "%Y-%m-%d"
-            ).date()
-            offset_giorni = (data_riga - data_iniziale).days
-            durata = max(0, int(riga["giorni_totali"]))
-            x = margine_sinistro + round(
-                offset_giorni / intervallo_giorni * larghezza_traccia
-            )
-            larghezza = max(
-                4,
-                round(durata / intervallo_giorni * larghezza_traccia),
-            )
-
-            nome = (
-                f"{riga.get('codice_paese', '')} "
-                f"{riga.get('nome_paese', 'Paese non assegnato')} "
-                f"({durata} gg)"
-            ).strip()
-            painter.setPen(QColor("#eeeeee"))
-            painter.drawText(8, y + 16, nome[:28])
-            painter.setBrush(QColor(riga.get("semaforo_colore", "#0e639c")))
-            painter.drawRoundedRect(x, y + 5, larghezza, 14, 4, 4)
-
-
-class GestoreBlocchiWidget(QWidget):
-    def __init__(self, parent_app):
-        super().__init__()
-        self.parent_app = parent_app
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(25, 25, 25, 25)
-        
-        lbl_titolo = QLabel("🧩 Gestore Sequenza Blocchi e Macro-Aree")
-        lbl_titolo.setFont(QFont("Arial", 16, QFont.Bold))
-        lbl_titolo.setStyleSheet("color: #0e639c;")
-        
-        lbl_desc = QLabel("Seleziona un blocco, usa le frecce per riordinare e premi 'Applica Nuova Sequenza' per salvare.")
-        lbl_desc.setStyleSheet("color: #aaaaaa; margin-bottom: 10px;")
-        
-        layout.addWidget(lbl_titolo)
-        layout.addWidget(lbl_desc)
-
-        h_layout = QHBoxLayout()
-        self.lista_blocchi = QListWidget()
-        self.lista_blocchi.setStyleSheet("""
-            QListWidget { background-color: #252526; border: 1px solid #3e3e42; border-radius: 8px; padding: 10px; font-size: 14px; }
-            QListWidget::item { background-color: #2d2d30; color: white; margin-bottom: 5px; padding: 12px; border-radius: 4px; }
-            QListWidget::item:selected { background-color: #0e639c; color: white; }
-        """)
-        h_layout.addWidget(self.lista_blocchi, stretch=3)
-
-        v_btn_layout = QVBoxLayout()
-        self.btn_su = QPushButton("⬆️ Sposta Su")
-        self.btn_giu = QPushButton("⬇️ Sposta Giù")
-        self.btn_applica = QPushButton("🔄 Applica Nuova Sequenza")
-        
-        self.btn_su.setStyleSheet("padding: 10px; font-weight: bold; background-color: #3e3e42; color: white; border-radius: 5px;")
-        self.btn_giu.setStyleSheet("padding: 10px; font-weight: bold; background-color: #3e3e42; color: white; border-radius: 5px;")
-        self.btn_applica.setStyleSheet("padding: 12px; background-color: #28a745; color: white; font-weight: bold; border-radius: 5px;")
-
-        self.btn_su.clicked.connect(self.sposta_su)
-        self.btn_giu.clicked.connect(self.sposta_giu)
-        self.btn_applica.clicked.connect(self.applica_riordinamento)
-
-        v_btn_layout.addWidget(self.btn_su)
-        v_btn_layout.addWidget(self.btn_giu)
-        v_btn_layout.addStretch()
-        v_btn_layout.addWidget(self.btn_applica)
-
-        h_layout.addLayout(v_btn_layout, stretch=1)
-        layout.addLayout(h_layout)
-
-    def carica_blocchi(self):
-        self.lista_blocchi.clear()
-        pid = self.parent_app.current_progetto_id
-        if not pid:
-            return
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT DISTINCT blocco FROM tappe WHERE id_progetto = ?", (pid,))
-        blocchi_reali = [r[0] if r[0] else "Generale" for r in cursor.fetchall()]
-
-        cursor.execute("SELECT nome_blocco FROM blocchi_ordine WHERE id_progetto = ? ORDER BY ordine ASC", (pid,))
-        blocchi_salvati = [r[0] for r in cursor.fetchall()]
-
-        blocchi_ordinati = [b for b in blocchi_salvati if b in blocchi_reali]
-        for b in blocchi_reali:
-            if b not in blocchi_ordinati:
-                blocchi_ordinati.append(b)
-
-        conn.close()
-
-        for nome_blocco in blocchi_ordinati:
-            icona = "📂" if nome_blocco == "Generale" else "📍"
-            item = QListWidgetItem(f"{icona} {nome_blocco}")
-            item.setData(Qt.UserRole, nome_blocco)
-            self.lista_blocchi.addItem(item)
-
-    def sposta_su(self):
-        idx = self.lista_blocchi.currentRow()
-        if idx > 0:
-            item = self.lista_blocchi.takeItem(idx)
-            self.lista_blocchi.insertItem(idx - 1, item)
-            self.lista_blocchi.setCurrentRow(idx - 1)
-
-    def sposta_giu(self):
-        idx = self.lista_blocchi.currentRow()
-        if idx >= 0 and idx < self.lista_blocchi.count() - 1:
-            item = self.lista_blocchi.takeItem(idx)
-            self.lista_blocchi.insertItem(idx + 1, item)
-            self.lista_blocchi.setCurrentRow(idx + 1)
-
-    def applica_riordinamento(self):
-        pid = self.parent_app.current_progetto_id
-        if not pid:
-            QMessageBox.warning(self, "Attenzione", "Seleziona prima un percorso attivo!")
-            return
-
-        nuovo_ordine_blocchi = [self.lista_blocchi.item(i).data(Qt.UserRole) for i in range(self.lista_blocchi.count())]
-        if not nuovo_ordine_blocchi:
-            return
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-
-        cursor.execute("DELETE FROM blocchi_ordine WHERE id_progetto = ?", (pid,))
-
-        for pos, nome_blocco in enumerate(nuovo_ordine_blocchi, start=1):
-            cursor.execute("INSERT INTO blocchi_ordine (id_progetto, nome_blocco, ordine) VALUES (?, ?, ?)", (pid, nome_blocco, pos))
-
-        nuova_seq = 1
-        for nome_blocco in nuovo_ordine_blocchi:
-            cursor.execute("SELECT id FROM tappe WHERE id_progetto = ? AND (blocco = ? OR (blocco IS NULL AND ? = 'Generale')) ORDER BY sequenza ASC", (pid, nome_blocco, nome_blocco))
-            tappe_blocco = cursor.fetchall()
-            for t in tappe_blocco:
-                cursor.execute("UPDATE tappe SET sequenza = ? WHERE id = ?", (nuova_seq, t[0]))
-                nuova_seq += 1
-
-        conn.commit()
-        conn.close()
-
-        QMessageBox.information(self, "Sequenza Salvata", "L'ordine dei blocchi è stato salvato definitivamente!")
-        
-        self.parent_app.esegui_audit_automatico()
-        self.parent_app.mappa_necessita_aggiornamento = True
-        self.parent_app.aggiorna_tabella_tappe()
-        self.parent_app.aggiorna_tabella_allarmi()
 
 class BikepackingStudioApp(QMainWindow):
     
