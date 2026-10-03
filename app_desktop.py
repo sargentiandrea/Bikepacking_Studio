@@ -59,75 +59,11 @@ class EstrazioneClimaWorker(QObject):
             self.completata.emit(risultato)
 
 
-class ClimaSoglieDialog(QDialog):
-    def __init__(self, soglie, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Soglie del semaforo climatico")
-        form = QFormLayout(self)
-        etichette = {
-            "temp_min_giallo": "Limite freddo giallo (°C)",
-            "temp_min_verde": "Temperatura verde minima (°C)",
-            "temp_max_verde": "Temperatura verde massima (°C)",
-            "temp_max_giallo": "Limite caldo giallo (°C)",
-            "pioggia_max_verde": "Pioggia verde fino a (mm/mese)",
-            "pioggia_max_giallo": "Pioggia gialla fino a (mm/mese)",
-            "vento_max_verde": "Vento verde fino a (km/h)",
-            "vento_max_giallo": "Vento giallo fino a (km/h)",
-        }
-        self.campi = {}
-        for chiave, etichetta in etichette.items():
-            campo = QDoubleSpinBox()
-            if chiave.startswith("temp_"):
-                campo.setRange(-50, 70)
-            elif chiave.startswith("pioggia_"):
-                campo.setRange(0, 1000)
-            else:
-                campo.setRange(0, 300)
-            campo.setDecimals(1)
-            campo.setValue(float(soglie[chiave]))
-            self.campi[chiave] = campo
-            form.addRow(etichetta, campo)
-
-        self.combo_priorita = QComboBox()
-        self.combo_priorita.addItem("Caldo prioritario", 1)
-        self.combo_priorita.addItem("Pioggia prioritaria", 0)
-        indice_priorita = self.combo_priorita.findData(
-            int(soglie.get("priorita_caldo", 1))
-        )
-        self.combo_priorita.setCurrentIndex(max(0, indice_priorita))
-        form.addRow("Fattore preferito", self.combo_priorita)
-
-        pulsanti = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok
-            | QDialogButtonBox.StandardButton.Cancel
-        )
-        pulsanti.accepted.connect(self.accept)
-        pulsanti.rejected.connect(self.reject)
-        form.addRow(pulsanti)
-
-    def accept(self):
-        valori = self.valori()
-        if (
-            valori["temp_min_giallo"] >= valori["temp_min_verde"]
-            or valori["temp_min_verde"] >= valori["temp_max_verde"]
-            or valori["temp_max_verde"] >= valori["temp_max_giallo"]
-            or valori["pioggia_max_verde"] >= valori["pioggia_max_giallo"]
-            or valori["vento_max_verde"] >= valori["vento_max_giallo"]
-        ):
-            QMessageBox.warning(
-                self,
-                "Soglie non valide",
-                "Le soglie devono essere in ordine crescente.",
-            )
-            return
-        super().accept()
-
-    def valori(self):
-        valori = {
-            chiave: campo.value() for chiave, campo in self.campi.items()
-        }
-        valori["priorita_caldo"] = int(self.combo_priorita.currentData())
-        return valori
+from gui.dialog_clima_soglie import ClimaSoglieDialog
+from gui import dialog_elenco_paesi
+from gui import dialog_nuovo_progetto
+from gui import dialog_wizard_trasferimento
+from service import trasferimenti_service
 
 
 # Import dei moduli interni del progetto
@@ -656,101 +592,14 @@ class BikepackingStudioApp(QMainWindow):
         return widget
 
     def apri_finestra_elenco_paesi(self):
+        """Mostra il dialogo con l'elenco dei paesi attraversati dal percorso."""
         if not self.current_progetto_id:
             QMessageBox.information(self, "Percorso richiesto", "Apri un percorso per visualizzare i paesi attraversati.")
             return
 
         from service import stats_service
         lista_paesi, totale_paesi, _ = stats_service.get_paesi_attraversati_stats(self.current_progetto_id)
-
-        finestra = QDialog(self)
-        finestra.setWindowTitle(f"Elenco Paesi Attraversati ({totale_paesi})")
-        finestra.resize(480, 550)
-        finestra.setStyleSheet("background-color: #1e1e1e; color: white;")
-        layout_popup = QVBoxLayout(finestra)
-
-        titolo = QLabel(f"<b>Totale Paesi Attraversati: {totale_paesi}</b>")
-        titolo.setStyleSheet("font-size: 14pt; color: #4ec9b0; margin-bottom: 10px;")
-        layout_popup.addWidget(titolo)
-
-        sprite_img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "sprite.png")
-        sprite_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "sprite.json")
-        sprite_data = {}
-        sprite_pixmap = QPixmap(sprite_img_path) if os.path.exists(sprite_img_path) else None
-        if os.path.exists(sprite_json_path):
-            try:
-                with open(sprite_json_path, "r", encoding="utf-8") as file:
-                    sprite_data = json.load(file)
-            except (OSError, json.JSONDecodeError) as errore:
-                print(f"Errore caricamento sprite.json: {errore}")
-
-        tabella = QTableWidget()
-        tabella.setColumnCount(2)
-        tabella.setHorizontalHeaderLabels(["Bandiera", "Paese"])
-        tabella.horizontalHeader().setStretchLastSection(True)
-        tabella.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        tabella.setRowCount(len(lista_paesi))
-        icon_size = 32
-        tabella.verticalHeader().setDefaultSectionSize(icon_size + 14)
-        tabella.setIconSize(QSize(icon_size, icon_size))
-
-        iso_to_sprite_key = {
-            "TR": "Turkey", "TW": "Taiwan", "VN": "Vietnam",
-            "TH": "Thailand", "TZ": "Tanzania", "TG": "Togo", "TM": "Turkmenistan"
-        }
-        for row_index, (iso2_code, nome_fallback, display_name) in enumerate(lista_paesi):
-            iso2_code = str(iso2_code).strip().upper()
-            trovato = None
-            nome_paese = str(nome_fallback)
-            for sprite_key, info in sprite_data.items():
-                if isinstance(info, dict) and str(info.get("iso_alpha2", "")).strip().upper() == iso2_code:
-                    trovato = info
-                    nome_paese = info.get("name_it", nome_paese)
-                    break
-
-            if trovato is None:
-                sprite_key = iso_to_sprite_key.get(iso2_code)
-                candidato = sprite_data.get(sprite_key) if sprite_key else None
-                if isinstance(candidato, dict):
-                    trovato = candidato
-                    nome_paese = candidato.get("name_it", nome_paese)
-
-            if trovato is None:
-                nome_pulito = nome_paese.strip().lower()
-                for sprite_key, info in sprite_data.items():
-                    if not isinstance(info, dict):
-                        continue
-                    nomi = (
-                        sprite_key.lower().replace("_", " "),
-                        str(info.get("name_it", "")).strip().lower(),
-                        str(info.get("name_en", "")).strip().lower(),
-                    )
-                    if nome_pulito in nomi:
-                        trovato = info
-                        nome_paese = info.get("name_it", nome_paese)
-                        break
-
-            item_bandiera = QTableWidgetItem()
-            if sprite_pixmap and trovato:
-                x, y = trovato.get("x", 0), trovato.get("y", 0)
-                width, height = trovato.get("width", 48), trovato.get("height", 48)
-                if width > 0 and height > 0:
-                    flag = sprite_pixmap.copy(x, y, width, height).scaled(
-                        icon_size, icon_size, Qt.AspectRatioMode.KeepAspectRatio,
-                        Qt.TransformationMode.SmoothTransformation
-                    )
-                    item_bandiera.setIcon(QIcon(flag))
-            if item_bandiera.icon().isNull():
-                item_bandiera.setText(str(display_name).split(" ", 1)[0])
-            item_bandiera.setTextAlignment(Qt.AlignCenter)
-            tabella.setItem(row_index, 0, item_bandiera)
-            tabella.setItem(row_index, 1, QTableWidgetItem(nome_paese))
-
-        layout_popup.addWidget(tabella)
-        btn_chiudi = QPushButton("Chiudi")
-        btn_chiudi.clicked.connect(finestra.accept)
-        layout_popup.addWidget(btn_chiudi)
-        finestra.exec()
+        dialog_elenco_paesi.crea_elenco_paesi(self, lista_paesi, totale_paesi)
 
     def _imposta_righe_tabella(self, tabella, righe):
         tabella.setRowCount(len(righe))
@@ -1413,81 +1262,14 @@ class BikepackingStudioApp(QMainWindow):
         self.aggiorna_tabella_allarmi()
 
     def crea_nuovo_progetto_dialog(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("✨ Pianificatore Nuovo Itinerario Interattivo")
-        dialog.setFixedWidth(450)
-        dialog.setStyleSheet("background-color: #2d2d30; color: white;")
-        layout = QFormLayout(dialog)
-        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        """Apre il pianificatore guidato per creare un nuovo percorso."""
+        def on_creato(nuovo_id, nome):
+            self.carica_lista_percorsi()
+            self.current_progetto_id = nuovo_id
+            self.current_progetto_nome = nome
+            self.aggiorna_tabella_tappe()
 
-        txt_nome = QLineEdit()
-        txt_nome.setPlaceholderText("Es. Avventura Gravel sui Monti")
-        txt_nome.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
-        
-        combo_bici = QComboBox()
-        combo_bici.addItems([
-            "Gravel / Bici da Viaggio", 
-            "Bici da Strada (Asfalto)", 
-            "Mountain Bike (Sterrato / Trail)", 
-            "E-Bike Tourer"
-        ])
-        combo_bici.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
-
-        combo_strada = QComboBox()
-        combo_strada.addItems([
-            "Bilanciato (Consigliato)", 
-            "Evita traffico pesante", 
-            "Preferisci strade sterrate / ciclabili", 
-            "Massima velocità (Asfalto prioritario)"
-        ])
-        combo_strada.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
-
-        combo_durata = QComboBox()
-        combo_durata.addItems([
-            "Escursione in Giornata", 
-            "Weekend (2-3 giorni)", 
-            "Viaggio a tappe (Bikepacking Lunga Durata)"
-        ])
-        combo_durata.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
-
-        txt_desc = QLineEdit()
-        txt_desc.setPlaceholderText("Note opzionali...")
-        txt_desc.setStyleSheet("background-color: #3e3e42; padding: 6px; color: white; border: 1px solid #555;")
-
-        layout.addRow("<b>Nome Percorso:</b>", txt_nome)
-        layout.addRow("<b>Profilo Bici:</b>", combo_bici)
-        layout.addRow("<b>Preferenza Strade:</b>", combo_strada)
-        layout.addRow("<b>Durata Prevista:</b>", combo_durata)
-        layout.addRow("<b>Note / Descrizione:</b>", txt_desc)
-
-        btn_salva = QPushButton("🚀 Crea e Apri sulla Mappa")
-        btn_salva.setStyleSheet("background-color: #28a745; color: white; padding: 10px; font-weight: bold; border-radius: 4px; margin-top: 10px;")
-        
-        def salva():
-            nome = txt_nome.text().strip()
-            if nome:
-                conn = sqlite3.connect(DB_NAME)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "INSERT INTO progetti (nome_progetto, descrizione, data_creazione) "
-                    "VALUES (?, ?, CURRENT_TIMESTAMP)",
-                    (nome, txt_desc.text().strip())
-                )
-                new_id = cursor.lastrowid
-                conn.commit()
-                conn.close()
-                dialog.accept()
-                
-                self.carica_lista_percorsi()
-                self.current_progetto_id = new_id
-                self.current_progetto_nome = nome
-                
-                print(f"✨ Creato percorso '{nome}' | Bici: {combo_bici.currentText()} | Strade: {combo_strada.currentText()}")
-                self.aggiorna_tabella_tappe()
-
-        btn_salva.clicked.connect(salva)
-        layout.addRow(btn_salva)
-        dialog.exec()
+        dialog_nuovo_progetto.crea_nuovo_progetto_dialog(self, on_creato)
         
     def apri_selettore_file(self):
         """Apre il file dialog e passa i file selezionati alla pagina Dashboard attiva."""
@@ -1708,32 +1490,14 @@ class BikepackingStudioApp(QMainWindow):
         )
 
     def avvia_wizard_trasferimento(self, allarme_id):
+        """Apre il wizard per registrare il trasferimento che copre un gap."""
         if not self.verifica_progetto_attivo():
             return
 
         try:
-            with closing(sqlite3.connect(DB_NAME)) as conn:
-                conn.row_factory = sqlite3.Row
-                allarme = conn.execute(
-                    """
-                    SELECT
-                        a.id,
-                        a.id_progetto,
-                        a.tappa_origine_id,
-                        a.tappa_destinazione_id,
-                        t1.nome_file AS nome_origine,
-                        t1.end_lat AS origine_lat,
-                        t1.end_lon AS origine_lon,
-                        t2.nome_file AS nome_destinazione,
-                        t2.start_lat AS destinazione_lat,
-                        t2.start_lon AS destinazione_lon
-                    FROM allarmi_percorso a
-                    LEFT JOIN tappe t1 ON t1.id = a.tappa_origine_id
-                    LEFT JOIN tappe t2 ON t2.id = a.tappa_destinazione_id
-                    WHERE a.id = ? AND a.id_progetto = ? AND a.risolto = 0
-                    """,
-                    (allarme_id, self.current_progetto_id),
-                ).fetchone()
+            allarme = trasferimenti_service.carica_allarme_gap(
+                self.current_progetto_id, allarme_id
+            )
         except sqlite3.Error as errore:
             QMessageBox.critical(
                 self,
@@ -1753,138 +1517,20 @@ class BikepackingStudioApp(QMainWindow):
             self.aggiorna_tabella_allarmi()
             return
 
-        coordinate = (
-            allarme["origine_lat"],
-            allarme["origine_lon"],
-            allarme["destinazione_lat"],
-            allarme["destinazione_lon"],
-        )
-        if any(valore is None for valore in coordinate):
-            QMessageBox.warning(
-                self,
-                "Coordinate mancanti",
-                "Non posso associare il trasferimento al gap perché una delle "
-                "due tappe non contiene le coordinate necessarie.",
-            )
+        coordinate, errore = trasferimenti_service.valida_coordinate_gap(allarme)
+        if coordinate is None:
+            titolo, messaggio = errore.split("\n", 1)
+            QMessageBox.warning(self, titolo, messaggio)
             return
 
-        try:
-            origine_lat, origine_lon, destinazione_lat, destinazione_lon = (
-                float(valore) for valore in coordinate
-            )
-        except (TypeError, ValueError, OverflowError):
-            QMessageBox.warning(
-                self,
-                "Coordinate non valide",
-                "Le coordinate delle tappe non sono numeri validi; il "
-                "trasferimento non è stato salvato.",
-            )
+        origine_lat, origine_lon, destinazione_lat, destinazione_lon = coordinate
+        nome_origine, nome_destinazione = trasferimenti_service.nomi_tappe_gap(allarme)
+        dati = dialog_wizard_trasferimento.chiedi_dati_trasferimento(
+            self, nome_origine, nome_destinazione, coordinate
+        )
+        if dati is None:
             return
-        if not all(
-            math.isfinite(valore)
-            for valore in (
-                origine_lat,
-                origine_lon,
-                destinazione_lat,
-                destinazione_lon,
-            )
-        ):
-            QMessageBox.warning(
-                self,
-                "Coordinate non valide",
-                "Le coordinate delle tappe non sono valide; il trasferimento "
-                "non è stato salvato.",
-            )
-            return
-        if (
-            not -90 <= origine_lat <= 90
-            or not -180 <= origine_lon <= 180
-            or not -90 <= destinazione_lat <= 90
-            or not -180 <= destinazione_lon <= 180
-        ):
-            QMessageBox.warning(
-                self,
-                "Coordinate non valide",
-                "Le coordinate delle tappe sono fuori dai limiti geografici "
-                "consentiti; il trasferimento non è stato salvato.",
-            )
-            return
-
-        nome_origine = allarme["nome_origine"] or (
-            f"Tappa {allarme['tappa_origine_id']}"
-        )
-        nome_destinazione = allarme["nome_destinazione"] or (
-            f"Tappa {allarme['tappa_destinazione_id']}"
-        )
-        dialogo = QDialog(self)
-        dialogo.setWindowTitle("Registra trasferimento per il gap")
-        dialogo.setMinimumWidth(480)
-        form = QFormLayout(dialogo)
-
-        form.addRow(
-            QLabel(
-                f"Collega '{nome_origine}' a '{nome_destinazione}'. "
-                "Le coordinate sono prese dagli estremi delle tappe per "
-                "rimuovere questo gap dall'audit."
-            )
-        )
-        combo_mezzo = QComboBox()
-        combo_mezzo.addItems(
-            [
-                "Traghetto / Nave",
-                "Treno",
-                "Bus / Pick-up",
-                "Aereo",
-                "Altro / Personale",
-                "Bicicletta / Tratto Ciclabile",
-            ]
-        )
-        form.addRow("Mezzo", combo_mezzo)
-
-        vettore = QLineEdit()
-        vettore.setPlaceholderText("Compagnia, linea o operatore (facoltativo)")
-        form.addRow("Vettore", vettore)
-        campo_da = QLineEdit(nome_origine)
-        campo_a = QLineEdit(nome_destinazione)
-        form.addRow("Da", campo_da)
-        form.addRow("A", campo_a)
-
-        durata = QLineEdit()
-        durata.setPlaceholderText("Es. 2 ore (facoltativo)")
-        form.addRow("Durata", durata)
-        costo = QDoubleSpinBox()
-        costo.setRange(0, 10000000)
-        costo.setDecimals(2)
-        costo.setSuffix(" €")
-        form.addRow("Costo", costo)
-
-        note = QTextEdit()
-        note.setPlaceholderText("Note facoltative")
-        note.setMaximumHeight(80)
-        form.addRow("Note", note)
-
-        form.addRow(
-            "Partenza gap",
-            QLabel(f"{origine_lat:.6f}, {origine_lon:.6f}"),
-        )
-        form.addRow(
-            "Arrivo gap",
-            QLabel(f"{destinazione_lat:.6f}, {destinazione_lon:.6f}"),
-        )
-        pulsanti = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save
-            | QDialogButtonBox.StandardButton.Cancel
-        )
-        pulsanti.accepted.connect(dialogo.accept)
-        pulsanti.rejected.connect(dialogo.reject)
-        form.addRow(pulsanti)
-
-        if dialogo.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        valori_da = campo_da.text().strip()
-        valori_a = campo_a.text().strip()
-        if not valori_da or not valori_a:
+        if not dati["da"] or not dati["a"]:
             QMessageBox.warning(
                 self,
                 "Dati incompleti",
@@ -1893,60 +1539,9 @@ class BikepackingStudioApp(QMainWindow):
             return
 
         try:
-            with closing(sqlite3.connect(DB_NAME, timeout=30.0)) as conn:
-                conn.execute("BEGIN IMMEDIATE")
-                trasferimenti = conn.execute(
-                    """
-                    SELECT start_lat, start_lon, end_lat, end_lon
-                    FROM trasferimenti
-                    WHERE id_progetto = ?
-                    """,
-                    (self.current_progetto_id,),
-                ).fetchall()
-                gia_coperto = any(
-                    start_lat is not None
-                    and start_lon is not None
-                    and end_lat is not None
-                    and end_lon is not None
-                    and abs(start_lat - origine_lat) < 0.01
-                    and abs(start_lon - origine_lon) < 0.01
-                    and abs(end_lat - destinazione_lat) < 0.01
-                    and abs(end_lon - destinazione_lon) < 0.01
-                    for start_lat, start_lon, end_lat, end_lon in trasferimenti
-                )
-                if gia_coperto:
-                    conn.rollback()
-                    QMessageBox.information(
-                        self,
-                        "Gap già coperto",
-                        "Esiste già un trasferimento con questi estremi. "
-                        "Aggiorno l'audit senza crearne un duplicato.",
-                    )
-                else:
-                    conn.execute(
-                        """
-                        INSERT INTO trasferimenti (
-                            id_progetto, tipo_mezzo, vettore, da_luogo, a_luogo,
-                            durata, costo_eur, note, start_lat, start_lon,
-                            end_lat, end_lon
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            self.current_progetto_id,
-                            combo_mezzo.currentText(),
-                            vettore.text().strip(),
-                            valori_da,
-                            valori_a,
-                            durata.text().strip(),
-                            costo.value(),
-                            note.toPlainText().strip(),
-                            origine_lat,
-                            origine_lon,
-                            destinazione_lat,
-                            destinazione_lon,
-                        ),
-                    )
-                    conn.commit()
+            gia_coperto = not trasferimenti_service.salva_trasferimento(
+                self.current_progetto_id, dati, coordinate
+            )
         except sqlite3.Error as errore:
             QMessageBox.critical(
                 self,
@@ -1954,6 +1549,14 @@ class BikepackingStudioApp(QMainWindow):
                 f"Il database ha rifiutato il trasferimento:\n{errore}",
             )
             return
+
+        if gia_coperto:
+            QMessageBox.information(
+                self,
+                "Gap già coperto",
+                "Esiste già un trasferimento con questi estremi. "
+                "Aggiorno l'audit senza crearne un duplicato.",
+            )
 
         self.esegui_audit_automatico()
         self.aggiorna_tabella_allarmi()
