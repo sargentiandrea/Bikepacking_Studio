@@ -11,6 +11,7 @@ import service.clima_service
 import service.migrazione_clima
 import service.migrazione_catena_stagionale
 from service.gpx_paths import trova_percorso_gpx
+from service.geo_utils import calcola_distanza_haversine
 import gpxpy
 import gpxpy.gpx
 import webbrowser
