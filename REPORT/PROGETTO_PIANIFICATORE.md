@@ -235,15 +235,16 @@ stato libero con un messaggio strutturato.
 
 | Elemento | Scelta | Nota |
 |---|---|---|
-| Tema | scuro (quello attuale) | **La visione dice "chiaro, minimale" ma il progetto e scuro**: da decidere |
+| Tema | scuro (quello attuale) | **tema chiaro previsto**, ma come progetto separato (visione 2.1) |
 | Font | 12-13 px, come oggi | Gia leggibile |
 | Colori | blu `#0284c7` primario, verde `#22c55e` conferma, rosso `#ef4444` pericolo | Coerenti col pannello attuale |
 | Icone | emoji, come oggi | Coerenti con la barra laterale |
 
-**Nota di divergenza**: la visione chiede uno stile Komoot chiaro. Il progetto
-ha un tema scuro coerente in tutte le 9 pagine. Cambiare tema solo al
-pianificatore creerebbe disuguaglianza; cambiare tutto il progetto e fuori
-scope. **Proposta**: correggere la visione su questo punto, non il codice.
+**Nota**: la visione chiede uno stile Komoot chiaro, e il chiarimento nella
+sezione 2.1 conferma che il passaggio **e previsto**, ma come progetto
+separato e successivo al redesign del pianificatore. Il pianificatore
+lavora quindi nel tema scuro attuale; il tema chiaro arriva dopo, quando
+la funzionalita sara stabile.
 
 ### 2.7 Le 4 modalita di input (cap. 3)
 
@@ -274,7 +275,7 @@ scope. **Proposta**: correggere la visione su questo punto, non il codice.
 | S12 | 3.7 Posizioni salvate assenti | Luoghi salvati | 5.8 |
 | S13 | 3.9 Modifica percorso assente | Pulsante "Modifica percorso" | 5.9 |
 | S14 | 3.8 Layer assenti | Menu stile mappa | 5.10 |
-| S15 | 3.5 Tema chiaro vs scuro | Correggere la visione, non il codice | decisione |
+| S15 | 3.5 Tema chiaro vs scuro | Restyling chiaro, progetto separato | 5.12 |
 ---
 
 ## 4. Le soluzioni in dettaglio
@@ -785,15 +786,24 @@ come "domani".
 | A - correggere la visione | si documenta che il tema scuro e una decisione del progetto | si vuole evitare di rifare 9 pagine |
 | B - cambiare il tema | si ritocca tutto il progetto | si crede che il tema chiaro riduca le paure |
 
-**Raccomandazione**: opzione **A**. Il tema scuro e gia uniforme su tutte le
-pagine, le tabelle e il pianificatore; cambiarlo e un lavoro cosmetico molto
-ampio con un beneficio incerto. La visione andrebbe aggiornata su questo
-punto, non il codice.
+**Raccomandazione**: opzione **B**, tema chiaro, ma come **progetto separato e
+successivo** al redesign del pianificatore (si veda il chiarimento nella
+visione, sezione 2.1).
 
-**Rischio**: nessuno (e una correzione documentale).
+Il tema scuro e oggi uniforme su tutte le pagine, le tabelle e il
+pianificatore: cambiarlo e un lavoro cosmetico ampio, quindi va affrontato
+per bene e non mescolato ad altre funzionalita. La sequenza prevista e:
 
-**Beneficio**: evita un lavoro di 9 pagine per un risultato estetico
-opinabile.
+1. completare il pianificatore (sotto-fasi 5.1-5.5)
+2. coerenza visiva del solo pianificatore
+3. tema chiaro per tutte e 9 le pagine, in una sotto-fase a se
+
+**Rischio**: **medio-alto**. Toccando tutte le pagine in contemporanea, un
+problema di leggibilita si rischia di confondere con un problema di logica.
+Per questo la separazione e una regola, non una preferenza.
+
+**Beneficio**: allinea l'applicazione alla visione e riduce la stanchezza
+visiva degli utenti che leggono tabelle lunghe.
 **Attenzione al principio P4**: se il GPS non e disponibile la funzione deve
 fallire in modo chiaro, non bloccare. Per questo e in una sotto-fase separata.
 ---
@@ -906,7 +916,18 @@ niente di tutto il resto.
 | Sotto-fase | Contenuto | Soluzioni | Rischio |
 |---|---|---|---|
 | **5.10** | Stile mappa | S14 | basso |
-| **5.11** | Decisione sul tema | S15 | nessuno (documentale) |
+
+### Blocco E - Restyling (dopo tutto il resto)
+
+| Sotto-fase | Contenuto | Soluzioni | Rischio |
+|---|---|---|---|
+| **5.11** | Coerenza visiva del solo pianificatore | S4 parziale | basso |
+| **5.12** | Tema chiaro per tutte e 9 le pagine | S15 | medio-alto |
+
+**Il tema chiaro viene per ultimo di proposito** (si veda il chiarimento
+nella visione, sezione 2.1): toccando tutte le pagine insieme a una
+funzionalita nuova, un problema di leggibilita si confonde con un problema
+di logica e il rollback diventa impossibile.
 
 ### Come NON procederei
 
@@ -944,10 +965,13 @@ Non ho potuto verificare questi punti, che influenzano la progettazione:
 | Reale costo di una ricerca POI | Il layer `poi` non e mai stato interrogato | Prototipo di benchmark prima di 5.7 |
 | Formato del JavaScript della mappa | Non analizzato | Leggere i template prima di 5.6 e 5.9 |
 | Uso reale del trascinamento | Dipende dal JS non letto | Verifica manuale prima di 5.4 |
-| Se "Parte di viaggio" ha gia un modello | Il blocco esiste (`blocchi_ordine`) ma il caso d'uso non e definito nella visione | **Decisione da prendere prima di 5.2** |
 
-L'ultimo punto e il piu importante: la visione chiede "Parte di un viaggio"
-come uno dei 4 contesti, ma **non dice cosa succede operativamente**. Prima
-di implementare 5.2 va chiarito se significa "aggiungo a un blocco esistente"
-o qualcos'altro.
-perdere modifiche fatte a mano sulle tappe.
+**Chiarimenti gia risolti** (non piu informazioni mancanti):
+
+| Punto | Dove e stato risolto |
+|---|---|
+| Cosa significa "parte di un viaggio" | Visione, sezione 4.1: blocco esistente o nuovo blocco |
+| Il tema chiaro e previsto? | Visione, sezione 2.1: si, ma come progetto separato (sotto-fase 5.12) |
+
+Restano quindi tre sole incognite tecniche, tutte risolvibili con una
+verifica puntuale prima delle sotto-fasi interessate.
