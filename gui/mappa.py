@@ -1545,6 +1545,10 @@ class MappaWidget(QWidget):
         for evento in eventi:
             self._ultimo_evento_mappa_id = max(self._ultimo_evento_mappa_id, evento.get("id", 0))
             if evento.get("project_id") != id_progetto:
+                # Evento di un altro progetto (l'utente ha cambiato percorso prima del click):
+                # la modalità mappa è comunque già stata azzerata dal JavaScript,
+                # quindi fermiamo il polling per non interrogare il server inutilmente.
+                self._poll_interazioni_timer.stop()
                 continue
             if evento.get("action") == "add_waypoint":
                 self.pannello_pianificazione._aggiungi_waypoint_da_coordinate(
@@ -1560,6 +1564,10 @@ class MappaWidget(QWidget):
                     f"window.impostaModalitaInterazioneMappa(null, {int(id_progetto)});"
                 )
                 self.pannello_pianificazione.lbl_stato_superfici.setText("Modalità mappa disattivata.")
+            # Volutamente dentro il ciclo: ogni modalità mappa è "usa e getta".
+            # Il JavaScript (inviaInterazioneMappa) la azzera subito dopo aver
+            # inviato UN solo evento, quindi dopo averlo gestito il polling non serve più.
+            # Con zero eventi il timer resta attivo in attesa del click: non spostare fuori dal for.
             self._poll_interazioni_timer.stop()
 
     def mostra_anteprima_percorso(self, coordinate):

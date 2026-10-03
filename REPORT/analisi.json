@@ -1,6 +1,6 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T09:02:10.628250",
+    "data_analisi": "2026-10-03T09:23:18.188218",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
@@ -721,13 +721,13 @@
       }
     ],
     "mappa_dipendenze": {
+      "service/migrazione_clima.py": [
+        "app_desktop"
+      ],
+      "service/clima_service.py": [
+        "app_desktop"
+      ],
       "service/stats_service.py": [
-        "app_desktop"
-      ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
-      "service/clima_estrattore.py": [
         "app_desktop"
       ],
       "service/catena_stagionale_service.py": [
@@ -736,10 +736,10 @@
       "database/database_setup.py": [
         "app_desktop"
       ],
-      "service/migrazione_clima.py": [
+      "service/clima_estrattore.py": [
         "app_desktop"
       ],
-      "service/clima_service.py": [
+      "service/audit_service.py": [
         "app_desktop"
       ],
       "service/migrazione_catena_stagionale.py": [
@@ -11401,7 +11401,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1727,
+        "riga": 1735,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11410,7 +11410,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2369,
+        "riga": 2377,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"

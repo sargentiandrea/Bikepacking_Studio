@@ -46,11 +46,11 @@
 - Riferimento: `http://127.0.0.1:8080/api/map-interactions`
 - Contesto: `"http://127.0.0.1:8080/api/map-interactions",`
 
-### `gui/mappa.py`:1727
+### `gui/mappa.py`:1735
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `target=lambda: requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=5),`
 
-### `gui/mappa.py`:2369
+### `gui/mappa.py`:2377
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)`
 
