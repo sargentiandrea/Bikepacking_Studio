@@ -809,7 +809,8 @@
                         if (!Number.isInteger(tappaId) || tappaId <= 0) return;
 
                         e.preventDefault();
-                        trascinamentoPercorso = { tappaId, puntoIniziale: e.lngLat };
+                        // puntoIniziale è un LngLat (nessun metodo dist): salvo anche il punto in pixel per misurare lo spostamento
+                        trascinamentoPercorso = { tappaId, puntoIniziale: e.lngLat, puntoPixelIniziale: e.point };
                         map.dragPan.disable();
                         map.getCanvas().style.cursor = 'grabbing';
                         markerTrascinamento = new maplibregl.Marker({ color: '#0284c7' })
@@ -846,7 +847,11 @@
                     map.on('mouseup', (e) => {
                         if (!trascinamentoPercorso) return;
                         const tappaId = trascinamentoPercorso.tappaId;
-                        const distanzaPixel = trascinamentoPercorso.puntoIniziale.dist(e.point);
+                        // Distanza in pixel tra pressione e rilascio del mouse
+                        const distanzaPixel = Math.hypot(
+                            e.point.x - trascinamentoPercorso.puntoPixelIniziale.x,
+                            e.point.y - trascinamentoPercorso.puntoPixelIniziale.y
+                        );
                         map.dragPan.enable();
                         if (markerTrascinamento) markerTrascinamento.remove();
                         markerTrascinamento = null;
