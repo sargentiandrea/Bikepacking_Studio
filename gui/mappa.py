@@ -3,30 +3,25 @@ import json
 import sqlite3
 import threading
 import math
-import re
 import requests
-import gpxpy
-import gpxpy.gpx
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
-    QListWidget, QListWidgetItem, QDialog, QProgressBar, QMessageBox,
+    QMessageBox,
     QFrame, QLineEdit, QComboBox, QGraphicsDropShadowEffect, QScrollArea,
     QSizePolicy, QGridLayout
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
 from PySide6.QtCore import QUrl, Qt, QTimer, QThread, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QPainter
+from PySide6.QtGui import QColor, QDesktopServices
 
-from service.config import BASE_DIR, BROUTER_URL, DB_NAME
+from service.config import BASE_DIR, DB_NAME
 from service.geometria_service import (
     VERSIONE_ALGORITMO_GEOMETRIA,
     decomprimi_segmenti,
     geometria_geojson,
 )
-from service.geonames_service import cerca_coordinate_luogo
-from service.map_manager_service import MapManagerService, DownloadWorker
 from service.mappa_dati_service import (
     carica_coordinate_tappa,
     carica_tappe_attive,
@@ -37,145 +32,20 @@ from service.salvataggio_tappa_service import (
     rimuovi_gpx_se_esiste,
     salva_tappa_pianificata,
 )
-from service.gpx_paths import trova_percorso_gpx
 from service.geo_utils import calcola_distanza_haversine
 
+# Componenti spostati in moduli dedicati (Fase 3.0 del refactor).
+from gui.mappa_barra_superfici import BarraSuperfici
+from gui.mappa_cache import CacheMappaProgetto
+from gui.mappa_manager import MapManagerDialog
+from gui.mappa_worker import (
+    PianificazionePercorsoWorker,
+    WorkerAltimetria,
+    WorkerAnalisiSuperficiOffline,
+    WorkerNomiLuoghi,
+)
+
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
-
-
-class BarraSuperfici(QWidget):
-    """Barra compatta che visualizza la ripartizione delle superfici BRouter."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.superfici = []
-        self.setMinimumHeight(22)
-        self.setMaximumHeight(22)
-
-    def imposta_superfici(self, superfici):
-        self.superfici = list(superfici or [])
-        self.update()
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        area = self.rect().adjusted(0, 0, -1, -1)
-
-        if not self.superfici:
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor("#3e3e42"))
-            painter.drawRoundedRect(area, 5, 5)
-            return
-
-        totale = sum(max(0.0, float(voce.get("percentuale", 0))) for voce in self.superfici)
-        if totale <= 0:
-            return
-
-        x = area.left()
-        larghezza_rimanente = area.width()
-        for indice, voce in enumerate(self.superfici):
-            quota = max(0.0, float(voce.get("percentuale", 0))) / totale
-            larghezza = larghezza_rimanente if indice == len(self.superfici) - 1 else round(area.width() * quota)
-            if larghezza <= 0:
-                continue
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QColor(voce.get("colore", "#64748b")))
-            painter.drawRect(x, area.top(), larghezza, area.height())
-            x += larghezza
-            larghezza_rimanente -= larghezza
-        painter.end()
-
-class MapManagerDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Gestione Mappe Regionali Offline")
-        self.resize(600, 450)
-        self.setup_ui()
-
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("<strong>Catalogo Mappe Regionali (Vettoriali OpenMapTiles):</strong>"))
-        
-        self.list_widget = QListWidget()
-        layout.addWidget(self.list_widget)
-
-        self.lbl_description = QLabel("")
-        self.lbl_description.setWordWrap(True)
-        self.lbl_description.setStyleSheet("color: #94a3b8; font-size: 11px; margin: 4px 0;")
-        layout.addWidget(self.lbl_description)
-
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        layout.addWidget(self.progress_bar)
-
-        btn_layout = QHBoxLayout()
-        self.btn_download = QPushButton("Scarica Mappa Selezionata")
-        self.btn_download.clicked.connect(self.start_download)
-        btn_layout.addWidget(self.btn_download)
-
-        self.btn_close = QPushButton("Chiudi")
-        self.btn_close.clicked.connect(self.accept)
-        btn_layout.addWidget(self.btn_close)
-
-        layout.addLayout(btn_layout)
-        
-        self.list_widget.currentItemChanged.connect(self.on_item_selected)
-        self.refresh_catalog()
-
-    def refresh_catalog(self):
-        self.list_widget.clear()
-        catalog = MapManagerService.get_available_catalog()
-        
-        for item in catalog:
-            status = "✅ Installata" if item["is_installed"] else "⬇️ Scaricabile"
-            text = f"[{item['region']}] {item['name']} — ~{item['size_mb']} MB ({status})"
-            widget_item = QListWidgetItem(text)
-            widget_item.setData(32, item)
-            self.list_widget.addItem(widget_item)
-
-    def on_item_selected(self, current, previous):
-        if current:
-            data = current.data(32)
-            self.lbl_description.setText(f"ℹ️ {data['description']}")
-        else:
-            self.lbl_description.setText("")
-
-    def start_download(self):
-        selected_item = self.list_widget.currentItem()
-        if not selected_item:
-            QMessageBox.warning(self, "Attenzione", "Seleziona una regione da scaricare.")
-            return
-
-        item_data = selected_item.data(32)
-        if item_data["is_installed"]:
-            QMessageBox.information(self, "Info", "Questa regione è già installata nella cartella data/maps/.")
-            return
-
-        if not item_data["url"]:
-            QMessageBox.warning(self, "URL Mancante", "La sorgente di download per questa specifica regione sarà collegata a breve.")
-            return
-
-        dest_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), '..', 'data', 'maps', item_data["filename"]
-        ))
-
-        self.btn_download.setEnabled(False)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setVisible(True)
-
-        self.worker = DownloadWorker(item_data["url"], dest_path)
-        self.worker.progress.connect(self.progress_bar.setValue)
-        self.worker.finished.connect(self.on_download_finished)
-        self.worker.start()
-
-    def on_download_finished(self, success, message):
-        self.btn_download.setEnabled(True)
-        self.progress_bar.setVisible(False)
-        if success:
-            QMessageBox.information(self, "Successo", message)
-            self.refresh_catalog()
-        else:
-            QMessageBox.critical(self, "Errore Download", message)
 
 
 class PannelloPianificazioneWidget(QFrame):
@@ -1284,7 +1154,7 @@ class MappaWidget(QWidget):
         self._mappa_workers_attivi = []  # tiene in vita i worker finché non finiscono davvero (vedi rigenera_mappa)
         self.ultimo_progetto_id_caricato = None
         self._firma_dati_mappa_caricati = None
-        self._cache_per_progetto = {}
+        self._cache_mappa = CacheMappaProgetto()
         self._ultimo_evento_mappa_id = 0
         self._poll_interazioni_timer = QTimer(self)
         self._poll_interazioni_timer.setInterval(300)
@@ -1534,16 +1404,8 @@ class MappaWidget(QWidget):
                     "mappa_necessita_aggiornamento",
                     True,
                 )
-                cache_progetto = self._cache_per_progetto.get(p_id)
-                firma_in_cache = (
-                    cache_progetto.get("firma")
-                    if cache_progetto is not None
-                    else None
-                )
-                cache_valida = (
-                    firma_corrente is not None
-                    and firma_corrente == firma_in_cache
-                )
+                cache_progetto = self._cache_mappa.ottieni(p_id)
+                cache_valida = self._cache_mappa.e_valida(p_id, firma_corrente)
 
                 if cache_valida and (not aggiornamento_richiesto or progetto_cambiato):
                     # La firma uguale dimostra che la richiesta globale di aggiornamento
@@ -1696,10 +1558,7 @@ class MappaWidget(QWidget):
         self.ultimo_progetto_id_caricato = id_progetto
         self._firma_dati_mappa_caricati = firma_dati
         if firma_dati is not None:
-            self._cache_per_progetto[id_progetto] = {
-                "firma": firma_dati,
-                "geojson": geojson_payload,
-            }
+            self._cache_mappa.salva(id_progetto, firma_dati, geojson_payload)
         setattr(self.parent_app, "mappa_necessita_aggiornamento", False)
         print("✅ Caricamento asincrono completato ed iniettato con successo.")
 
@@ -1720,223 +1579,6 @@ class MappaWidget(QWidget):
         dialog = MapManagerDialog(self)
         dialog.exec()
         self.reload_map()
-
-
-class WorkerAnalisiSuperficiOffline(QThread):
-    """
-    Calcola in background (fuori dal thread dell'interfaccia) la ripartizione
-    superfici/divieti bici di un progetto, leggendo solo le mappe locali già
-    scaricate. Nessuna chiamata di rete: usa service/superfici_service.py,
-    che a sua volta rilegge la cache già salvata quando possibile.
-    """
-    analisi_completata = Signal(dict)
-
-    def __init__(self, id_progetto, parent=None):
-        super().__init__(parent)
-        self.id_progetto = id_progetto
-        self._annullato = False
-
-    def request_stop(self):
-        """Chiede al worker di interrompersi il prima possibile (es. l'utente
-        ha già cambiato percorso e il risultato non servirebbe più): senza
-        questo, un'analisi pesante su un percorso enorme continuava a
-        girare in sottofondo anche quando ormai inutile, rallentando i
-        calcoli successivi mettendosi in coda dietro di essa."""
-        self._annullato = True
-
-    def run(self):
-        try:
-            from service.superfici_service import analizza_superfici_progetto
-            risultato = analizza_superfici_progetto(
-                self.id_progetto, deve_continuare=lambda: not self._annullato
-            )
-        except Exception as errore:
-            risultato = {"disponibile": False, "motivo": f"Errore durante l'analisi offline: {errore}"}
-        self.analisi_completata.emit(risultato)
-
-
-class WorkerNomiLuoghi(QThread):
-    """
-    Risolve in background (fuori dal thread dell'interfaccia) il nome del
-    luogo più vicino a una o più coordinate, leggendo solo le mappe locali
-    già scaricate (nessuna chiamata di rete). Usato dal pannello per
-    mostrare "Aosta" invece di "45.737200, 7.315500".
-    """
-    nomi_pronti = Signal(object)
-
-    def __init__(self, richieste, parent=None):
-        super().__init__(parent)
-        # richieste: lista di dict {"chiave": ..., "lat": ..., "lon": ...}
-        self.richieste = list(richieste or [])
-        self._annullato = False
-
-    def request_stop(self):
-        """Vedi WorkerAnalisiSuperficiOffline.request_stop: stessa logica."""
-        self._annullato = True
-
-    def run(self):
-        from service.geocodifica_offline_service import nome_luogo_da_coordinate
-        risultati = {}
-        for richiesta in self.richieste:
-            if self._annullato:
-                break
-            try:
-                nome = nome_luogo_da_coordinate(richiesta["lat"], richiesta["lon"])
-            except Exception as errore:
-                print(f"Nota: geocodifica offline non riuscita: {errore}")
-                nome = None
-            risultati[richiesta["chiave"]] = nome or f"{richiesta['lat']:.6f}, {richiesta['lon']:.6f}"
-        self.nomi_pronti.emit(risultati)
-
-
-class WorkerAltimetria(QThread):
-    """
-    Legge in background (fuori dal thread dell'interfaccia) i file GPX di un
-    percorso per calcolare altitudine massima e minima. Con percorsi molto
-    lunghi (centinaia di tappe) questa lettura può richiedere parecchi
-    secondi: farla sul thread principale bloccava l'intera applicazione.
-    """
-    altimetria_pronta = Signal(dict)
-
-    def __init__(self, nomi_file, parent=None):
-        super().__init__(parent)
-        self.nomi_file = list(nomi_file or [])
-        self._annullato = False
-
-    def request_stop(self):
-        """Vedi WorkerAnalisiSuperficiOffline.request_stop: stessa logica."""
-        self._annullato = True
-
-    def run(self):
-        quote = []
-        for nome_file, id_progetto in self.nomi_file:
-            if self._annullato:
-                break
-            percorso_gpx = trova_percorso_gpx(
-                nome_file, id_progetto, directory_gpx=GPX_DIR
-            )
-            if percorso_gpx is None:
-                continue
-            try:
-                with open(percorso_gpx, "r", encoding="utf-8", errors="ignore") as file_gpx:
-                    traccia = gpxpy.parse(file_gpx)
-                quote.extend(
-                    punto.elevation
-                    for track in traccia.tracks
-                    for segmento in track.segments
-                    for punto in segmento.points
-                    if punto.elevation is not None
-                )
-            except Exception as errore_lettura:
-                print(f"Nota: impossibile leggere l'altimetria di {nome_file}: {errore_lettura}")
-
-        risultato = {
-            "massima": max(quote) if quote else None,
-            "minima": min(quote) if quote else None,
-        }
-        self.altimetria_pronta.emit(risultato)
-
-
-class PianificazionePercorsoWorker(QThread):
-    """Geocodifica partenza e arrivo e richiede a BRouter il tracciato GPX."""
-
-    completato = Signal(bool, dict, str)
-
-    def __init__(self, id_progetto, partenza, destinazione, profilo, punti_passaggio=None, parent=None, tappa_id=None):
-        super().__init__(parent)
-        self.id_progetto = id_progetto
-        self.partenza = partenza
-        self.destinazione = destinazione
-        self.profilo = profilo
-        self.punti_passaggio = list(punti_passaggio or [])
-        self.tappa_id = tappa_id
-
-    def _geocodifica(self, luogo):
-        coordinate = re.fullmatch(
-            r"\s*([-+]?\d+(?:\.\d+)?)\s*[,;]\s*([-+]?\d+(?:\.\d+)?)\s*",
-            luogo,
-        )
-        if coordinate:
-            latitudine, longitudine = map(float, coordinate.groups())
-            if -90 <= latitudine <= 90 and -180 <= longitudine <= 180:
-                return latitudine, longitudine
-            raise ValueError(f"Coordinate fuori intervallo: '{luogo}'.")
-
-        return cerca_coordinate_luogo(luogo)
-
-    def _profilo_brouter(self):
-        if "strada" in self.profilo.casefold():
-            return "fastbike"
-        return "trekking"
-
-    def run(self):
-        try:
-            luoghi = [self.partenza, *self.punti_passaggio, self.destinazione]
-            coordinate_luoghi = [
-                self._geocodifica(luogo) for luogo in luoghi
-            ]
-
-            if len(set(coordinate_luoghi)) != len(coordinate_luoghi):
-                raise ValueError("Due o più punti inseriti corrispondono alla stessa posizione.")
-
-            lonlats = "|".join(
-                f"{longitudine},{latitudine}"
-                for latitudine, longitudine in coordinate_luoghi
-            )
-
-            risposta = requests.get(
-                BROUTER_URL,
-                params={
-                    "lonlats": lonlats,
-                    "profile": self._profilo_brouter(),
-                    "alternativeidx": 0,
-                    "format": "geojson",
-                },
-                timeout=320,
-            )
-            risposta.raise_for_status()
-            dati = risposta.json()
-            features = dati.get("features", [])
-            if not features:
-                raise ValueError("BRouter non ha trovato un percorso ciclabile tra i due luoghi.")
-
-            feature_rotta = features[0]
-            proprieta_rotta = feature_rotta.get("properties", {})
-            coordinate_geojson = feature_rotta.get("geometry", {}).get("coordinates", [])
-            coordinate = []
-            for punto in coordinate_geojson:
-                if len(punto) < 2:
-                    continue
-                longitudine, latitudine = float(punto[0]), float(punto[1])
-                if not (-180 <= longitudine <= 180 and -90 <= latitudine <= 90):
-                    continue
-                punto_gpx = (latitudine, longitudine)
-                if len(punto) > 2:
-                    try:
-                        punto_gpx += (float(punto[2]),)
-                    except (TypeError, ValueError):
-                        pass
-                coordinate.append(punto_gpx)
-
-            if len(coordinate) < 2:
-                raise ValueError("La risposta del servizio non contiene una geometria valida.")
-
-            from service.stats_service import analizza_dati_rotta_brouter
-            statistiche = analizza_dati_rotta_brouter(proprieta_rotta, coordinate)
-
-            self.completato.emit(True, {
-                "id_progetto": self.id_progetto,
-                "partenza": self.partenza,
-                "destinazione": self.destinazione,
-                "coordinate": coordinate,
-                "profilo": self.profilo,
-                "tappa_id": self.tappa_id,
-                "statistiche": statistiche,
-            }, "")
-        except (requests.RequestException, ValueError, KeyError, TypeError) as errore:
-            self.completato.emit(False, {}, str(errore))
-        except Exception as errore:
-            self.completato.emit(False, {}, f"Errore imprevisto durante il calcolo: {errore}")
 
 
 # Worker che legge i GPX esistenti e prepara le geometrie per MapLibre.
