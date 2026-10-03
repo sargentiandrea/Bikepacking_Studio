@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T09:23:18.188218",
+    "data_analisi": "2026-10-03T09:43:36.976849",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 34,
+    "totale_moduli": 35,
     "totale_classi": 22,
-    "totale_funzioni": 350,
+    "totale_funzioni": 347,
     "totale_rotte_flask": 8,
     "totale_tabelle": 27,
     "tabelle_create": [
@@ -137,6 +137,7 @@
         "service/config.py",
         "service/costa_service.py",
         "service/dogane_service.py",
+        "service/geo_utils.py",
         "service/geocodifica_offline_service.py",
         "service/geometria_service.py",
         "service/geonames_service.py",
@@ -569,16 +570,6 @@
     ],
     "duplicazioni": [
       {
-        "nome": "calcola_distanza_haversine",
-        "file": [
-          "app_desktop.py",
-          "gui/dashboard.py",
-          "service/audit_service.py",
-          "service/gpx_metrics_service.py"
-        ],
-        "numero_copie": 4
-      },
-      {
         "nome": "crea_backup",
         "file": [
           "service/migrazione_tappa_analisi.py",
@@ -704,6 +695,14 @@
         "numero_copie": 2
       },
       {
+        "nome": "calcola_distanza_haversine",
+        "file": [
+          "service/geo_utils.py",
+          "service/gpx_metrics_service.py"
+        ],
+        "numero_copie": 2
+      },
+      {
         "nome": "_crea_backup",
         "file": [
           "service/migrazione_catena_stagionale.py",
@@ -721,28 +720,28 @@
       }
     ],
     "mappa_dipendenze": {
-      "service/migrazione_clima.py": [
-        "app_desktop"
-      ],
       "service/clima_service.py": [
-        "app_desktop"
-      ],
-      "service/stats_service.py": [
-        "app_desktop"
-      ],
-      "service/catena_stagionale_service.py": [
-        "app_desktop"
-      ],
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/clima_estrattore.py": [
         "app_desktop"
       ],
       "service/audit_service.py": [
         "app_desktop"
       ],
+      "service/catena_stagionale_service.py": [
+        "app_desktop"
+      ],
+      "service/stats_service.py": [
+        "app_desktop"
+      ],
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
       "service/migrazione_catena_stagionale.py": [
+        "app_desktop"
+      ],
+      "service/clima_estrattore.py": [
+        "app_desktop"
+      ],
+      "service/migrazione_clima.py": [
         "app_desktop"
       ]
     }
@@ -766,7 +765,6 @@
         "accept",
         "valori",
         "determina_blocco_da_nome_file",
-        "calcola_distanza_haversine",
         "__init__",
         "dragEnterEvent",
         "dropEvent",
@@ -951,7 +949,6 @@
         "assicura_schema_catena_stagionale",
         "assicura_schema_clima",
         "assicura_tabelle_clima",
-        "atan2",
         "availableGeometry",
         "avvia_wizard_trasferimento",
         "basename",
@@ -972,7 +969,6 @@
         "conferma_scenario",
         "connect",
         "copy",
-        "cos",
         "count",
         "crea_bottone_navigazione",
         "crea_pagina_audit",
@@ -1061,7 +1057,6 @@
         "proponi_scenario",
         "question",
         "raccorda_traccia_istantaneo",
-        "radians",
         "range",
         "rect",
         "remove",
@@ -1129,9 +1124,7 @@
         "setWindowTitle",
         "setWordWrap",
         "show",
-        "sin",
         "split",
-        "sqrt",
         "start",
         "start_local_map_server",
         "startswith",
@@ -1235,7 +1228,6 @@
         "WizardNuovoPercorsoDialog"
       ],
       "funzioni": [
-        "calcola_distanza_haversine",
         "__init__",
         "init_ui",
         "aggiorna_tabella_tappe",
@@ -1258,7 +1250,7 @@
       ],
       "import_interni": [
         "service.config.DB_NAME",
-        "service.config.calcola_distanza_haversine",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.gpx_paths.percorso_gpx_progetto",
         "service.gpx_paths.trova_percorso_gpx",
         "service.precalcolo_service.precalcola_tappa"
@@ -1268,7 +1260,6 @@
         "PySide6.QtGui",
         "PySide6.QtWidgets",
         "gpxpy",
-        "math",
         "os",
         "shutil",
         "sqlite3"
@@ -1309,7 +1300,6 @@
         "append",
         "apri_percorso_selezionato",
         "apri_progetto_per_id",
-        "atan2",
         "basename",
         "calcola_distanza_haversine",
         "cambia_pagina",
@@ -1320,7 +1310,6 @@
         "commit",
         "connect",
         "copy2",
-        "cos",
         "critical",
         "currentItem",
         "currentText",
@@ -1353,7 +1342,6 @@
         "print",
         "pyqtSignal",
         "question",
-        "radians",
         "range",
         "remove",
         "replace",
@@ -1382,10 +1370,8 @@
         "setTextAlignment",
         "setWindowTitle",
         "setattr",
-        "sin",
         "sorted",
         "split",
-        "sqrt",
         "str",
         "strip",
         "sum",
@@ -1481,7 +1467,6 @@
         "_fine_caricamento_asincrono",
         "_mostra_cache_progetto",
         "open_map_manager",
-        "_distanza_haversine_km",
         "__init__",
         "request_stop",
         "run",
@@ -1503,6 +1488,7 @@
         "service.config.BASE_DIR",
         "service.config.BROUTER_URL",
         "service.config.DB_NAME",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.geocodifica_offline_service.nome_luogo_da_coordinate",
         "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
         "service.geometria_service.decomprimi_segmenti",
@@ -1590,7 +1576,6 @@
         "_avvia_worker_rotta",
         "_avvia_worker_superfici",
         "_costruisci_riga_tappa_intermedia",
-        "_distanza_haversine_km",
         "_etichetta_punto",
         "_evidenzia_tappa_su_mappa",
         "_fine_analisi_altimetria",
@@ -1632,10 +1617,10 @@
         "analizza_superfici_progetto",
         "any",
         "append",
-        "asin",
         "attiva_modalita_interazione",
         "basename",
         "bottom",
+        "calcola_distanza_haversine",
         "callable",
         "callback_worker_pianificazione",
         "casefold",
@@ -1788,12 +1773,10 @@
         "sha256",
         "show",
         "showEvent",
-        "sin",
         "sincronizza_stato_percorso",
         "singleShot",
         "sizeHint",
         "spacing",
-        "sqrt",
         "start",
         "stop",
         "str",
@@ -2012,7 +1995,6 @@
     "service/audit_service.py": {
       "classi": [],
       "funzioni": [
-        "calcola_distanza_haversine",
         "rileva_gap_progetto",
         "rileva_strade_vietate_progetto",
         "registra_trasferimento_gap",
@@ -2021,6 +2003,7 @@
       "import_interni": [
         "service.config.BROUTER_URL",
         "service.config.DB_NAME",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.gpx_paths.percorso_gpx_progetto",
         "service.superfici_service.carica_superfici_tappa"
       ],
@@ -2046,13 +2029,11 @@
         "abs",
         "any",
         "append",
-        "asin",
         "calcola_distanza_haversine",
         "carica_superfici_tappa",
         "close",
         "commit",
         "connect",
-        "cos",
         "cursor",
         "execute",
         "fetchall",
@@ -2064,11 +2045,8 @@
         "open",
         "percorso_gpx_progetto",
         "print",
-        "radians",
         "range",
         "round",
-        "sin",
-        "sqrt",
         "sum",
         "to_xml",
         "write"
@@ -2497,6 +2475,27 @@
         "upper"
       ]
     },
+    "service/geo_utils.py": {
+      "classi": [],
+      "funzioni": [
+        "calcola_distanza_haversine"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "math"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "asin",
+        "cos",
+        "max",
+        "min",
+        "radians",
+        "sin",
+        "sqrt"
+      ]
+    },
     "service/geocodifica_offline_service.py": {
       "classi": [],
       "funzioni": [
@@ -2507,8 +2506,8 @@
         "nome_luogo_da_coordinate"
       ],
       "import_interni": [
-        "service.audit_service.calcola_distanza_haversine",
         "service.config.DB_NAME",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.superfici_service._connessione_mbtiles",
         "service.superfici_service._deg2num",
         "service.superfici_service._mbtiles_candidati_per_punto",
@@ -2662,7 +2661,10 @@
         "_arrotonda_metriche",
         "analizza_gpx"
       ],
-      "import_interni": [],
+      "import_interni": [
+        "service.geo_utils.RAGGIO_TERRA_MEDIO_KM",
+        "service.geo_utils.calcola_distanza_haversine"
+      ],
       "import_esterni": [
         "__future__",
         "gpxpy",
@@ -2680,9 +2682,8 @@
         "abs",
         "any",
         "append",
-        "asin",
         "calcola_distanza_haversine",
-        "cos",
+        "distanza_haversine_km",
         "enumerate",
         "extend",
         "float",
@@ -2696,10 +2697,7 @@
         "min",
         "open",
         "parse",
-        "radians",
         "round",
-        "sin",
-        "sqrt",
         "sum",
         "update",
         "zip"
@@ -3300,6 +3298,8 @@
         "service.costa_service.ottieni_metadati_gpx",
         "service.costa_service.ottieni_versione_dataset_costa",
         "service.costa_service.salva_riepilogo_costa",
+        "service.geo_utils.RAGGIO_TERRA_MEDIO_KM",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.gpx_paths.trova_percorso_gpx"
       ],
       "import_esterni": [
@@ -3335,15 +3335,14 @@
         "abspath",
         "add",
         "append",
-        "atan2",
         "bool",
         "calcola_costa_tappa",
+        "calcola_distanza_haversine",
         "calcola_sha256_gpx",
         "casefold",
         "chr",
         "close",
         "connect",
-        "cos",
         "cursor",
         "dict",
         "dirname",
@@ -3386,15 +3385,12 @@
         "partition",
         "print",
         "project",
-        "radians",
         "range",
         "round",
         "salva_riepilogo_costa",
         "set",
         "shape",
-        "sin",
         "split",
-        "sqrt",
         "str",
         "strip",
         "sum",
@@ -3426,9 +3422,9 @@
         "analizza_superfici_progetto"
       ],
       "import_interni": [
-        "service.audit_service.calcola_distanza_haversine",
         "service.config.BASE_DIR",
         "service.config.DB_NAME",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.gpx_paths.trova_percorso_gpx"
       ],
       "import_esterni": [
@@ -11383,7 +11379,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1459,
+        "riga": 1460,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -11392,7 +11388,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1534,
+        "riga": 1535,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -11401,7 +11397,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1735,
+        "riga": 1736,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11410,7 +11406,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2377,
+        "riga": 2367,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11610,7 +11606,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "riga": 121,
+        "riga": 118,
         "termini": [],
         "url": [
           "http://www.topografix.com/GPX/1/1"
@@ -11621,9 +11617,9 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 34,
+    "totale_moduli": 35,
     "totale_classi": 22,
-    "totale_funzioni": 350,
+    "totale_funzioni": 347,
     "endpoint_flask": 8,
     "tabelle_rilevate": 27,
     "simboli_orfani": 66,
@@ -11648,23 +11644,23 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 475,
+        "score": 470,
         "classi": 9,
-        "funzioni": 87,
+        "funzioni": 86,
         "anomalie": 0
       },
       {
         "file": "app_desktop.py",
-        "score": 445,
+        "score": 438,
         "classi": 8,
-        "funzioni": 71,
+        "funzioni": 70,
         "anomalie": 0
       },
       {
         "file": "gui/dashboard.py",
-        "score": 163,
+        "score": 156,
         "classi": 2,
-        "funzioni": 20,
+        "funzioni": 19,
         "anomalie": 0
       },
       {
@@ -11676,7 +11672,7 @@
       },
       {
         "file": "service/stats_service.py",
-        "score": 111,
+        "score": 107,
         "classi": 0,
         "funzioni": 14,
         "anomalie": 0
@@ -11696,9 +11692,9 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 34,
+      "moduli": 35,
       "classi": 22,
-      "funzioni": 350,
+      "funzioni": 347,
       "rotte": 8,
       "rischio": "alto"
     },
@@ -11711,15 +11707,15 @@
       "app_desktop.py",
       "gui/mappa.py",
       "gui/dashboard.py",
-      "service/stats_service.py",
-      "service/catena_stagionale_service.py"
+      "service/catena_stagionale_service.py",
+      "service/stats_service.py"
     ],
     "prossimi_passi": [
       "Rivedere i simboli orfani e decidere se integrarli, rimuoverli o spostarli.",
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 22 classi, 350 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 22 classi, 347 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 34 moduli, 22 classi, 350 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 22 classi, 347 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

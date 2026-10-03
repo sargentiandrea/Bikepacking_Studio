@@ -1,12 +1,12 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-03 alle 09:23:18*
+*Generato il 2026-10-03 alle 09:43:36*
 
 ## 1. Sintesi
 
-- Moduli Python: **34**
+- Moduli Python: **35**
 - Classi: **22**
-- Funzioni globali: **350**
+- Funzioni globali: **347**
 - Rotte Flask: **8**
 - Tabelle rilevate: **27**
 - Simboli orfani: **66**
@@ -89,7 +89,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (24 file)
+**core** (25 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/catena_stagionale_service.py`
@@ -98,7 +98,7 @@
 - `service/config.py`
 - `service/costa_service.py`
 - `service/dogane_service.py`
-- ... e altri 16
+- ... e altri 17
 
 **altro** (5 file)
 - `app_desktop.py`
@@ -168,10 +168,10 @@
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 8 classi, 71 funzioni
+- `gui/mappa.py`: 9 classi, 86 funzioni
+- `app_desktop.py`: 8 classi, 70 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
-- `gui/dashboard.py`: 2 classi, 20 funzioni
+- `gui/dashboard.py`: 2 classi, 19 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni

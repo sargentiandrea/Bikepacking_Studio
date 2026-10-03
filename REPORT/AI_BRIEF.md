@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-03 09:23*
+*Aggiornato: 2026-10-03 09:43*
 
 ## Come leggere il progetto
 
@@ -15,9 +15,9 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 34
+- Moduli Python: 35
 - Classi: 22
-- Funzioni: 350
+- Funzioni: 347
 - Rotte Flask: 8
 - Tabelle DB: 27
 - Simboli orfani: 66
@@ -25,11 +25,11 @@
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 475 - 9 classi, 87 funzioni, 0 anomalie
-- `app_desktop.py` - score 445 - 8 classi, 71 funzioni, 0 anomalie
-- `gui/dashboard.py` - score 163 - 2 classi, 20 funzioni, 0 anomalie
+- `gui/mappa.py` - score 470 - 9 classi, 86 funzioni, 0 anomalie
+- `app_desktop.py` - score 438 - 8 classi, 70 funzioni, 0 anomalie
+- `gui/dashboard.py` - score 156 - 2 classi, 19 funzioni, 0 anomalie
 - `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
-- `service/stats_service.py` - score 111 - 0 classi, 14 funzioni, 0 anomalie
+- `service/stats_service.py` - score 107 - 0 classi, 14 funzioni, 0 anomalie
 
 ## Endpoint Flask
 
@@ -65,7 +65,6 @@
 
 *18 funzioni/metodi definiti in più file:*
 
-- `calcola_distanza_haversine` (4 copie) → `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`, `service/gpx_metrics_service.py`
 - `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `esegui_migrazione` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `init_ui` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/wizard_percorso.py`
@@ -81,6 +80,7 @@
 - `elimina_singola_tappa` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `elimina_percorso_corrente` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `conferma_creazione` (2 copie) → `gui/dashboard.py`, `gui/wizard_percorso.py`
+- `calcola_distanza_haversine` (2 copie) → `service/geo_utils.py`, `service/gpx_metrics_service.py`
 - `_crea_backup` (2 copie) → `service/migrazione_catena_stagionale.py`, `service/migrazione_clima.py`
 - `_trova_percorso_gpx` (2 copie) → `service/stats_service.py`, `service/superfici_service.py`
 
@@ -148,10 +148,10 @@
 
 ## Moduli principali
 
-- `gui/mappa.py`: 9 classi, 87 funzioni
-- `app_desktop.py`: 8 classi, 71 funzioni
+- `gui/mappa.py`: 9 classi, 86 funzioni
+- `app_desktop.py`: 8 classi, 70 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
-- `gui/dashboard.py`: 2 classi, 20 funzioni
+- `gui/dashboard.py`: 2 classi, 19 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni

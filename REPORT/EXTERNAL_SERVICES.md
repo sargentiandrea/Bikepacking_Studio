@@ -38,19 +38,19 @@
 - Riferimento: `martin`
 - Contesto: `"name_en": "Saint Martin (French part)"`
 
-### `gui/mappa.py`:1459
+### `gui/mappa.py`:1460
 - Riferimento: `http://127.0.0.1:8080/map`
 - Contesto: `self.web_view.setUrl("http://127.0.0.1:8080/map")`
 
-### `gui/mappa.py`:1534
+### `gui/mappa.py`:1535
 - Riferimento: `http://127.0.0.1:8080/api/map-interactions`
 - Contesto: `"http://127.0.0.1:8080/api/map-interactions",`
 
-### `gui/mappa.py`:1735
+### `gui/mappa.py`:1736
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `target=lambda: requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=5),`
 
-### `gui/mappa.py`:2377
+### `gui/mappa.py`:2367
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)`
 
@@ -138,6 +138,6 @@
 - Riferimento: `http://{host}:{port}`
 - Contesto: `print(f"🚀 [MapServer] Server Flask avviato su http://{host}:{port}")`
 
-### `service/stats_service.py`:121
+### `service/stats_service.py`:118
 - Riferimento: `http://www.topografix.com/GPX/1/1`
 - Contesto: `ns = {'gpx': 'http://www.topografix.com/GPX/1/1'}`
