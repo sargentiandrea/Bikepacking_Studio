@@ -32,6 +32,7 @@ from service.salvataggio_tappa_service import (
     rimuovi_gpx_se_esiste,
     salva_tappa_pianificata,
 )
+from gui.mappa_worker_manager import GestoreWorkerSingolo
 from service.geo_utils import calcola_distanza_haversine
 from service.punti_service import (
     aggiorna_testi_tappe,
@@ -82,10 +83,10 @@ class PannelloPianificazioneWidget(QFrame):
         self._workers_nomi_attivi = []  # stesso principio dei worker superfici: mai perdere il riferimento a un thread vivo
         self._richiesta_nomi_in_sospeso = None
         self._token_nomi_luoghi = 0
-        self._worker_altimetria = None
-        self._workers_altimetria_attivi = []  # stesso principio degli altri worker: mai perdere il riferimento a un thread vivo
-        self._richiesta_altimetria_in_sospeso = None
-        self._token_altimetria = 0
+        # Ciclo di vita del worker altimetria (token, coda, sopravvivenza) nel gestore unico.
+        self._gestore_altimetria = GestoreWorkerSingolo(
+            WorkerAltimetria, "altimetria_pronta", self._fine_analisi_altimetria
+        )
         self._id_tappa_inizio = None
         self._id_tappa_fine = None
         self._dati_tappe_intermedie = []  # elenco di sola consultazione delle tappe di un percorso già caricato
@@ -510,7 +511,7 @@ class PannelloPianificazioneWidget(QFrame):
                 # tardivo potrebbe ripopolare i campi appena svuotati.
                 self._token_analisi_superfici += 1
                 self._token_nomi_luoghi += 1
-                self._token_altimetria += 1
+                self._gestore_altimetria.invalida()
                 # Chiediamo anche ai worker eventualmente ancora in esecuzione
                 # di fermarsi subito invece di continuare a girare a vuoto in
                 # sottofondo: senza questo, un'analisi pesante su un percorso
@@ -527,11 +528,7 @@ class PannelloPianificazioneWidget(QFrame):
                         self._worker_nomi_luoghi.request_stop()
                     except RuntimeError:
                         pass
-                if self._worker_altimetria is not None:
-                    try:
-                        self._worker_altimetria.request_stop()
-                    except RuntimeError:
-                        pass
+
 
         if not id_progetto or self.tappa_in_modifica_id is not None:
             return
@@ -757,53 +754,10 @@ class PannelloPianificazioneWidget(QFrame):
         file GPX del percorso: farlo sul thread dell'interfaccia bloccava
         l'intera app (anche a lungo, con percorsi di centinaia di tappe).
         """
-        self._token_altimetria += 1
+        self._gestore_altimetria.richiedi(nomi_file)
 
-        try:
-            worker_ancora_attivo = self._worker_altimetria is not None and self._worker_altimetria.isRunning()
-        except RuntimeError:
-            worker_ancora_attivo = False
-            self._worker_altimetria = None
-
-        if worker_ancora_attivo:
-            self._richiesta_altimetria_in_sospeso = nomi_file
-            # Come per gli altri worker: il calcolo precedente non serve più,
-            # meglio interromperlo subito invece di aspettare che finisca.
-            self._worker_altimetria.request_stop()
-            return
-
-        self._avvia_worker_altimetria(nomi_file)
-
-    def _avvia_worker_altimetria(self, nomi_file):
-        token_corrente = self._token_altimetria
-        worker = WorkerAltimetria(nomi_file)
-        self._worker_altimetria = worker
-        self._workers_altimetria_attivi.append(worker)
-        worker.altimetria_pronta.connect(
-            lambda risultato, token=token_corrente: self._fine_analisi_altimetria(risultato, token)
-        )
-        worker.finished.connect(lambda worker=worker: self._ripulisci_worker_altimetria(worker))
-        worker.start()
-
-    def _ripulisci_worker_altimetria(self, worker):
-        """Rimuove dalla lista di sopravvivenza un worker di altimetria che ha finito, e lo elimina."""
-        if worker in self._workers_altimetria_attivi:
-            self._workers_altimetria_attivi.remove(worker)
-        if self._worker_altimetria is worker:
-            # Stesso bug degli altri worker: senza azzerare il riferimento,
-            # il prossimo isRunning() punterebbe a un thread già distrutto.
-            self._worker_altimetria = None
-        worker.deleteLater()
-
-    def _fine_analisi_altimetria(self, risultato, token):
-        richiesta_in_sospeso = self._richiesta_altimetria_in_sospeso
-        self._richiesta_altimetria_in_sospeso = None
-        if richiesta_in_sospeso is not None:
-            self._avvia_worker_altimetria(richiesta_in_sospeso)
-
-        if token != self._token_altimetria:
-            return  # nel frattempo l'utente ha cambiato percorso: risultato superato
-
+    def _fine_analisi_altimetria(self, risultato):
+        """Mostra l'altimetria; il gestore la consegna solo se il risultato è ancora attuale."""
         massima = risultato.get("massima")
         minima = risultato.get("minima")
         if massima is not None:
