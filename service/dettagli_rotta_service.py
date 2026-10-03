@@ -1,5 +1,7 @@
 """Preparazione senza Qt dei testi e dei dati mostrati nei dettagli della rotta."""
 
+from service.routing_timeout_service import SOGLIA_PERCORSO_LUNGO_KM
+
 
 def prepara_kpi_rotta(statistiche):
     """Formatta velocità, quote minima/massima e distanza con gli stessi testi della GUI."""
@@ -135,3 +137,22 @@ def testo_stato_campi_cambiati():
 def testo_stato_in_modifica(numero_tappa):
     """Messaggio mostrato mentre si sta modificando una tappa esistente."""
     return f"Stai modificando la tappa {numero_tappa}."
+
+
+def testo_stato_percorso_lungo(distanza_km, testo_base):
+    """Aggiunge l'avviso sul percorso lungo al messaggio di stato.
+
+    Oltre 200 km una singola tappa e scomoda: si puo salvare e vedere tutto,
+    ma non e un tratto che si percorre in giornata. L'avviso resta un
+    consiglio e non blocca nulla.
+
+    :param distanza_km: lunghezza del percorso in km.
+    :param testo_base: il messaggio di stato da cui partire.
+    :return: il messaggio con l'avviso, o il messaggio base se il percorso
+        è sotto la soglia.
+    """
+    if distanza_km is None or distanza_km <= SOGLIA_PERCORSO_LUNGO_KM:
+        return testo_base
+    return (
+        f"{testo_base} Percorso lungo: considera di spezzarlo in tappe."
+    )

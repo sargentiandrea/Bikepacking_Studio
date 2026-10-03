@@ -15,14 +15,20 @@ from PySide6.QtCore import QThread, Signal
 from service.config import BASE_DIR, BROUTER_URL
 from service.geonames_service import cerca_coordinate_luogo
 from service.gpx_paths import trova_percorso_gpx
+from service.routing_timeout_service import (
+    stima_distanza_rotta_km,
+    timeout_routing_secondi,
+)
 
 # Stessa cartella GPX usata da gui/mappa.py.
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
 
-# Attesa massima per la risposta di BRouter. Prima era 320 secondi: un'interfaccia
-# bloccata cosi a lungo, senza via d'uscita, e il motivo per cui gli utenti
-# smettono di fidarsi. 60 secondi basta ampiamente per un tracciato ciclabile.
-TIMEOUT_ROUTING_SECONDI = 60
+# Tetto di attesa massimo, usato solo come fallback quando non si riesce a
+# stimare la lunghezza del percorso. Il tetto effettivo lo calcola
+# timeout_routing_secondi() in base alla distanza stimata: un numero fisso
+# sbaglierebbe, perche 60 secondi bastano per Modena-Bologna e non per
+# Bologna-Napoli (misurati 0,8 s e 83,9 s sul servizio locale).
+TIMEOUT_ROUTING_MASSIMO_SECONDI = 180
 
 
 class WorkerAnalisiSuperficiOffline(QThread):
@@ -161,6 +167,8 @@ class PianificazionePercorsoWorker(QThread):
         # Riportati nell'esito così il pannello sa quale richiesta chiudere.
         self.callback = None
         self.firma = None
+        # Tetto di attesa in uso, ricalcolato sul percorso effettivo.
+        self.timeout_secondi = TIMEOUT_ROUTING_MASSIMO_SECONDI
 
     def _notifica(self, esito):
         """Emette l'esito sui due segnali, allegando callback e firma."""
@@ -173,6 +181,20 @@ class PianificazionePercorsoWorker(QThread):
             esito.get("errore", ""),
         )
         self.esito.emit(esito)
+
+    def _notifica_annullato(self):
+        """Notifica l'annullamento invece di uscire in silenzio.
+
+        E il punto su cui poggia la coda di GestoreWorkerSingolo: quel gestore
+        avvia la richiesta successiva dall'esito del worker, quindi un worker
+        che esce senza emettere lascerebbe la coda bloccata per sempre.
+        """
+        self._notifica({
+            "riuscito": False,
+            "risultato": {},
+            "errore": "",
+            "annullato": True,
+        })
 
     def request_stop(self):
         """Chiede al worker di interrompere il calcolo appena possibile.
@@ -206,17 +228,27 @@ class PianificazionePercorsoWorker(QThread):
         return "trekking"
 
     def run(self):
+        # Tetto iniziale: se non si riesce a stimare la lunghezza, vale il
+        # massimo. Piu avanti viene ricalcolato sui punti effettivi.
+        self.timeout_secondi = TIMEOUT_ROUTING_MASSIMO_SECONDI
         try:
             luoghi = [self.partenza, *self.punti_passaggio, self.destinazione]
             coordinate_luoghi = [
                 self._geocodifica(luogo) for luogo in luoghi
             ]
 
+            # Se l'utente ha annullato, si esce comunque con un esito: il
+            # gestore usa questo segnale per svuotare la coda delle richieste.
             if self._annullato:
+                self._notifica_annullato()
                 return
 
             if len(set(coordinate_luoghi)) != len(coordinate_luoghi):
                 raise ValueError("Due o più punti inseriti corrispondono alla stessa posizione.")
+
+            # Il tetto di attesa cresce con la lunghezza del percorso.
+            distanza_stimata_km = stima_distanza_rotta_km(coordinate_luoghi)
+            self.timeout_secondi = timeout_routing_secondi(distanza_stimata_km)
 
             lonlats = "|".join(
                 f"{longitudine},{latitudine}"
@@ -231,7 +263,7 @@ class PianificazionePercorsoWorker(QThread):
                     "alternativeidx": 0,
                     "format": "geojson",
                 },
-                timeout=TIMEOUT_ROUTING_SECONDI,
+                timeout=self.timeout_secondi,
             )
             risposta.raise_for_status()
             dati = risposta.json()
@@ -261,9 +293,10 @@ class PianificazionePercorsoWorker(QThread):
                 raise ValueError("La risposta del servizio non contiene una geometria valida.")
 
             # Se l'utente ha annullato mentre BRouter lavorava, il risultato
-            # non serve piu: si esce senza emettere nulla, cosi l'interfaccia
-            # non mostra un percorso che l'utente ha gia scartato.
+            # non serve piu. Si notifica comunque l'annullamento, altrimenti la
+            # coda del gestore resterebbe bloccata su questa richiesta.
             if self._annullato:
+                self._notifica_annullato()
                 return
 
             from service.stats_service import analizza_dati_rotta_brouter
@@ -283,13 +316,19 @@ class PianificazionePercorsoWorker(QThread):
                 "errore": "",
             })
         except requests.Timeout:
+            # Il messaggio dice quanto si e aspettati: e l'informazione che
+            # permette all'utente di capire se conviene riprovare o spezzare
+            # il percorso in tappe piu corte.
+            minuti = max(1, round(self.timeout_secondi / 60))
             self._notifica({
                 "riuscito": False,
                 "risultato": {},
                 "errore": (
                     f"Il servizio di routing non ha risposto entro "
-                    f"{TIMEOUT_ROUTING_SECONDI} secondi."
+                    f"{self.timeout_secondi} secondi. "
+                    f"Per un percorso così lungo conviene spezzarlo in tappe."
                 ),
+                "minuti_attesa": minuti,
             })
         except (requests.RequestException, ValueError, KeyError, TypeError) as errore:
             self._notifica({"riuscito": False, "risultato": {}, "errore": str(errore)})

@@ -91,7 +91,13 @@ class GestoreWorkerSingolo:
         worker.start()
 
     def _ripulisci(self, worker):
-        """Toglie dalla lista di sopravvivenza un worker finito e lo elimina."""
+        """Toglie dalla lista di sopravvivenza un worker finito e lo elimina.
+
+        Riavvia anche la richiesta in coda: `finished` arriva comunque, anche
+        se il worker è uscito senza emettere il segnale di risultato (perché
+        annullato, o perché è saltata un'eccezione). Senza questo, la coda
+        resterebbe bloccata per sempre e l'interfaccia inutilizzabile.
+        """
         if worker in self.attivi:
             self.attivi.remove(worker)
         if self.worker is worker:
@@ -99,14 +105,20 @@ class GestoreWorkerSingolo:
             # punterebbe a un thread distrutto ("Internal C++ object already deleted").
             self.worker = None
         worker.deleteLater()
+        self._riavvia_in_coda()
+
+    def _riavvia_in_coda(self):
+        """Avvia la richiesta in attesa se non c'è più nessun worker attivo."""
+        if self.in_sospeso is None or self.worker is not None:
+            return
+        in_sospeso = self.in_sospeso
+        self.in_sospeso = None
+        self._avvia(in_sospeso)
 
     def _fine(self, risultato, token):
         """Un worker ha finito: avvia l'eventuale richiesta in coda, poi consegna il risultato se è attuale."""
-        in_sospeso = self.in_sospeso
-        self.in_sospeso = None
-        if in_sospeso is not None:
-            self._avvia(in_sospeso)
-
+        # La coda viene svuotata da _ripulisci(), agganciata a `finished`, che
+        # arriva sempre. Qui non si avvia nulla, per non partire due volte.
         if token != self.token:
             return  # nel frattempo l'utente ha cambiato percorso: risultato superato
         self._alla_fine(risultato)

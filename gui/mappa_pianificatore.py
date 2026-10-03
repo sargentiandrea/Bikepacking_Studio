@@ -35,6 +35,7 @@ from service.dettagli_rotta_service import (
     testo_stato_calcolo,
     testo_stato_campi_cambiati,
     testo_stato_errore_routing,
+    testo_stato_percorso_lungo,
 )
 from service.geo_utils import calcola_distanza_haversine
 from service.mappa_dati_service import carica_coordinate_tappa, carica_tappe_attive
@@ -458,8 +459,12 @@ class PannelloPianificazioneWidget(QFrame):
         self._aggiorna_dettagli_rotta(risultato.get("statistiche"))
         self.mappa_widget.mostra_anteprima_percorso(risultato["coordinate"])
         statistiche = risultato.get("statistiche") or {}
+        distanza_km = statistiche.get("distanza_km")
         self.dettagli_rotta.imposta_stato(
-            testo_stato_anteprima_pronta(statistiche.get("distanza_km"))
+            testo_stato_percorso_lungo(
+                distanza_km,
+                testo_stato_anteprima_pronta(distanza_km),
+            )
         )
 
     def aggiungi_waypoint(self, latitudine, longitudine):
