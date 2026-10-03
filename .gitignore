@@ -6,6 +6,18 @@ brouter/
 gpx/
 GPX CORSICA/
 bin/
+REPORT/analisi.json
+REPORT/AI_BRIEF.md
+REPORT/DB_SCHEMA.md
+REPORT/EXTERNAL_SERVICES.md
+REPORT/report.md
+REPORT/riepilogo.txt
+REPORT/ULTIMO_RUN.json
+REPORT/ARCHIVIO/
+REPORT/*_aider_context.md
+REPORT/*_analisi.json
+REPORT/*_report.md
+REPORT/*_riepilogo.txt
 *.db
 *.geojson
 

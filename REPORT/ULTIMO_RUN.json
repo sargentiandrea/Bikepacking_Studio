@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T11:04:39.601483",
+    "data_analisi": "2026-10-03T11:51:58.723985",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 41,
-    "totale_classi": 23,
-    "totale_funzioni": 358,
+    "totale_moduli": 43,
+    "totale_classi": 24,
+    "totale_funzioni": 369,
     "totale_rotte_flask": 8,
     "totale_tabelle": 27,
     "tabelle_create": [
@@ -124,6 +124,7 @@
         "gui/mappa_cache.py",
         "gui/mappa_manager.py",
         "gui/mappa_worker.py",
+        "gui/mappa_worker_manager.py",
         "gui/wizard_percorso.py",
         "service/mappa_dati_service.py"
       ],
@@ -157,6 +158,7 @@
         "service/migrazione_tappa_geometrie.py",
         "service/precalcolo_batch_service.py",
         "service/precalcolo_service.py",
+        "service/punti_service.py",
         "service/salvataggio_tappa_service.py",
         "service/stats_service.py",
         "service/superfici_service.py"
@@ -317,11 +319,6 @@
         "simbolo": "carica_tappe_progetto",
         "tipo": "funzione",
         "file": "gui/dashboard.py"
-      },
-      {
-        "simbolo": "PannelloPianificazioneWidget",
-        "tipo": "classe",
-        "file": "gui/mappa.py"
       },
       {
         "simbolo": "WorkerCaricamentoMappa",
@@ -507,6 +504,11 @@
         "simbolo": "interrompi_batch",
         "tipo": "funzione",
         "file": "service/precalcolo_batch_service.py"
+      },
+      {
+        "simbolo": "pulisci_testi",
+        "tipo": "funzione",
+        "file": "service/punti_service.py"
       },
       {
         "simbolo": "ottieni_copertura_precalcolo_progetto",
@@ -702,13 +704,7 @@
       }
     ],
     "mappa_dipendenze": {
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/migrazione_clima.py": [
-        "app_desktop"
-      ],
-      "service/migrazione_catena_stagionale.py": [
+      "service/audit_service.py": [
         "app_desktop"
       ],
       "service/clima_estrattore.py": [
@@ -717,13 +713,19 @@
       "service/clima_service.py": [
         "app_desktop"
       ],
-      "service/stats_service.py": [
+      "service/migrazione_clima.py": [
+        "app_desktop"
+      ],
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
+      "service/migrazione_catena_stagionale.py": [
         "app_desktop"
       ],
       "service/catena_stagionale_service.py": [
         "app_desktop"
       ],
-      "service/audit_service.py": [
+      "service/stats_service.py": [
         "app_desktop"
       ]
     }
@@ -1386,16 +1388,10 @@
         "_prepara_modifica_tappa",
         "sincronizza_stato_percorso",
         "_avvia_risoluzione_nomi_luoghi",
-        "_avvia_worker_nomi_luoghi",
-        "_ripulisci_worker_nomi",
         "_fine_risoluzione_nomi_luoghi",
         "_avvia_analisi_superfici_offline",
-        "_avvia_worker_superfici",
-        "_ripulisci_worker_superfici",
         "_fine_analisi_superfici_offline",
         "_avvia_analisi_altimetria",
-        "_avvia_worker_altimetria",
-        "_ripulisci_worker_altimetria",
         "_fine_analisi_altimetria",
         "showEvent",
         "_adatta_altezza_al_contenuto",
@@ -1409,7 +1405,6 @@
         "_popola_legenda_superfici",
         "_evidenzia_tappa_su_mappa",
         "_aggiorna_dettagli_rotta",
-        "_etichetta_punto",
         "_gestisci_salvataggio_percorso",
         "_salvataggio_percorso_completato",
         "__init__",
@@ -1446,6 +1441,7 @@
         "gui.mappa_worker.WorkerAltimetria",
         "gui.mappa_worker.WorkerAnalisiSuperficiOffline",
         "gui.mappa_worker.WorkerNomiLuoghi",
+        "gui.mappa_worker_manager.GestoreWorkerSingolo",
         "service.config.BASE_DIR",
         "service.config.DB_NAME",
         "service.geo_utils.calcola_distanza_haversine",
@@ -1456,6 +1452,17 @@
         "service.mappa_dati_service.carica_tappe_attive",
         "service.mappa_dati_service.costruisci_geojson_progetto",
         "service.mappa_dati_service.firma_dati_mappa",
+        "service.punti_service.aggiorna_testi_tappe",
+        "service.punti_service.estremi_tappa",
+        "service.punti_service.etichetta_punto",
+        "service.punti_service.firma_pianificazione",
+        "service.punti_service.indice_primo_punto_vuoto",
+        "service.punti_service.prepara_tappe_intermedie",
+        "service.punti_service.testo_coordinate",
+        "service.punti_service.testo_intestazione_tappe_intermedie",
+        "service.punti_service.testo_riga_tappa_intermedia",
+        "service.punti_service.testo_segnaposto_punto",
+        "service.punti_service.valida_pianificazione",
         "service.salvataggio_tappa_service.rimuovi_gpx_se_esiste",
         "service.salvataggio_tappa_service.salva_tappa_pianificata"
       ],
@@ -1477,6 +1484,7 @@
       "chiamate_funzioni": [
         "BarraSuperfici",
         "CacheMappaProgetto",
+        "GestoreWorkerSingolo",
         "MapManagerDialog",
         "PannelloPianificazioneWidget",
         "PianificazionePercorsoWorker",
@@ -1495,10 +1503,7 @@
         "QWidget",
         "Signal",
         "Thread",
-        "WorkerAltimetria",
-        "WorkerAnalisiSuperficiOffline",
         "WorkerCaricamentoMappa",
-        "WorkerNomiLuoghi",
         "__init__",
         "_adatta_altezza_al_contenuto",
         "_aggiorna_dettagli_rotta",
@@ -1508,17 +1513,10 @@
         "_avvia_analisi_altimetria",
         "_avvia_analisi_superfici_offline",
         "_avvia_risoluzione_nomi_luoghi",
-        "_avvia_worker_altimetria",
-        "_avvia_worker_nomi_luoghi",
         "_avvia_worker_rotta",
-        "_avvia_worker_superfici",
         "_costruisci_riga_tappa_intermedia",
-        "_etichetta_punto",
         "_evidenzia_tappa_su_mappa",
-        "_fine_analisi_altimetria",
-        "_fine_analisi_superfici_offline",
         "_fine_caricamento_asincrono",
-        "_fine_risoluzione_nomi_luoghi",
         "_firma_dati_mappa",
         "_firma_pianificazione",
         "_imposta_pagina_sospesa",
@@ -1531,9 +1529,6 @@
         "_rimuovi_punto_passaggio",
         "_rinumera_punti_passaggio",
         "_ripulisci_mappa_worker",
-        "_ripulisci_worker_altimetria",
-        "_ripulisci_worker_nomi",
-        "_ripulisci_worker_superfici",
         "_salvataggio_percorso_completato",
         "_valida_pianificazione",
         "activate",
@@ -1544,7 +1539,7 @@
         "adjustSize",
         "aggiorna_tabella_allarmi",
         "aggiorna_tabella_tappe",
-        "any",
+        "aggiorna_testi_tappe",
         "append",
         "attiva_modalita_interazione",
         "bottom",
@@ -1553,7 +1548,6 @@
         "callback_worker_pianificazione",
         "carica_coordinate_tappa",
         "carica_tappe_attive",
-        "chr",
         "clear",
         "connect",
         "contentsMargins",
@@ -1563,15 +1557,18 @@
         "currentText",
         "deleteLater",
         "dict",
-        "divmod",
         "dumps",
         "e_valida",
         "emit",
         "enumerate",
         "esegui_audit_automatico",
+        "estremi_tappa",
+        "etichetta_punto",
         "evidenzia_tappa",
         "exec",
+        "extend",
         "firma_dati_mappa",
+        "firma_pianificazione",
         "get",
         "get_lifecycle_state",
         "getattr",
@@ -1580,11 +1577,12 @@
         "hide",
         "hideEvent",
         "imposta_superfici",
+        "indice_primo_punto_vuoto",
         "information",
         "int",
+        "invalida",
         "invalidate",
         "isChecked",
-        "isRunning",
         "isVisible",
         "itemAt",
         "items",
@@ -1602,11 +1600,11 @@
         "move",
         "next",
         "openUrl",
-        "ord",
         "ottieni",
         "page",
         "parentWidget",
         "post",
+        "prepara_tappe_intermedie",
         "print",
         "raise_",
         "raise_for_status",
@@ -1614,8 +1612,8 @@
         "reload_map",
         "remove",
         "removeWidget",
-        "request_stop",
         "resizeEvent",
+        "richiedi",
         "rigenera_mappa",
         "rimuovi_gpx_se_esiste",
         "round",
@@ -1672,12 +1670,16 @@
         "sum",
         "super",
         "takeAt",
+        "testo_coordinate",
+        "testo_intestazione_tappe_intermedie",
+        "testo_riga_tappa_intermedia",
+        "testo_segnaposto_punto",
         "text",
         "toString",
         "top",
-        "tuple",
         "updateGeometry",
         "url",
+        "valida_pianificazione",
         "warning",
         "widget",
         "window"
@@ -1884,6 +1886,38 @@
         "str",
         "super",
         "trova_percorso_gpx"
+      ]
+    },
+    "gui/mappa_worker_manager.py": {
+      "classi": [
+        "GestoreWorkerSingolo"
+      ],
+      "funzioni": [
+        "__init__",
+        "richiedi",
+        "invalida",
+        "_avvia",
+        "_ripulisci",
+        "_fine"
+      ],
+      "import_interni": [],
+      "import_esterni": [],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "_alla_fine",
+        "_avvia",
+        "_crea_worker",
+        "_fine",
+        "_ripulisci",
+        "append",
+        "connect",
+        "deleteLater",
+        "getattr",
+        "isRunning",
+        "remove",
+        "request_stop",
+        "start"
       ]
     },
     "gui/wizard_percorso.py": {
@@ -3424,6 +3458,40 @@
         "str",
         "update",
         "warning"
+      ]
+    },
+    "service/punti_service.py": {
+      "classi": [],
+      "funzioni": [
+        "etichetta_punto",
+        "testo_coordinate",
+        "prepara_tappe_intermedie",
+        "testo_riga_tappa_intermedia",
+        "testo_intestazione_tappe_intermedie",
+        "aggiorna_testi_tappe",
+        "testo_segnaposto_punto",
+        "pulisci_testi",
+        "firma_pianificazione",
+        "valida_pianificazione",
+        "indice_primo_punto_vuoto",
+        "estremi_tappa"
+      ],
+      "import_interni": [],
+      "import_esterni": [],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "any",
+        "append",
+        "chr",
+        "divmod",
+        "enumerate",
+        "get",
+        "ord",
+        "pulisci_testi",
+        "strip",
+        "testo_coordinate",
+        "tuple"
       ]
     },
     "service/salvataggio_tappa_service.py": {
@@ -10141,7 +10209,7 @@
       },
       {
         "nome": "cache_nomi_luoghi",
-        "righe": 998,
+        "righe": 999,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11591,7 +11659,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1202,
+        "riga": 1042,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -11600,7 +11668,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1277,
+        "riga": 1117,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -11609,7 +11677,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1470,
+        "riga": 1310,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11618,7 +11686,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1603,
+        "riga": 1443,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11829,9 +11897,9 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 41,
-    "totale_classi": 23,
-    "totale_funzioni": 358,
+    "totale_moduli": 43,
+    "totale_classi": 24,
+    "totale_funzioni": 369,
     "endpoint_flask": 8,
     "tabelle_rilevate": 27,
     "simboli_orfani": 58,
@@ -11844,8 +11912,8 @@
       "service/map_server.py",
       "service/superfici_service.py",
       "service/stats_service.py",
-      "service/precalcolo_batch_service.py",
-      "installa_geonames.py"
+      "service/punti_service.py",
+      "service/precalcolo_batch_service.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti"
@@ -11863,9 +11931,9 @@
       },
       {
         "file": "gui/mappa.py",
-        "score": 341,
+        "score": 322,
         "classi": 3,
-        "funzioni": 63,
+        "funzioni": 56,
         "anomalie": 0
       },
       {
@@ -11904,9 +11972,9 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 41,
-      "classi": 23,
-      "funzioni": 358,
+      "moduli": 43,
+      "classi": 24,
+      "funzioni": 369,
       "rotte": 8,
       "rischio": "alto"
     },
@@ -11927,7 +11995,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 41 moduli, 23 classi, 358 funzioni, 8 endpoint Flask, 58 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 43 moduli, 24 classi, 369 funzioni, 8 endpoint Flask, 58 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 41 moduli, 23 classi, 358 funzioni, 8 endpoint Flask, 58 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 43 moduli, 24 classi, 369 funzioni, 8 endpoint Flask, 58 simboli orfani. Rischio: alto. File critici: app_desktop.py, gui/mappa.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

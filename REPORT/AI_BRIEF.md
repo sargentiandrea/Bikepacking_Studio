@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-03 11:04*
+*Aggiornato: 2026-10-03 11:51*
 
 ## Come leggere il progetto
 
@@ -15,9 +15,9 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 41
-- Classi: 23
-- Funzioni: 358
+- Moduli Python: 43
+- Classi: 24
+- Funzioni: 369
 - Rotte Flask: 8
 - Tabelle DB: 27
 - Simboli orfani: 58
@@ -26,7 +26,7 @@
 ## File critici (score più alto)
 
 - `app_desktop.py` - score 438 - 8 classi, 70 funzioni, 0 anomalie
-- `gui/mappa.py` - score 341 - 3 classi, 63 funzioni, 0 anomalie
+- `gui/mappa.py` - score 322 - 3 classi, 56 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 156 - 2 classi, 19 funzioni, 0 anomalie
 - `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
 - `service/stats_service.py` - score 107 - 0 classi, 14 funzioni, 0 anomalie
@@ -96,7 +96,7 @@
 - `blocchi_ordine`: 24 righe
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
-- `cache_nomi_luoghi`: 998 righe
+- `cache_nomi_luoghi`: 999 righe
 - `clima_blocco_mese`: 288 righe
 - `clima_paese_mese`: 540 righe
 - `confini_box`: 11 righe
@@ -151,15 +151,15 @@
 ## Moduli principali
 
 - `app_desktop.py`: 8 classi, 70 funzioni
-- `gui/mappa.py`: 3 classi, 63 funzioni
+- `gui/mappa.py`: 3 classi, 56 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni
 - `gui/mappa_worker.py`: 4 classi, 13 funzioni
 - `service/map_server.py`: 0 classi, 15 funzioni
 - `service/superfici_service.py`: 0 classi, 15 funzioni
 - `service/stats_service.py`: 0 classi, 14 funzioni
+- `service/punti_service.py`: 0 classi, 12 funzioni
 - `service/precalcolo_batch_service.py`: 0 classi, 9 funzioni
-- `installa_geonames.py`: 0 classi, 8 funzioni
 
 ## Azioni consigliate
 

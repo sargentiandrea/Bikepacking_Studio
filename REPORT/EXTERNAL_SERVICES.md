@@ -38,19 +38,19 @@
 - Riferimento: `martin`
 - Contesto: `"name_en": "Saint Martin (French part)"`
 
-### `gui/mappa.py`:1202
+### `gui/mappa.py`:1042
 - Riferimento: `http://127.0.0.1:8080/map`
 - Contesto: `self.web_view.setUrl("http://127.0.0.1:8080/map")`
 
-### `gui/mappa.py`:1277
+### `gui/mappa.py`:1117
 - Riferimento: `http://127.0.0.1:8080/api/map-interactions`
 - Contesto: `"http://127.0.0.1:8080/api/map-interactions",`
 
-### `gui/mappa.py`:1470
+### `gui/mappa.py`:1310
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `target=lambda: requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=5),`
 
-### `gui/mappa.py`:1603
+### `gui/mappa.py`:1443
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)`
 
