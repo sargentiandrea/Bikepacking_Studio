@@ -79,10 +79,10 @@ class PannelloPianificazioneWidget(QFrame):
         self._workers_superfici_attivi = []  # tiene in vita i worker finché non finiscono davvero
         self._richiesta_superfici_in_sospeso = None
         self._token_analisi_superfici = 0
-        self._worker_nomi_luoghi = None
-        self._workers_nomi_attivi = []  # stesso principio dei worker superfici: mai perdere il riferimento a un thread vivo
-        self._richiesta_nomi_in_sospeso = None
-        self._token_nomi_luoghi = 0
+        # Ciclo di vita del worker nomi-luoghi nel gestore unico.
+        self._gestore_nomi = GestoreWorkerSingolo(
+            WorkerNomiLuoghi, "nomi_pronti", self._fine_risoluzione_nomi_luoghi
+        )
         # Ciclo di vita del worker altimetria (token, coda, sopravvivenza) nel gestore unico.
         self._gestore_altimetria = GestoreWorkerSingolo(
             WorkerAltimetria, "altimetria_pronta", self._fine_analisi_altimetria
@@ -510,7 +510,7 @@ class PannelloPianificazioneWidget(QFrame):
                 # ancora in corso in background: senza questo, un risultato
                 # tardivo potrebbe ripopolare i campi appena svuotati.
                 self._token_analisi_superfici += 1
-                self._token_nomi_luoghi += 1
+                self._gestore_nomi.invalida()
                 self._gestore_altimetria.invalida()
                 # Chiediamo anche ai worker eventualmente ancora in esecuzione
                 # di fermarsi subito invece di continuare a girare a vuoto in
@@ -523,11 +523,7 @@ class PannelloPianificazioneWidget(QFrame):
                         self._worker_superfici_offline.request_stop()
                     except RuntimeError:
                         pass
-                if self._worker_nomi_luoghi is not None:
-                    try:
-                        self._worker_nomi_luoghi.request_stop()
-                    except RuntimeError:
-                        pass
+
 
 
         if not id_progetto or self.tappa_in_modifica_id is not None:
@@ -606,59 +602,10 @@ class PannelloPianificazioneWidget(QFrame):
         l'interfaccia non si blocca nemmeno con percorsi molto lunghi.
         Finché il nome non è pronto restano visibili le coordinate.
         """
-        self._token_nomi_luoghi += 1
+        self._gestore_nomi.richiedi(richieste)
 
-        try:
-            worker_ancora_attivo = self._worker_nomi_luoghi is not None and self._worker_nomi_luoghi.isRunning()
-        except RuntimeError:
-            # Difesa aggiuntiva: se per qualche motivo il riferimento non è
-            # stato azzerato in tempo, trattiamo il worker come già finito
-            # invece di far esplodere l'intera sincronizzazione del pannello.
-            worker_ancora_attivo = False
-            self._worker_nomi_luoghi = None
-
-        if worker_ancora_attivo:
-            self._richiesta_nomi_in_sospeso = richieste
-            # Il vecchio worker non serve più (la richiesta è già superata):
-            # gli chiediamo di fermarsi subito, così quello nuovo può partire
-            # appena possibile invece di aspettare che finisca tutto da solo.
-            self._worker_nomi_luoghi.request_stop()
-            return
-
-        self._avvia_worker_nomi_luoghi(richieste)
-
-    def _avvia_worker_nomi_luoghi(self, richieste):
-        token_corrente = self._token_nomi_luoghi
-        worker = WorkerNomiLuoghi(richieste)
-        self._worker_nomi_luoghi = worker
-        self._workers_nomi_attivi.append(worker)
-        worker.nomi_pronti.connect(
-            lambda risultati, token=token_corrente: self._fine_risoluzione_nomi_luoghi(risultati, token)
-        )
-        worker.finished.connect(lambda worker=worker: self._ripulisci_worker_nomi(worker))
-        worker.start()
-
-    def _ripulisci_worker_nomi(self, worker):
-        """Rimuove dalla lista di sopravvivenza un worker di geocodifica che ha finito, e lo elimina."""
-        if worker in self._workers_nomi_attivi:
-            self._workers_nomi_attivi.remove(worker)
-        if self._worker_nomi_luoghi is worker:
-            # Fondamentale: senza questo azzeramento il riferimento rimaneva
-            # puntato al worker distrutto, e la prossima chiamata a isRunning()
-            # falliva con "Internal C++ object already deleted" interrompendo
-            # tutta la sincronizzazione del pannello a metà.
-            self._worker_nomi_luoghi = None
-        worker.deleteLater()
-
-    def _fine_risoluzione_nomi_luoghi(self, risultati, token):
-        richiesta_in_sospeso = self._richiesta_nomi_in_sospeso
-        self._richiesta_nomi_in_sospeso = None
-        if richiesta_in_sospeso is not None:
-            self._avvia_worker_nomi_luoghi(richiesta_in_sospeso)
-
-        if token != self._token_nomi_luoghi:
-            return  # nel frattempo l'utente ha cambiato percorso: risultato superato
-
+    def _fine_risoluzione_nomi_luoghi(self, risultati):
+        """Scrive i nomi trovati; il gestore li consegna solo se il risultato è ancora attuale."""
         if "partenza" in risultati:
             self.input_partenza.setText(risultati["partenza"])
         if "destinazione" in risultati:
