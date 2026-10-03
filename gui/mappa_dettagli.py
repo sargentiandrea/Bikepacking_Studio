@@ -1,6 +1,14 @@
 """Widget grafico per barra superfici, legenda, stato e KPI della rotta."""
 
-from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+)
 
 from gui.mappa_barra_superfici import BarraSuperfici
 from service.dettagli_rotta_service import (
@@ -46,6 +54,13 @@ class PannelloDettagliRotta(QFrame):
         )
         layout.addWidget(self.lbl_stato)
 
+        # Riga delle azioni contestuali (Riprova, Annulla...): nasce vuota e
+        # viene popolata solo quando serve, cosi non occupa spazio inutilmente.
+        self.layout_azioni = QHBoxLayout()
+        self.layout_azioni.setContentsMargins(0, 0, 0, 0)
+        self.layout_azioni.setSpacing(6)
+        layout.addLayout(self.layout_azioni)
+
         lbl_dettagli = QLabel("Dettagli tecnici")
         lbl_dettagli.setStyleSheet(
             "color: #cbd5e1; font-size: 12px; font-weight: 600; "
@@ -75,8 +90,39 @@ class PannelloDettagliRotta(QFrame):
         layout.addLayout(layout_kpi)
 
     def imposta_stato(self, testo):
-        """Aggiorna il messaggio di stato mostrato sotto la legenda."""
+        """Aggiorna il messaggio di stato mostrato sotto la legenda.
+
+        :param testo: il messaggio da mostrare all'utente.
+        """
         self.lbl_stato.setText(testo)
+
+    def imposta_stato_con_azioni(self, testo, azioni=None):
+        """Mostra il messaggio di stato accompagnato dalle azioni utili.
+
+        Le azioni sono la parte "cosa puo fare ora": senza di esse l'utente
+        legge il problema ma non sa come risolverlo.
+
+        :param testo: il messaggio da mostrare.
+        :param azioni: lista di coppie `(etichetta, funzione)`. Un valore vuoto
+            o `None` lascia la riga delle azioni pulita.
+        """
+        self.lbl_stato.setText(testo)
+        while self.layout_azioni.count():
+            elemento = self.layout_azioni.takeAt(0)
+            if elemento.widget():
+                elemento.widget().deleteLater()
+
+        for etichetta, funzione in azioni or []:
+            pulsante = QPushButton(etichetta)
+            pulsante.setCursor(Qt.PointingHandCursor)
+            pulsante.setStyleSheet(
+                "QPushButton { background-color: #263746; color: #7dd3fc; "
+                "border: 1px solid #475569; padding: 4px 10px; "
+                "border-radius: 4px; font-size: 11px; } "
+                "QPushButton:hover { background-color: #0e639c; color: white; }"
+            )
+            pulsante.clicked.connect(funzione)
+            self.layout_azioni.addWidget(pulsante)
 
     def imposta_distanza_tappe(self, tappe):
         """Mostra la somma delle distanze delle tappe già caricate."""
@@ -119,9 +165,10 @@ class PannelloDettagliRotta(QFrame):
         return disponibile
 
     def reset(self):
-        """Ripristina stato, barra, legenda e KPI ai valori iniziali."""
+        """Riporta stato, azioni, barra, legenda e KPI ai valori iniziali."""
         self.imposta_superfici([])
         self.imposta_stato("La ripartizione compare dopo il calcolo della rotta.")
+        self.imposta_stato_con_azioni("", [])
         self.imposta_kpi(prepara_kpi_rotta({}))
 
     def _popola_legenda(self, superfici):

@@ -90,3 +90,48 @@ def testi_altimetria(massima, minima):
 def testo_voce_legenda(superficie):
     """Formatta la dicitura della legenda per una singola categoria di superficie."""
     return f"● {superficie['categoria']} — {superficie['percentuale']:.0f}%"
+
+
+# ---------------------------------------------------------------------------
+# Riga di stato: "cosa puo fare ora" (sotto-fase 5.1, soluzione S5)
+# ---------------------------------------------------------------------------
+
+def testo_stato_calcolo():
+    """Messaggio mostrato mentre il servizio di routing sta lavorando."""
+    return "Sto calcolando il percorso..."
+
+
+def testo_stato_annullato():
+    """Messaggio mostrato quando l'utente annulla un calcolo in corso."""
+    return "Calcolo annullato. Puoi riprovare quando vuoi."
+
+
+def testo_stato_errore_routing(errore):
+    """Messaggio mostrato quando il routing non riesce, con azione Riprova."""
+    return f"Il percorso non e disponibile: {errore}"
+
+
+def testo_stato_anteprima_pronta(distanza_km=None, giorni=None):
+    """Messaggio mostrato quando la rotta e pronta e si puo salvare.
+
+    Con la distanza si dice quanto e lungo il percorso; i giorni arrivano solo
+    se disponibili (dipendono dal profilo usato dal servizio di routing).
+    """
+    parti = []
+    if distanza_km is not None:
+        parti.append(f"{distanza_km:.0f} km")
+    if giorni:
+        parti.append(f"{giorni} giorni")
+    if not parti:
+        return "Percorso calcolato."
+    return "Percorso calcolato: " + ", ".join(parti) + "."
+
+
+def testo_stato_campi_cambiati():
+    """Messaggio mostrato quando i campi cambiano durante il calcolo."""
+    return "I campi sono cambiati durante il calcolo: ricalcola l'anteprima."
+
+
+def testo_stato_in_modifica(numero_tappa):
+    """Messaggio mostrato mentre si sta modificando una tappa esistente."""
+    return f"Stai modificando la tappa {numero_tappa}."

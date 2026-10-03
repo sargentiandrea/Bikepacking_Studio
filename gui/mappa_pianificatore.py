@@ -29,6 +29,13 @@ from gui.mappa_worker import (
 )
 from gui.mappa_worker_manager import GestoreWorkerSingolo
 from service.config import BASE_DIR, DB_NAME
+from service.dettagli_rotta_service import (
+    testo_stato_annullato,
+    testo_stato_anteprima_pronta,
+    testo_stato_calcolo,
+    testo_stato_campi_cambiati,
+    testo_stato_errore_routing,
+)
 from service.geo_utils import calcola_distanza_haversine
 from service.mappa_dati_service import carica_coordinate_tappa, carica_tappe_attive
 from service.punti_service import (
@@ -59,13 +66,10 @@ class PannelloPianificazioneWidget(QFrame):
         """Crea il pannello e collega le sue azioni al widget mappa proprietario."""
         super().__init__(parent)
         self.mappa_widget = mappa_widget
-        self.worker_pianificazione = None
         self.punti_passaggio = []
         self.tappa_in_modifica_id = None
         self.ultima_anteprima = None
         self.firma_ultima_anteprima = None
-        self.callback_worker_pianificazione = None
-        self.firma_worker_pianificazione = None
         self._progetto_sincronizzato_id = "non_ancora_verificato"  # sentinella diversa da None/ID reali
         # Ciclo di vita del worker analisi-superfici nel gestore unico.
         self._gestore_superfici = GestoreWorkerSingolo(
@@ -78,6 +82,12 @@ class PannelloPianificazioneWidget(QFrame):
         # Ciclo di vita del worker altimetria (token, coda, sopravvivenza) nel gestore unico.
         self._gestore_altimetria = GestoreWorkerSingolo(
             WorkerAltimetria, "altimetria_pronta", self._fine_analisi_altimetria
+        )
+        # Ciclo di vita del worker di routing: anche lui va nel gestore unico,
+        # così una nuova richiesta durante un calcolo mette in coda invece di
+        # lasciare due thread BRouter contemporanei.
+        self._gestore_rotta = GestoreWorkerSingolo(
+            self._crea_worker_rotta, "esito", self._risultato_worker_rotta
         )
         self._id_tappa_inizio = None
         self._id_tappa_fine = None
@@ -346,40 +356,78 @@ class PannelloPianificazioneWidget(QFrame):
             return False
 
         progetto, partenza, punti, destinazione = dati
-        firma = self._firma_pianificazione()
+        richiesta = {
+            "progetto": progetto,
+            "partenza": partenza,
+            "punti": punti,
+            "destinazione": destinazione,
+            "callback": callback,
+            "firma": self._firma_pianificazione(),
+        }
         self.btn_salva.setEnabled(False)
         self.btn_salva.setText(etichetta_pulsante)
+        self.dettagli_rotta.imposta_stato_con_azioni(
+            testo_stato_calcolo(),
+            [("Annulla", self._annulla_calcolo_rotta)],
+        )
+        # Il gestore mette in coda la richiesta se un calcolo è ancora in corso,
+        # invece di sovrascrivere il riferimento al thread precedente.
+        self._gestore_rotta.richiedi(richiesta)
+        return True
+
+    def _crea_worker_rotta(self, richiesta):
+        """Costruisce il worker di routing per la richiesta ricevuta.
+
+        Callback e firma viaggiano con il worker: servono a chiudere la richiesta
+        giusta quando il risultato torna, anche se nel frattempo ne è partita
+        un'altra.
+        """
         worker = PianificazionePercorsoWorker(
-            progetto,
-            partenza,
-            destinazione,
+            richiesta["progetto"],
+            richiesta["partenza"],
+            richiesta["destinazione"],
             self.combo_profilo.currentText(),
-            punti,
+            richiesta["punti"],
             tappa_id=self.tappa_in_modifica_id,
             parent=self,
         )
-        self.callback_worker_pianificazione = callback
-        self.firma_worker_pianificazione = firma
-        worker.completato.connect(self._completamento_worker_pianificazione)
-        worker.finished.connect(self._worker_pianificazione_terminato)
-        self.worker_pianificazione = worker
-        worker.start()
-        return True
+        worker.callback = richiesta["callback"]
+        worker.firma = richiesta["firma"]
+        return worker
 
-    def _completamento_worker_pianificazione(self, riuscito, risultato, errore):
-        """Riporta il risultato del thread al callback Qt nel thread dell'interfaccia."""
-        if self.callback_worker_pianificazione:
-            self.callback_worker_pianificazione(
-                riuscito,
-                risultato,
-                errore,
-                self.firma_worker_pianificazione,
-            )
+    def _risultato_worker_rotta(self, esito):
+        """Consegna alla GUI il risultato del calcolo, se non è stato annullato."""
+        if esito.get("annullato"):
+            return
+        callback = esito.get("callback")
+        if callback is None:
+            return
+        callback(
+            esito.get("riuscito", False),
+            esito.get("risultato", {}),
+            esito.get("errore", ""),
+            esito.get("firma"),
+        )
+
+    def _annulla_calcolo_rotta(self):
+        """Annulla il calcolo in corso e rimette il pulsante in uno stato utile."""
+        self._gestore_rotta.invalida()
+        self._ripristina_pulsante_salvataggio()
+        self.dettagli_rotta.imposta_stato_con_azioni(
+            testo_stato_annullato(),
+            [("Riprova", self._ricalcola_anteprima)],
+        )
+
+    def _ripristina_pulsante_salvataggio(self):
+        """Rende il pulsante Salva di nuovo attivo con la dicitura giusta."""
+        self.btn_salva.setEnabled(True)
+        self.btn_salva.setText(
+            "Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso"
+        )
 
     def _worker_pianificazione_terminato(self):
         """Ripristina il pulsante quando il worker di routing termina."""
-        self.btn_salva.setEnabled(True)
-        self.btn_salva.setText("Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso")
+        self._ripristina_pulsante_salvataggio()
 
     def _ricalcola_anteprima(self):
         """Ricalcola soltanto l'anteprima, senza scrivere nel database."""
@@ -393,17 +441,25 @@ class PannelloPianificazioneWidget(QFrame):
         """Aggiorna anteprima e dettagli dopo il completamento del routing."""
         self.btn_salva.setText("Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso")
         if not riuscito:
-            self.dettagli_rotta.imposta_stato(errore)
+            self.dettagli_rotta.imposta_stato_con_azioni(
+                testo_stato_errore_routing(errore),
+                [("Riprova", self._ricalcola_anteprima)],
+            )
             return
         if firma != self._firma_pianificazione():
+            self.dettagli_rotta.imposta_stato_con_azioni(
+                testo_stato_campi_cambiati(),
+                [("Riprova", self._ricalcola_anteprima)],
+            )
             return
 
         self.ultima_anteprima = risultato
         self.firma_ultima_anteprima = firma
         self._aggiorna_dettagli_rotta(risultato.get("statistiche"))
         self.mappa_widget.mostra_anteprima_percorso(risultato["coordinate"])
+        statistiche = risultato.get("statistiche") or {}
         self.dettagli_rotta.imposta_stato(
-            "Anteprima aggiornata; premi il pulsante per salvare la tappa."
+            testo_stato_anteprima_pronta(statistiche.get("distanza_km"))
         )
 
     def aggiungi_waypoint(self, latitudine, longitudine):
@@ -783,11 +839,17 @@ class PannelloPianificazioneWidget(QFrame):
         self.btn_salva.setText("Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso")
 
         if not riuscito:
-            QMessageBox.warning(self, "Pianificazione non riuscita", errore)
+            # L'errore va nella riga di stato con la sua azione Riprova: un
+            # MessageBox interrompe il lavoro e non dice come proseguire.
+            self.dettagli_rotta.imposta_stato_con_azioni(
+                testo_stato_errore_routing(errore),
+                [("Riprova", self._gestisci_salvataggio_percorso)],
+            )
             return
         if firma is not None and firma != self._firma_pianificazione():
-            self.dettagli_rotta.imposta_stato(
-                "I campi sono cambiati durante il routing: ricalcola l'anteprima."
+            self.dettagli_rotta.imposta_stato_con_azioni(
+                testo_stato_campi_cambiati(),
+                [("Riprova", self._ricalcola_anteprima)],
             )
             return
 

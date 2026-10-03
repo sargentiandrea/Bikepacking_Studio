@@ -6,6 +6,8 @@ Estratte da PannelloPianificazioneWidget (gui/mappa.py) per poterle provare
 senza interfaccia grafica. Il comportamento è identico a quello originale.
 """
 
+import unicodedata
+
 
 def etichetta_punto(indice):
     """
@@ -88,18 +90,40 @@ def pulisci_testi(testi):
     return [testo.strip() for testo in testi]
 
 
+def normalizza_luogo(testo):
+    """
+    Normalizza un testo di luogo per confrontarlo senza falsi differimenti.
+
+    Rimuove gli spazi iniziali e finali, riduce gli spazi interni ripetuti a
+    uno solo, passa a minuscolo e sostituisce i caratteri accentuati con il
+    equivalente non accentato. Serve alla firma dell'anteprima: senza questo,
+    digitare "modena" invece di "Modena" fa ricalcolare tutta la rotta.
+    """
+    testo = str(testo or "")
+    testo = " ".join(testo.split()).casefold()
+    # Scompono i caratteri accentuati e scarto il segno di combinazione: cosi
+    # una citta con accento e una senza danno la stessa firma.
+    testo = "".join(
+        carattere
+        for carattere in unicodedata.normalize("NFD", testo)
+        if not unicodedata.combining(carattere)
+    )
+    return testo
+
+
 def firma_pianificazione(progetto, partenza, punti, destinazione, profilo, tappa_in_modifica_id):
     """
     Crea la chiave che dice se un'anteprima calcolata corrisponde ancora ai campi
-    del form: se cambia anche solo un campo, la chiave è diversa.
-    I testi vengono ripuliti dagli spazi; i punti di passaggio diventano una tupla.
+    del form: se cambia anche solo un campo, la chiave e diversa.
+    I testi vengono normalizzati (spazi, maiuscole, accenti): cosi "Modena" e
+    "modena" non fanno ricalcolare inutilmente la rotta.
     """
     return (
         progetto,
-        partenza.strip(),
-        tuple(pulisci_testi(punti)),
-        destinazione.strip(),
-        profilo,
+        normalizza_luogo(partenza),
+        tuple(normalizza_luogo(punto) for punto in punti),
+        normalizza_luogo(destinazione),
+        normalizza_luogo(profilo),
         tappa_in_modifica_id,
     )
 

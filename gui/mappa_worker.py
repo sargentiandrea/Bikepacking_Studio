@@ -19,6 +19,11 @@ from service.gpx_paths import trova_percorso_gpx
 # Stessa cartella GPX usata da gui/mappa.py.
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
 
+# Attesa massima per la risposta di BRouter. Prima era 320 secondi: un'interfaccia
+# bloccata cosi a lungo, senza via d'uscita, e il motivo per cui gli utenti
+# smettono di fidarsi. 60 secondi basta ampiamente per un tracciato ciclabile.
+TIMEOUT_ROUTING_SECONDI = 60
+
 
 class WorkerAnalisiSuperficiOffline(QThread):
     """
@@ -140,6 +145,10 @@ class PianificazionePercorsoWorker(QThread):
 
     completato = Signal(bool, dict, str)
 
+    # Stesso risultato di `completato`, ma in un unico argomento: e il segnale
+    # che consuma GestoreWorkerSingolo, che gestisce coda e annullamento.
+    esito = Signal(dict)
+
     def __init__(self, id_progetto, partenza, destinazione, profilo, punti_passaggio=None, parent=None, tappa_id=None):
         super().__init__(parent)
         self.id_progetto = id_progetto
@@ -148,6 +157,35 @@ class PianificazionePercorsoWorker(QThread):
         self.profilo = profilo
         self.punti_passaggio = list(punti_passaggio or [])
         self.tappa_id = tappa_id
+        self._annullato = False
+        # Riportati nell'esito così il pannello sa quale richiesta chiudere.
+        self.callback = None
+        self.firma = None
+
+    def _notifica(self, esito):
+        """Emette l'esito sui due segnali, allegando callback e firma."""
+        esito.setdefault("callback", self.callback)
+        esito.setdefault("firma", self.firma)
+        esito.setdefault("annullato", self._annullato)
+        self.completato.emit(
+            esito.get("riuscito", False),
+            esito.get("risultato", {}),
+            esito.get("errore", ""),
+        )
+        self.esito.emit(esito)
+
+    def request_stop(self):
+        """Chiede al worker di interrompere il calcolo appena possibile.
+
+        Serve all'utente che cambia idea mentre BRouter sta elaborando: senza
+        questo, il calcolo continuerebbe in sottofondo e occuperebbe la coda
+        delle richieste successive. Stessa logica degli altri worker.
+        """
+        self._annullato = True
+
+    def e_annullato(self):
+        """Indica se il calcolo e stato annullato dall'utente."""
+        return self._annullato
 
     def _geocodifica(self, luogo):
         coordinate = re.fullmatch(
@@ -174,6 +212,9 @@ class PianificazionePercorsoWorker(QThread):
                 self._geocodifica(luogo) for luogo in luoghi
             ]
 
+            if self._annullato:
+                return
+
             if len(set(coordinate_luoghi)) != len(coordinate_luoghi):
                 raise ValueError("Due o più punti inseriti corrispondono alla stessa posizione.")
 
@@ -190,7 +231,7 @@ class PianificazionePercorsoWorker(QThread):
                     "alternativeidx": 0,
                     "format": "geojson",
                 },
-                timeout=320,
+                timeout=TIMEOUT_ROUTING_SECONDI,
             )
             risposta.raise_for_status()
             dati = risposta.json()
@@ -219,19 +260,42 @@ class PianificazionePercorsoWorker(QThread):
             if len(coordinate) < 2:
                 raise ValueError("La risposta del servizio non contiene una geometria valida.")
 
+            # Se l'utente ha annullato mentre BRouter lavorava, il risultato
+            # non serve piu: si esce senza emettere nulla, cosi l'interfaccia
+            # non mostra un percorso che l'utente ha gia scartato.
+            if self._annullato:
+                return
+
             from service.stats_service import analizza_dati_rotta_brouter
             statistiche = analizza_dati_rotta_brouter(proprieta_rotta, coordinate)
 
-            self.completato.emit(True, {
-                "id_progetto": self.id_progetto,
-                "partenza": self.partenza,
-                "destinazione": self.destinazione,
-                "coordinate": coordinate,
-                "profilo": self.profilo,
-                "tappa_id": self.tappa_id,
-                "statistiche": statistiche,
-            }, "")
+            self._notifica({
+                "riuscito": True,
+                "risultato": {
+                    "id_progetto": self.id_progetto,
+                    "partenza": self.partenza,
+                    "destinazione": self.destinazione,
+                    "coordinate": coordinate,
+                    "profilo": self.profilo,
+                    "tappa_id": self.tappa_id,
+                    "statistiche": statistiche,
+                },
+                "errore": "",
+            })
+        except requests.Timeout:
+            self._notifica({
+                "riuscito": False,
+                "risultato": {},
+                "errore": (
+                    f"Il servizio di routing non ha risposto entro "
+                    f"{TIMEOUT_ROUTING_SECONDI} secondi."
+                ),
+            })
         except (requests.RequestException, ValueError, KeyError, TypeError) as errore:
-            self.completato.emit(False, {}, str(errore))
+            self._notifica({"riuscito": False, "risultato": {}, "errore": str(errore)})
         except Exception as errore:
-            self.completato.emit(False, {}, f"Errore imprevisto durante il calcolo: {errore}")
+            self._notifica({
+                "riuscito": False,
+                "risultato": {},
+                "errore": f"Errore imprevisto durante il calcolo: {errore}",
+            })
