@@ -8,7 +8,6 @@ import service.catena_stagionale_service
 import service.clima_service
 import service.migrazione_clima
 import service.migrazione_catena_stagionale
-from service.gpx_paths import trova_percorso_gpx
 from service.geo_utils import calcola_distanza_haversine
 import math
 import json
@@ -42,6 +41,8 @@ from gui.dialog_clima_soglie import ClimaSoglieDialog
 from gui import dialog_elenco_paesi
 from gui import dialog_nuovo_progetto
 from gui import dialog_wizard_trasferimento
+from service import tappe_service
+from service import progetti_service
 from service import trasferimenti_service
 
 
@@ -1015,20 +1016,14 @@ class BikepackingStudioApp(QMainWindow):
             self.page_dashboard.aggiorna_tabella_tappe()
     
     def aggiorna_blocco_tappa(self, tappa_id, nuovo_blocco):
-        blocco_val = nuovo_blocco.strip() if nuovo_blocco.strip() else "Generale"
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE tappe SET blocco = ? WHERE id = ?", (blocco_val, tappa_id))
-        conn.commit()
-        conn.close()
+        """Assegna il blocco a una tappa delegando al servizio di dominio."""
+        tappe_service.imposta_blocco_tappa(tappa_id, nuovo_blocco)
 
     def toggle_pausa_tappa(self, tappa_id, in_pausa):
-        nuovo_stato = 'ATTIVA' if in_pausa else 'SOSPESA'
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE tappe SET stato = ? WHERE id = ?", (nuovo_stato, tappa_id))
-        conn.commit()
-        conn.close()
+        """Mette in pausa o riattiva una tappa e ricalcola l'audit."""
+        tappe_service.imposta_stato_tappa(
+            tappa_id, tappe_service.stato_da_pausa(in_pausa)
+        )
 
         self.esegui_audit_automatico()
         self.mappa_necessita_aggiornamento = True
@@ -1036,14 +1031,10 @@ class BikepackingStudioApp(QMainWindow):
         self.aggiorna_tabella_allarmi()
 
     def cambia_ruolo_tappa(self, tappa_id, index):
-        mappa_stati = {0: 'ATTIVA', 1: 'VARIANTE', 2: 'SOSPESA'}
-        nuovo_stato = mappa_stati[index]
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE tappe SET stato = ? WHERE id = ?", (nuovo_stato, tappa_id))
-        conn.commit()
-        conn.close()
+        """Cambia lo stato della tappa dal menu a tendina e ricalcola l'audit."""
+        tappe_service.imposta_stato_tappa(
+            tappa_id, tappe_service.stato_da_ruolo(index)
+        )
 
         self.esegui_audit_automatico()
         self.mappa_necessita_aggiornamento = True
@@ -1051,23 +1042,11 @@ class BikepackingStudioApp(QMainWindow):
         self.aggiorna_tabella_allarmi()
 
     def elimina_singola_tappa(self, tappa_id, nome_file):
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("SELECT id_progetto FROM tappe WHERE id = ?", (tappa_id,))
-        riga = cursor.fetchone()
-        id_progetto = riga[0] if riga else self.current_progetto_id
-        cursor.execute("DELETE FROM tappe WHERE id = ?", (tappa_id,))
-        conn.commit()
-        conn.close()
-
-        filepath = trova_percorso_gpx(
-            nome_file, id_progetto, directory_gpx=os.path.join(os.getcwd(), "gpx")
+        """Elimina una tappa, il suo file GPX e aggiorna l'audit."""
+        id_progetto = tappe_service.elimina_tappa(
+            tappa_id, self.current_progetto_id
         )
-        if filepath is not None:
-            try:
-                os.remove(filepath)
-            except Exception as e:
-                print("Errore rimozione file:", e)
+        tappe_service.elimina_file_gpx(nome_file, id_progetto)
 
         self.esegui_audit_automatico()
         self.mappa_necessita_aggiornamento = True
@@ -1075,20 +1054,13 @@ class BikepackingStudioApp(QMainWindow):
         self.aggiorna_tabella_allarmi()
 
     def elimina_percorso_corrente(self):
+        """Chiede conferma e elimina il percorso attivo con tutti i suoi dati."""
         if not self.current_progetto_id:
             return
         conf = QMessageBox.question(self, "Elimina Percorso", f"Sei sicuro di voler eliminare l'intero percorso '{self.current_progetto_nome}'?", QMessageBox.Yes | QMessageBox.No)
         if conf == QMessageBox.Yes:
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM progetti WHERE id = ?", (self.current_progetto_id,))
-            cursor.execute("DELETE FROM tappe WHERE id_progetto = ?", (self.current_progetto_id,))
-            cursor.execute("DELETE FROM allarmi_percorso WHERE id_progetto = ?", (self.current_progetto_id,))
-            cursor.execute("DELETE FROM trasferimenti WHERE id_progetto = ?", (self.current_progetto_id,))
-            cursor.execute("DELETE FROM blocchi_ordine WHERE id_progetto = ?", (self.current_progetto_id,))
-            conn.commit()
-            conn.close()
-            
+            progetti_service.elimina_progetto_completo(self.current_progetto_id)
+
             self.current_progetto_id = None
             self.carica_lista_percorsi()
 

@@ -9,10 +9,11 @@ from PySide6.QtWidgets import (
     QComboBox, QMessageBox, QInputDialog, QStackedWidget, QLineEdit
 )
 from PySide6.QtCore import Qt, Signal as pyqtSignal
-from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
+from service import progetti_service
+from service import tappe_service
 from service.config import DB_NAME
-from service.gpx_paths import percorso_gpx_progetto, trova_percorso_gpx
+from service.gpx_paths import percorso_gpx_progetto
 from service.precalcolo_service import precalcola_tappa
 from service.geo_utils import calcola_distanza_haversine
 
@@ -181,16 +182,7 @@ class DashboardPage(QWidget):
         if not self.current_progetto_id:
             return
 
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT sequenza, blocco, nome_file, distanza_km, stato, id 
-            FROM tappe 
-            WHERE id_progetto = ? AND nome_file IS NOT NULL AND sequenza IS NOT NULL 
-            ORDER BY sequenza ASC
-        """, (self.current_progetto_id,))
-        rows = cursor.fetchall()
-        conn.close()
+        rows = tappe_service.carica_tappe_elenco(self.current_progetto_id)
 
         self.table_tappe.setRowCount(len(rows))
         for row_idx, data in enumerate(rows):
@@ -361,32 +353,22 @@ class DashboardPage(QWidget):
             self.main_window.aggiorna_tabella_allarmi()
 
     def aggiorna_blocco_tappa(self, tappa_id, nuovo_blocco):
-        blocco_val = nuovo_blocco.strip() if nuovo_blocco.strip() else "Generale"
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE tappe SET blocco = ? WHERE id = ?", (blocco_val, tappa_id))
-        conn.commit()
-        conn.close()
+        """Assegna il blocco a una tappa delegando al servizio di dominio."""
+        tappe_service.imposta_blocco_tappa(tappa_id, nuovo_blocco)
 
     def toggle_pausa_tappa(self, tappa_id, in_pausa):
-        nuovo_stato = 'ATTIVA' if in_pausa else 'SOSPESA'
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE tappe SET stato = ? WHERE id = ?", (nuovo_stato, tappa_id))
-        conn.commit()
-        conn.close()
+        """Mette in pausa o riattiva una tappa e ricarica la tabella."""
+        tappe_service.imposta_stato_tappa(
+            tappa_id, tappe_service.stato_da_pausa(in_pausa)
+        )
 
         self.aggiorna_tabella_tappe()
 
     def cambia_ruolo_tappa(self, tappa_id, index):
-        mappa_stati = {0: 'ATTIVA', 1: 'VARIANTE', 2: 'SOSPESA'}
-        nuovo_stato = mappa_stati[index]
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE tappe SET stato = ? WHERE id = ?", (nuovo_stato, tappa_id))
-        conn.commit()
-        conn.close()
+        """Cambia lo stato della tappa dal menu a tendina e ricarica la tabella."""
+        tappe_service.imposta_stato_tappa(
+            tappa_id, tappe_service.stato_da_ruolo(index)
+        )
 
         self.aggiorna_tabella_tappe()
 
@@ -394,24 +376,10 @@ class DashboardPage(QWidget):
         reply = QMessageBox.question(self, "Conferma", "Vuoi rimuovere questa traccia dal percorso?", QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
-                conn = sqlite3.connect(DB_NAME)
-                cursor = conn.cursor()
-                cursor.execute("SELECT id_progetto FROM tappe WHERE id = ?", (tappa_id,))
-                riga = cursor.fetchone()
-                id_progetto = riga[0] if riga else self.current_progetto_id
-                cursor.execute("DELETE FROM tappe WHERE id = ?", (tappa_id,))
-                conn.commit()
-                conn.close()
-
-                if nome_file:
-                    filepath = trova_percorso_gpx(
-                        nome_file, id_progetto, directory_gpx=os.path.join(os.getcwd(), "gpx")
-                    )
-                    if filepath is not None:
-                        try:
-                            os.remove(filepath)
-                        except Exception as e:
-                            print("Errore rimozione file fisico:", e)
+                id_progetto = tappe_service.elimina_tappa(
+                    tappa_id, self.current_progetto_id
+                )
+                tappe_service.elimina_file_gpx(nome_file, id_progetto)
 
                 if self.current_progetto_id:
                     self.aggiorna_tabella_tappe()
@@ -420,26 +388,18 @@ class DashboardPage(QWidget):
                 QMessageBox.critical(self, "Errore", f"Impossibile eliminare la traccia: {e}")
 
     def carica_lista_percorsi(self):
+        """Riempi l'elenco dei percorsi con nome, data, km e stato."""
         self.list_percorsi.clear()
         try:
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, nome_progetto, data_creazione, stato FROM progetti ORDER BY data_creazione DESC")
-
-            rows = cursor.fetchall()
-
-            for row in rows:
-                id_prog, nome, data, stato = row
-                cursor.execute("SELECT SUM(distanza_km) FROM tappe WHERE id_progetto = ?", (id_prog,))
-                res_km = cursor.fetchone()
-                km_totali = res_km[0] if res_km and res_km[0] is not None else 0.0
-
-                item_text = f"📍 {nome}   |   Creato il: {data}   |   KM: {km_totali:.1f}   |   Stato: {stato}"
+            for progetto in progetti_service.carica_progetti_con_km():
+                item_text = (
+                    f"📍 {progetto['nome']}   |   Creato il: {progetto['data']}"
+                    f"   |   KM: {progetto['km_totali']:.1f}"
+                    f"   |   Stato: {progetto['stato']}"
+                )
                 item = QListWidgetItem(item_text)
-                item.setData(Qt.UserRole, id_prog)
+                item.setData(Qt.UserRole, progetto['id'])
                 self.list_percorsi.addItem(item)
-
-            conn.close()
         except Exception as e:
             print(f"Errore caricamento percorsi: {e}")
 
@@ -560,16 +520,9 @@ class DashboardPage(QWidget):
             
             try:
                 # Scrittura del nuovo progetto nel database SQLite principale
-                conn = sqlite3.connect(DB_NAME)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "INSERT INTO progetti (nome_progetto, stato, data_creazione) "
-                    "VALUES (?, ?, CURRENT_TIMESTAMP)",
-                    (nome_progetto, 'ATTIVO')
+                id_progetto = progetti_service.crea_progetto(
+                    nome_progetto, stato='ATTIVO'
                 )
-                id_progetto = cursor.lastrowid
-                conn.commit()
-                conn.close()
 
                 # Aggiorna la lista visibile dei percorsi nella dashboard
                 self.carica_lista_percorsi()
@@ -631,18 +584,15 @@ class DashboardPage(QWidget):
             self.elabora_files_gpx(files)
     
     def elimina_percorso_corrente(self):
-        """Elimina permanentemente il progetto attivo e tutte le tappe collegate dal database."""
+        """Elimina definitivamente il progetto attivo e tutte le tappe collegate."""
         if not self.current_progetto_id:
             return
         reply = QMessageBox.question(self, "Conferma", "Sei sicuro di voler eliminare questo percorso?", QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
-                conn = sqlite3.connect(DB_NAME)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM progetti WHERE id = ?", (self.current_progetto_id,))
-                cursor.execute("DELETE FROM tappe WHERE id_progetto = ?", (self.current_progetto_id,))
-                conn.commit()
-                conn.close()
+                progetti_service.elimina_progetto_completo(
+                    self.current_progetto_id, tabelle=("tappe",)
+                )
 
                 self.current_progetto_id = None
                 self.carica_lista_percorsi()
@@ -659,21 +609,13 @@ class DashboardPage(QWidget):
 
         nuovo_blocco, ok = QInputDialog.getText(self, "Modifica Blocco Multiplo", "Inserisci il nuovo nome del Blocco/Area per le tracce selezionate:")
         if ok and nuovo_blocco.strip():
-            blocco_pulito = nuovo_blocco.strip()
-            
-            conn = sqlite3.connect(DB_NAME)
-            cursor = conn.cursor()
-            
+            sequenze = []
             for index in righe_selezionate:
-                row_idx = index.row()
-                item_seq = self.table_tappe.item(row_idx, 0)
+                item_seq = self.table_tappe.item(index.row(), 0)
                 if item_seq:
-                    seq_val = int(item_seq.text())
-                    cursor.execute("""
-                        UPDATE tappe SET blocco = ? 
-                        WHERE id_progetto = ? AND sequenza = ?
-                    """, (blocco_pulito, self.current_progetto_id, seq_val))
-            
-            conn.commit()
-            conn.close()
+                    sequenze.append(int(item_seq.text()))
+
+            tappe_service.aggiorna_blocco_per_sequenze(
+                self.current_progetto_id, sequenze, nuovo_blocco
+            )
             self.aggiorna_tabella_tappe()
