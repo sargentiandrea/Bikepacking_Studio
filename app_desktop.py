@@ -1,10 +1,8 @@
-import io
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sqlite3
 from contextlib import closing
-import folium
 import service.audit_service
 import service.catena_stagionale_service
 import service.clima_service
@@ -12,13 +10,8 @@ import service.migrazione_clima
 import service.migrazione_catena_stagionale
 from service.gpx_paths import trova_percorso_gpx
 from service.geo_utils import calcola_distanza_haversine
-import gpxpy
-import gpxpy.gpx
-import webbrowser
-import shutil
 import math
 import json
-import urllib.request
 
 from service.map_server import start_local_map_server
 # Avvia il server delle mappe locale su porta 8080
@@ -26,11 +19,9 @@ start_local_map_server(port=8080)
 from PySide6.QtWidgets import QDialog
 from PySide6.QtCore import (
     Signal,
-    QTimer,
     QObject,
     QThread,
     Qt,
-    QUrl,
     QDate,
     QSize,
 )
@@ -38,14 +29,6 @@ from datetime import datetime
 # -- Nuovi Moduli GUI --
 from gui.dashboard import DashboardPage
 from gui.mappa import MappaWidget
-
-class DoganeSignals(QObject):
-    finito = Signal(list)
-
-
-class ClimaSignals(QObject):
-    finito = Signal(list)
-
 
 class EstrazioneClimaWorker(QObject):
     """Esegue la lettura COG fuori dal thread dell'interfaccia."""
@@ -154,21 +137,17 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout,
                              QVBoxLayout, QPushButton, QLabel, QStackedWidget, 
                              QFrame, QFileDialog, QTableWidget, QTableWidgetItem,
                              QHeaderView, QMessageBox, QDialog, QFormLayout, 
-                             QLineEdit, QListWidget, QListWidgetItem, QComboBox, QTextEdit, QSizePolicy,
+                             QLineEdit, QListWidget, QListWidgetItem, QComboBox, QTextEdit,
                              QDateEdit, QSpinBox, QTabWidget, QScrollArea,
                              QDoubleSpinBox, QDialogButtonBox)
-from PySide6.QtCore import Qt, Signal, QUrl
 from PySide6.QtGui import (
     QColor,
     QFont,
-    QDragEnterEvent,
-    QDropEvent,
     QIcon,
     QPainter,
     QPen,
     QPixmap,
 )
-from PySide6.QtWebEngineWidgets import QWebEngineView
 # --- FORZATURA ACCELERAZIONE HARDWARE (ANTI-SCHERMO BIANCO) ---
 os.environ["QT_WEBENGINE_DISABLE_GPU"] = "0"
 QApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
@@ -176,67 +155,6 @@ QApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
 
 from service.config import DB_NAME
-
-MAPPA_PREFISSI_BLOCCHI = {
-    "ITA": "Italia (ITA)",
-    "MED": "Mediterraneo (MED)",
-    "AFR": "Africa (AFR)",
-    "TUR": "Turchia (TUR)",
-    "EUR": "Europa (EUR)",
-    "ASI": "Asia (ASI)",
-    "AME": "America (AME)",
-    "CINA": "Cina (CINA)",
-    "GIAP": "Giappone (GIAP)",
-    "CORE": "Corea del sud (CORE)",
-    "IND": "India (IND)",
-    "HAIN": "Isola di Hainan (HAIN)",
-    "MALE": "Malesia (MALE)",
-    "SRI": "Srilanka (SRI)",
-    "SUMA": "Sumatra (SUMA)",
-    "AUS": "Australia (AUS)",
-    "NWZ": "Nuova Zelanda (NWZ)"
-}
-STILI_TRASPORTI = {
-    "Traghetto / Nave": {"color": "#00a8ff", "dashArray": "8, 8", "icon": "🚢"},
-    "Aereo":            {"color": "#9b59b6", "dashArray": "5, 10", "icon": "✈️"},
-    "Treno":            {"color": "#f39c12", "dashArray": "10, 5", "icon": "🚆"},
-    "Bus / Pick-up":    {"color": "#f1c40f", "dashArray": "6, 6",  "icon": "🚌"},
-    "Altro / Personale":{"color": "#1abc9c", "dashArray": "4, 4",  "icon": "🚚"}
-}
-
-def determina_blocco_da_nome_file(nome_file):
-    clean_name = os.path.basename(nome_file).upper().strip()
-    if len(clean_name) >= 3 and clean_name[:3].isalpha():
-        prefisso = clean_name[:3]
-        return MAPPA_PREFISSI_BLOCCHI.get(prefisso, f"Area {prefisso}")
-    return "Generale"
-
-class DropAreaGPX(QFrame):
-    files_dropped = Signal(list)
-
-    def __init__(self):
-        super().__init__()
-        self.setAcceptDrops(True)
-        self.setStyleSheet("""
-            QFrame { border: 2px dashed #0e639c; border-radius: 10px; background-color: #2d2d30; }
-            QFrame:hover { background-color: #3e3e42; border-color: #007acc; }
-        """)
-        layout = QVBoxLayout(self)
-        self.label = QLabel("📥 Trascina qui i tuoi file GPX per questo percorso")
-        self.label.setAlignment(Qt.AlignCenter)
-        self.label.setFont(QFont("Arial", 11))
-        self.label.setStyleSheet("color: #cccccc; border: none; background: transparent;")
-        layout.addWidget(self.label)
-
-    def dragEnterEvent(self, event: QDragEnterEvent):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event: QDropEvent):
-        urls = event.mimeData().urls()
-        filepaths = [u.toLocalFile() for u in urls if u.toLocalFile().lower().endswith('.gpx')]
-        if filepaths:
-            self.files_dropped.emit(filepaths)
 
 
 class TimelineCatenaWidget(QWidget):

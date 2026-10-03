@@ -5,7 +5,7 @@
 
 ## `allarmi_percorso`
 
-- Righe: 4
+- Righe: 5
 
 ### Colonne
 
@@ -424,7 +424,7 @@ Nessuna chiave esterna.
 
 ## `tappa_analisi`
 
-- Righe: 984
+- Righe: 985
 
 ### Colonne
 
@@ -458,7 +458,7 @@ Nessun indice.
 
 ## `tappa_costa_riepilogo`
 
-- Righe: 984
+- Righe: 985
 
 ### Colonne
 
@@ -491,7 +491,7 @@ Nessun indice.
 
 ## `tappa_geometrie`
 
-- Righe: 983
+- Righe: 984
 
 ### Colonne
 
@@ -520,7 +520,7 @@ Nessun indice.
 
 ## `tappa_segmenti`
 
-- Righe: 985
+- Righe: 986
 
 ### Colonne
 
@@ -547,7 +547,7 @@ Nessun indice.
 
 ## `tappe`
 
-- Righe: 984
+- Righe: 982
 
 ### Colonne
 
