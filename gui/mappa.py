@@ -75,10 +75,10 @@ class PannelloPianificazioneWidget(QFrame):
         self.callback_worker_pianificazione = None
         self.firma_worker_pianificazione = None
         self._progetto_sincronizzato_id = "non_ancora_verificato"  # sentinella diversa da None/ID reali
-        self._worker_superfici_offline = None
-        self._workers_superfici_attivi = []  # tiene in vita i worker finché non finiscono davvero
-        self._richiesta_superfici_in_sospeso = None
-        self._token_analisi_superfici = 0
+        # Ciclo di vita del worker analisi-superfici nel gestore unico.
+        self._gestore_superfici = GestoreWorkerSingolo(
+            WorkerAnalisiSuperficiOffline, "analisi_completata", self._fine_analisi_superfici_offline
+        )
         # Ciclo di vita del worker nomi-luoghi nel gestore unico.
         self._gestore_nomi = GestoreWorkerSingolo(
             WorkerNomiLuoghi, "nomi_pronti", self._fine_risoluzione_nomi_luoghi
@@ -509,7 +509,7 @@ class PannelloPianificazioneWidget(QFrame):
                 # Invalida eventuali analisi/geocodifiche del percorso precedente
                 # ancora in corso in background: senza questo, un risultato
                 # tardivo potrebbe ripopolare i campi appena svuotati.
-                self._token_analisi_superfici += 1
+                self._gestore_superfici.invalida()
                 self._gestore_nomi.invalida()
                 self._gestore_altimetria.invalida()
                 # Chiediamo anche ai worker eventualmente ancora in esecuzione
@@ -518,11 +518,7 @@ class PannelloPianificazioneWidget(QFrame):
                 # enorme restava attiva anche dopo essere diventata inutile,
                 # e la richiesta per il nuovo percorso doveva aspettare in
                 # coda che finisse, rallentando ogni cambio successivo.
-                if self._worker_superfici_offline is not None:
-                    try:
-                        self._worker_superfici_offline.request_stop()
-                    except RuntimeError:
-                        pass
+
 
 
 
@@ -625,60 +621,11 @@ class PannelloPianificazioneWidget(QFrame):
         fatto in precedenza, viene semplicemente riletto dalla cache locale.
         """
         self.lbl_stato_superfici.setText("Analisi offline delle superfici in corso (mappe locali già scaricate)...")
-        self._token_analisi_superfici += 1
+        # Se un'analisi è già in corso il gestore mette la richiesta in coda e ferma la vecchia.
+        self._gestore_superfici.richiedi(id_progetto)
 
-        try:
-            worker_ancora_attivo = self._worker_superfici_offline is not None and self._worker_superfici_offline.isRunning()
-        except RuntimeError:
-            worker_ancora_attivo = False
-            self._worker_superfici_offline = None
-
-        if worker_ancora_attivo:
-            # Un'analisi è già in corso (es. la pagina è stata riaperta velocemente):
-            # non ne lanciamo una seconda in parallelo, la mettiamo in coda e
-            # partirà appena l'attuale sarà terminata (vedi _fine_analisi_superfici_offline).
-            # Il vecchio calcolo non serve più: gli chiediamo di fermarsi subito
-            # invece di lasciarlo continuare a girare a vuoto in sottofondo
-            # (con percorsi enormi restava attivo per minuti anche se inutile).
-            self._richiesta_superfici_in_sospeso = id_progetto
-            self._worker_superfici_offline.request_stop()
-            return
-
-        self._avvia_worker_superfici(id_progetto)
-
-    def _avvia_worker_superfici(self, id_progetto):
-        token_corrente = self._token_analisi_superfici
-        worker = WorkerAnalisiSuperficiOffline(id_progetto)
-        self._worker_superfici_offline = worker
-        self._workers_superfici_attivi.append(worker)
-        worker.analisi_completata.connect(
-            lambda risultato, token=token_corrente: self._fine_analisi_superfici_offline(risultato, token)
-        )
-        worker.finished.connect(lambda worker=worker: self._ripulisci_worker_superfici(worker))
-        worker.start()
-
-    def _ripulisci_worker_superfici(self, worker):
-        """Rimuove dalla lista di sopravvivenza un worker di analisi superfici che ha finito, e lo elimina."""
-        if worker in self._workers_superfici_attivi:
-            self._workers_superfici_attivi.remove(worker)
-        if self._worker_superfici_offline is worker:
-            # Stesso bug del worker nomi-luoghi: senza azzerare il riferimento,
-            # il prossimo controllo isRunning() punterebbe a un thread già
-            # distrutto e farebbe crashare la sincronizzazione del pannello.
-            self._worker_superfici_offline = None
-        worker.deleteLater()
-
-    def _fine_analisi_superfici_offline(self, risultato, token):
-        # Se nel frattempo è arrivata una nuova richiesta (messa in coda perché
-        # un'analisi era già in corso), la avviamo ora che il worker è libero.
-        richiesta_in_sospeso = self._richiesta_superfici_in_sospeso
-        self._richiesta_superfici_in_sospeso = None
-        if richiesta_in_sospeso is not None:
-            self._avvia_worker_superfici(richiesta_in_sospeso)
-
-        if token != self._token_analisi_superfici:
-            return  # nel frattempo l'utente ha cambiato percorso: risultato superato
-
+    def _fine_analisi_superfici_offline(self, risultato):
+        """Mostra le superfici; il gestore le consegna solo se il risultato è ancora attuale."""
         if not risultato or not risultato.get("disponibile"):
             motivo = (risultato or {}).get("motivo", "Dati non disponibili.")
             self.lbl_stato_superfici.setText(f"Superfici non calcolabili offline: {motivo}")
