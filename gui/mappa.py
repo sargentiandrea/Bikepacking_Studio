@@ -33,6 +33,13 @@ from service.salvataggio_tappa_service import (
     salva_tappa_pianificata,
 )
 from service.geo_utils import calcola_distanza_haversine
+from service.punti_service import (
+    aggiorna_testi_tappe,
+    etichetta_punto,
+    prepara_tappe_intermedie,
+    testo_intestazione_tappe_intermedie,
+    testo_riga_tappa_intermedia,
+)
 
 # Componenti spostati in moduli dedicati (Fase 3.0 del refactor).
 from gui.mappa_barra_superfici import BarraSuperfici
@@ -566,13 +573,8 @@ class PannelloPianificazioneWidget(QFrame):
         # Le tappe intermedie (se il percorso caricato ne ha più di una) vengono
         # mostrate in un elenco a scorrimento separato e di sola consultazione:
         # cliccandone una si evidenzia il tratto corrispondente sulla mappa.
-        tappe_intermedie = []
-        for tappa_id, _, start_lat, start_lon, _, _, _ in tappe[1:-1]:
-            if start_lat is None or start_lon is None:
-                continue
-            testo_iniziale = f"{start_lat:.6f}, {start_lon:.6f}"
-            tappe_intermedie.append({"id": tappa_id, "testo": testo_iniziale})
-            richieste_nomi.append({"chiave": tappa_id, "lat": start_lat, "lon": start_lon})
+        tappe_intermedie, richieste_tappe = prepara_tappe_intermedie(tappe)
+        richieste_nomi.extend(richieste_tappe)
         self._popola_tappe_intermedie(tappe_intermedie)
 
         if richieste_nomi:
@@ -848,7 +850,7 @@ class PannelloPianificazioneWidget(QFrame):
     def _aggiungi_punto_passaggio(self):
         """Aggiunge un campo intermedio prima della destinazione."""
         indice = len(self.punti_passaggio)
-        etichetta = self._etichetta_punto(indice)
+        etichetta = etichetta_punto(indice)
         riga = QWidget(self.contenitore_punti_passaggio)
         riga_layout = QHBoxLayout(riga)
         riga_layout.setContentsMargins(0, 0, 0, 0)
@@ -888,7 +890,7 @@ class PannelloPianificazioneWidget(QFrame):
     def _rinumera_punti_passaggio(self):
         """Riassegna le lettere A, B, ..., Z, AA, AB ai punti visibili."""
         for indice, punto in enumerate(self.punti_passaggio):
-            etichetta = self._etichetta_punto(indice)
+            etichetta = etichetta_punto(indice)
             punto["label"].setText(etichetta)
             punto["input"].setPlaceholderText(f"Punto di passaggio {etichetta}...")
 
@@ -897,12 +899,12 @@ class PannelloPianificazioneWidget(QFrame):
         aperto = self.btn_toggle_tappe_intermedie.isChecked()
         self.area_scorrimento_tappe_intermedie.setVisible(aperto)
         numero = len(self._dati_tappe_intermedie)
-        self.btn_toggle_tappe_intermedie.setText(f"{'▾' if aperto else '▸'} {numero} tappa/e intermedia/e")
+        self.btn_toggle_tappe_intermedie.setText(testo_intestazione_tappe_intermedie(numero, aperto))
         QTimer.singleShot(0, self._adatta_altezza_al_contenuto)
 
     def _costruisci_riga_tappa_intermedia(self, indice, tappa_id, testo):
         """Crea una riga cliccabile dell'elenco: il click evidenzia la tappa sulla mappa."""
-        riga = QPushButton(f"📍 {indice + 1}.  {testo}")
+        riga = QPushButton(testo_riga_tappa_intermedia(indice, testo))
         riga.setCursor(Qt.PointingHandCursor)
         riga.setStyleSheet(
             "QPushButton { background: transparent; color: #e2e8f0; border: none; text-align: left; "
@@ -935,21 +937,18 @@ class PannelloPianificazioneWidget(QFrame):
             self.layout_lista_tappe_intermedie.addWidget(riga)
 
         aperto = self.btn_toggle_tappe_intermedie.isChecked()
-        self.btn_toggle_tappe_intermedie.setText(f"{'▾' if aperto else '▸'} {numero} tappa/e intermedia/e")
+        self.btn_toggle_tappe_intermedie.setText(testo_intestazione_tappe_intermedie(numero, aperto))
         self.area_scorrimento_tappe_intermedie.setVisible(aperto)
         QTimer.singleShot(0, self._adatta_altezza_al_contenuto)
 
     def _aggiorna_testo_tappe_intermedie(self, testi_per_id):
         """Aggiorna solo il testo (es. nome del luogo appena risolto) senza ricostruire le righe."""
-        for indice in range(self.layout_lista_tappe_intermedie.count()):
-            widget = self.layout_lista_tappe_intermedie.itemAt(indice).widget()
-            if not widget or indice >= len(self._dati_tappe_intermedie):
-                continue
-            tappa_id = self._dati_tappe_intermedie[indice]["id"]
-            nuovo_testo = testi_per_id.get(tappa_id)
-            if nuovo_testo:
-                self._dati_tappe_intermedie[indice]["testo"] = nuovo_testo
-                widget.setText(f"📍 {indice + 1}.  {nuovo_testo}")
+        # La logica dei testi sta nel servizio; qui si aggiornano solo i widget cambiati.
+        for indice in aggiorna_testi_tappe(self._dati_tappe_intermedie, testi_per_id):
+            elemento = self.layout_lista_tappe_intermedie.itemAt(indice)
+            widget = elemento.widget() if elemento else None
+            if widget:
+                widget.setText(testo_riga_tappa_intermedia(indice, self._dati_tappe_intermedie[indice]["testo"]))
 
     def _popola_legenda_superfici(self, superfici):
         """
@@ -1016,15 +1015,6 @@ class PannelloPianificazioneWidget(QFrame):
 
         self._adatta_altezza_al_contenuto()
 
-    @staticmethod
-    def _etichetta_punto(indice):
-        """Converte un indice zero-based nella notazione alfabetica da foglio di calcolo."""
-        risultato = ""
-        valore = indice + 1
-        while valore:
-            valore, resto = divmod(valore - 1, 26)
-            risultato = chr(ord("A") + resto) + risultato
-        return risultato
 
     def _gestisci_salvataggio_percorso(self):
         """Salva l'anteprima corrente oppure calcola la rotta prima di salvarla."""
