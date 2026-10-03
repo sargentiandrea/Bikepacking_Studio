@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 import mapbox_vector_tile
 
 from service.config import DB_NAME
-from service.audit_service import calcola_distanza_haversine
+from service.geo_utils import calcola_distanza_haversine
 # Riusiamo le funzioni geografiche di base già scritte per le superfici,
 # per non duplicare la logica di lettura dei tile .mbtiles.
 from service.superfici_service import (

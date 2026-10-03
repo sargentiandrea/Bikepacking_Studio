@@ -9,6 +9,7 @@ from shapely.strtree import STRtree
 
 from service.config import DB_NAME
 from service.gpx_paths import trova_percorso_gpx
+from service.geo_utils import RAGGIO_TERRA_MEDIO_KM, calcola_distanza_haversine
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COASTLINE_FILE = os.path.join(PROJECT_ROOT, "world_coastlines_10m.geojson")
@@ -20,14 +21,10 @@ _LOGGER = logging.getLogger(__name__)
 
 def _haversine_distance_m(lat1, lon1, lat2, lon2):
     """Calcola la distanza reale sulla superficie terrestre in metri tra due punti GPS."""
-    R = 6371008.8  # Raggio medio terrestre in metri
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    delta_phi = math.radians(lat2 - lat1)
-    delta_lambda = math.radians(lon2 - lon1)
-
-    a = math.sin(delta_phi / 2.0)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0)**2
-    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
-    return R * c
+    # Raggio medio terrestre (6371.0088 km): stesso valore di prima, convertito in metri.
+    return 1000.0 * calcola_distanza_haversine(
+        lat1, lon1, lat2, lon2, raggio_km=RAGGIO_TERRA_MEDIO_KM
+    )
 
 
 def _inizializza_motore_costa():

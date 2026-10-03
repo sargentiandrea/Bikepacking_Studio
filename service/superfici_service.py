@@ -35,7 +35,7 @@ from shapely.geometry import LineString, Point
 
 from service.config import BASE_DIR, DB_NAME
 from service.gpx_paths import trova_percorso_gpx
-from service.audit_service import calcola_distanza_haversine
+from service.geo_utils import calcola_distanza_haversine
 
 MAPS_DIR = os.path.join(BASE_DIR, "data", "maps")
 GPX_DIR = os.path.join(BASE_DIR, "gpx")

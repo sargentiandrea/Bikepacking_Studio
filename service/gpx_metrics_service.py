@@ -11,6 +11,11 @@ from typing import Any
 
 import gpxpy
 
+from service.geo_utils import (
+    RAGGIO_TERRA_MEDIO_KM,
+    calcola_distanza_haversine as distanza_haversine_km,
+)
+
 
 STATI_ANALISI = frozenset(
     {"NON_CALCOLATO", "IN_CODA", "IN_CORSO", "PARZIALE", "COMPLETO", "ERRORE"}
@@ -25,20 +30,10 @@ def calcola_distanza_haversine(
     lat1: float, lon1: float, lat2: float, lon2: float
 ) -> float:
     """Restituisce la distanza geodetica in chilometri tra due coordinate."""
-    raggio_terra_km = 6371.0088
-    lat1_rad = math.radians(lat1)
-    lat2_rad = math.radians(lat2)
-    delta_lat = math.radians(lat2 - lat1)
-    delta_lon = math.radians(lon2 - lon1)
-
-    valore = (
-        math.sin(delta_lat / 2) ** 2
-        + math.cos(lat1_rad)
-        * math.cos(lat2_rad)
-        * math.sin(delta_lon / 2) ** 2
+    # Raggio medio WGS84: mantiene identici i valori già precalcolati.
+    return distanza_haversine_km(
+        lat1, lon1, lat2, lon2, raggio_km=RAGGIO_TERRA_MEDIO_KM
     )
-    valore = min(1.0, max(0.0, valore))
-    return 2 * raggio_terra_km * math.asin(math.sqrt(valore))
 
 
 def _risultato_errore(messaggio: str) -> dict[str, Any]:

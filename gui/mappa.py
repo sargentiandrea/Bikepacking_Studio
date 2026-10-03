@@ -32,6 +32,7 @@ from service.geonames_service import cerca_coordinate_luogo
 from service.map_manager_service import MapManagerService, DownloadWorker
 from service.precalcolo_service import precalcola_tappa
 from service.gpx_paths import percorso_gpx_progetto, trova_percorso_gpx
+from service.geo_utils import calcola_distanza_haversine
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
 
@@ -1230,8 +1231,8 @@ class PannelloPianificazioneWidget(QFrame):
         coordinate = risultato["coordinate"]
         self._aggiorna_dettagli_rotta(risultato.get("statistiche"))
         distanza_km = sum(
-            _distanza_haversine_km(coordinate[index][0], coordinate[index][1],
-                                   coordinate[index + 1][0], coordinate[index + 1][1])
+            calcola_distanza_haversine(coordinate[index][0], coordinate[index][1],
+                                       coordinate[index + 1][0], coordinate[index + 1][1])
             for index in range(len(coordinate) - 1)
         )
         if distanza_km <= 0:
@@ -1876,17 +1877,6 @@ class MappaWidget(QWidget):
         dialog = MapManagerDialog(self)
         dialog.exec()
         self.reload_map()
-
-
-def _distanza_haversine_km(lat1, lon1, lat2, lon2):
-    """Restituisce la distanza in linea d'aria tra due coordinate, in km."""
-    from math import asin, cos, radians, sin, sqrt
-
-    raggio_terra_km = 6371.0
-    delta_lat = radians(lat2 - lat1)
-    delta_lon = radians(lon2 - lon1)
-    a = sin(delta_lat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(delta_lon / 2) ** 2
-    return 2 * raggio_terra_km * asin(sqrt(a))
 
 
 class WorkerAnalisiSuperficiOffline(QThread):

@@ -18,17 +18,8 @@ import gpxpy.gpx
 
 from service.config import BROUTER_URL, DB_NAME
 from service.gpx_paths import percorso_gpx_progetto
+from service.geo_utils import calcola_distanza_haversine
 
-def calcola_distanza_haversine(lat1, lon1, lat2, lon2):
-    """Calcola la distanza in chilometri tra due punti geografici usando la formula di Haversine."""
-    if None in (lat1, lon1, lat2, lon2):
-        return 0.0
-    R = 6371.0  # Raggio della Terra in km
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
-    c = 2 * math.asin(math.sqrt(a))
-    return R * c
 
 def rileva_gap_progetto(id_progetto):
     """
