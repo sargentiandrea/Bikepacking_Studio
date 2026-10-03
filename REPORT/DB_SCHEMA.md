@@ -5,7 +5,7 @@
 
 ## `allarmi_percorso`
 
-- Righe: 3
+- Righe: 4
 
 ### Colonne
 
@@ -146,7 +146,7 @@ Nessuna chiave esterna.
 
 ## `cache_nomi_luoghi`
 
-- Righe: 995
+- Righe: 997
 
 ### Colonne
 
@@ -335,7 +335,7 @@ Nessuna chiave esterna.
 
 ## `progetti`
 
-- Righe: 1
+- Righe: 3
 
 ### Colonne
 
@@ -403,7 +403,7 @@ Nessuna chiave esterna.
 
 ## `superfici_tappa`
 
-- Righe: 958
+- Righe: 984
 
 ### Colonne
 
@@ -424,7 +424,7 @@ Nessuna chiave esterna.
 
 ## `tappa_analisi`
 
-- Righe: 958
+- Righe: 984
 
 ### Colonne
 
@@ -458,7 +458,7 @@ Nessun indice.
 
 ## `tappa_costa_riepilogo`
 
-- Righe: 958
+- Righe: 984
 
 ### Colonne
 
@@ -491,7 +491,7 @@ Nessun indice.
 
 ## `tappa_geometrie`
 
-- Righe: 957
+- Righe: 983
 
 ### Colonne
 
@@ -520,7 +520,7 @@ Nessun indice.
 
 ## `tappa_segmenti`
 
-- Righe: 958
+- Righe: 985
 
 ### Colonne
 
@@ -547,7 +547,7 @@ Nessun indice.
 
 ## `tappe`
 
-- Righe: 958
+- Righe: 984
 
 ### Colonne
 

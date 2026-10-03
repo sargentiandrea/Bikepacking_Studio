@@ -1,12 +1,12 @@
 # Analisi del progetto: Bikepacking_Studio
 
-*Generato il 2026-10-03 alle 09:43:36*
+*Generato il 2026-10-03 alle 10:35:17*
 
 ## 1. Sintesi
 
-- Moduli Python: **35**
+- Moduli Python: **37**
 - Classi: **22**
-- Funzioni globali: **347**
+- Funzioni globali: **353**
 - Rotte Flask: **8**
 - Tabelle rilevate: **27**
 - Simboli orfani: **66**
@@ -18,28 +18,28 @@
 
 | Tabella | Righe | Colonne chiave |
 |---|---:|---|
-| `allarmi_percorso` | 3 | id (PK), id_progetto (FK → progetti.id) |
+| `allarmi_percorso` | 4 | id (PK), id_progetto (FK → progetti.id) |
 | `anagrafica_paesi` | 198 | codice_iso2 (PK) |
 | `anagrafica_paesi_mondo` | 12 | codice_iso2 (PK) |
 | `blocchi_ordine` | 24 | id (PK), id_progetto (FK → progetti.id) |
 | `blocchi_stagione` | 18 | id (PK) |
 | `cache_geo_paesi` | 2 | lat_griglia (PK), lon_griglia (PK) |
-| `cache_nomi_luoghi` | 995 | lat_arrotondata (PK), lon_arrotondata (PK) |
+| `cache_nomi_luoghi` | 997 | lat_arrotondata (PK), lon_arrotondata (PK) |
 | `clima_blocco_mese` | 288 | id_progetto (PK), nome_blocco (PK), mese (PK) |
 | `clima_paese_mese` | 540 | id_progetto (PK), paese (PK), mese (PK) |
 | `confini_box` | 11 | id (PK) |
 | `dogane_percorso` | 0 | id (PK) |
 | `dogane_progetto` | 67 | id (PK), id_progetto (FK → progetti.id) |
 | `impostazioni_semaforo` | 0 | id_progetto (PK) |
-| `progetti` | 1 | id (PK) |
+| `progetti` | 3 | id (PK) |
 | `progetto_stagione` | 1 | id_progetto (PK) |
 | `scenari` | 0 | id (PK) |
-| `superfici_tappa` | 958 | id (PK), tappa_id (FK → tappe.id) |
-| `tappa_analisi` | 958 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_costa_riepilogo` | 958 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_geometrie` | 957 | tappa_id (PK), tappa_id (FK → tappe.id) |
-| `tappa_segmenti` | 958 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
-| `tappe` | 958 | id (PK), id_progetto (FK → progetti.id) |
+| `superfici_tappa` | 984 | id (PK), tappa_id (FK → tappe.id) |
+| `tappa_analisi` | 984 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_costa_riepilogo` | 984 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_geometrie` | 983 | tappa_id (PK), tappa_id (FK → tappe.id) |
+| `tappa_segmenti` | 985 | tappa_id (PK), track_index (PK), segment_index (PK), tappa_id (FK → tappe.id) |
+| `tappe` | 984 | id (PK), id_progetto (FK → progetti.id) |
 | `trasferimenti` | 28 | id (PK), id_progetto (FK → progetti.id) |
 
 ## File di configurazione
@@ -78,10 +78,11 @@
 
 ## 2. Architettura (per strato)
 
-**ui** (3 file)
+**ui** (4 file)
 - `gui/dashboard.py`
 - `gui/mappa.py`
 - `gui/wizard_percorso.py`
+- `service/mappa_dati_service.py`
 
 **database** (1 file)
 - `database/database_setup.py`
@@ -89,7 +90,7 @@
 **api** (1 file)
 - `service/map_server.py`
 
-**core** (25 file)
+**core** (26 file)
 - `service/__init__.py`
 - `service/audit_service.py`
 - `service/catena_stagionale_service.py`
@@ -98,7 +99,7 @@
 - `service/config.py`
 - `service/costa_service.py`
 - `service/dogane_service.py`
-- ... e altri 17
+- ... e altri 18
 
 **altro** (5 file)
 - `app_desktop.py`
@@ -168,7 +169,7 @@
 
 ## 6. Moduli con più contenuto
 
-- `gui/mappa.py`: 9 classi, 86 funzioni
+- `gui/mappa.py`: 9 classi, 85 funzioni
 - `app_desktop.py`: 8 classi, 70 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni

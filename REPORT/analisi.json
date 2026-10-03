@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T09:43:36.976849",
+    "data_analisi": "2026-10-03T10:35:17.545937",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 35,
+    "totale_moduli": 37,
     "totale_classi": 22,
-    "totale_funzioni": 347,
+    "totale_funzioni": 353,
     "totale_rotte_flask": 8,
     "totale_tabelle": 27,
     "tabelle_create": [
@@ -120,7 +120,8 @@
       "ui": [
         "gui/dashboard.py",
         "gui/mappa.py",
-        "gui/wizard_percorso.py"
+        "gui/wizard_percorso.py",
+        "service/mappa_dati_service.py"
       ],
       "database": [
         "database/database_setup.py"
@@ -152,6 +153,7 @@
         "service/migrazione_tappa_geometrie.py",
         "service/precalcolo_batch_service.py",
         "service/precalcolo_service.py",
+        "service/salvataggio_tappa_service.py",
         "service/stats_service.py",
         "service/superfici_service.py"
       ],
@@ -388,11 +390,6 @@
         "file": "gui/mappa.py"
       },
       {
-        "simbolo": "nome_luogo",
-        "tipo": "funzione",
-        "file": "gui/mappa.py"
-      },
-      {
         "simbolo": "WizardNuovoPercorso",
         "tipo": "classe",
         "file": "gui/wizard_percorso.py"
@@ -521,6 +518,11 @@
         "simbolo": "run_server",
         "tipo": "funzione",
         "file": "service/map_server.py"
+      },
+      {
+        "simbolo": "nome_luogo",
+        "tipo": "funzione",
+        "file": "service/mappa_dati_service.py"
       },
       {
         "simbolo": "precalcola_tutte_le_tappe",
@@ -723,25 +725,25 @@
       "service/clima_service.py": [
         "app_desktop"
       ],
-      "service/audit_service.py": [
-        "app_desktop"
-      ],
       "service/catena_stagionale_service.py": [
-        "app_desktop"
-      ],
-      "service/stats_service.py": [
-        "app_desktop"
-      ],
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "service/migrazione_catena_stagionale.py": [
         "app_desktop"
       ],
       "service/clima_estrattore.py": [
         "app_desktop"
       ],
+      "service/audit_service.py": [
+        "app_desktop"
+      ],
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
+      "service/stats_service.py": [
+        "app_desktop"
+      ],
       "service/migrazione_clima.py": [
+        "app_desktop"
+      ],
+      "service/migrazione_catena_stagionale.py": [
         "app_desktop"
       ]
     }
@@ -841,6 +843,7 @@
         "service.config.DB_NAME",
         "service.dogane_service.analizza_dogane_progetto",
         "service.dogane_service.recupera_dogane_salvate",
+        "service.geo_utils.calcola_distanza_haversine",
         "service.gpx_paths.trova_percorso_gpx",
         "service.map_server.start_local_map_server",
         "service.migrazione_catena_stagionale",
@@ -1481,8 +1484,7 @@
         "_profilo_brouter",
         "run",
         "__init__",
-        "run",
-        "nome_luogo"
+        "run"
       ],
       "import_interni": [
         "service.config.BASE_DIR",
@@ -1494,11 +1496,15 @@
         "service.geometria_service.decomprimi_segmenti",
         "service.geometria_service.geometria_geojson",
         "service.geonames_service.cerca_coordinate_luogo",
-        "service.gpx_paths.percorso_gpx_progetto",
         "service.gpx_paths.trova_percorso_gpx",
         "service.map_manager_service.DownloadWorker",
         "service.map_manager_service.MapManagerService",
-        "service.precalcolo_service.precalcola_tappa",
+        "service.mappa_dati_service.carica_coordinate_tappa",
+        "service.mappa_dati_service.carica_tappe_attive",
+        "service.mappa_dati_service.costruisci_geojson_progetto",
+        "service.mappa_dati_service.firma_dati_mappa",
+        "service.salvataggio_tappa_service.rimuovi_gpx_se_esiste",
+        "service.salvataggio_tappa_service.salva_tappa_pianificata",
         "service.stats_service.analizza_dati_rotta_brouter",
         "service.superfici_service.analizza_superfici_progetto"
       ],
@@ -1508,33 +1514,21 @@
         "PySide6.QtWebEngineCore",
         "PySide6.QtWebEngineWidgets",
         "PySide6.QtWidgets",
-        "contextlib",
         "gpxpy",
         "gpxpy.gpx",
-        "hashlib",
         "json",
         "math",
         "os",
         "re",
         "requests",
         "sqlite3",
-        "threading",
-        "uuid"
+        "threading"
       ],
-      "tabelle_usate": [
-        "cache_nomi_luoghi",
-        "tappe",
-        "trasferimenti"
-      ],
+      "tabelle_usate": [],
       "anomalie": [],
       "chiamate_funzioni": [
         "BarraSuperfici",
         "DownloadWorker",
-        "FileNotFoundError",
-        "GPX",
-        "GPXTrack",
-        "GPXTrackPoint",
-        "GPXTrackSegment",
         "MapManagerDialog",
         "PannelloPianificazioneWidget",
         "PianificazionePercorsoWorker",
@@ -1601,7 +1595,6 @@
         "_ripulisci_worker_superfici",
         "_salvataggio_percorso_completato",
         "_valida_pianificazione",
-        "abs",
         "abspath",
         "activate",
         "addItem",
@@ -1618,28 +1611,24 @@
         "any",
         "append",
         "attiva_modalita_interazione",
-        "basename",
         "bottom",
         "calcola_distanza_haversine",
         "callable",
         "callback_worker_pianificazione",
+        "carica_coordinate_tappa",
+        "carica_tappe_attive",
         "casefold",
         "cerca_coordinate_luogo",
         "chr",
         "clear",
-        "close",
-        "closing",
         "connect",
         "contentsMargins",
-        "copy",
-        "cos",
+        "costruisci_geojson_progetto",
         "count",
         "critical",
         "currentItem",
         "currentText",
-        "cursor",
         "data",
-        "decomprimi_segmenti",
         "deleteLater",
         "dict",
         "dirname",
@@ -1648,20 +1637,15 @@
         "drawRoundedRect",
         "dumps",
         "emit",
-        "encode",
         "end",
         "enumerate",
         "esegui_audit_automatico",
         "evidenzia_tappa",
         "exec",
-        "execute",
-        "exists",
         "extend",
-        "fetchall",
-        "fetchone",
+        "firma_dati_mappa",
         "float",
         "fullmatch",
-        "geometria_geojson",
         "get",
         "get_available_catalog",
         "get_lifecycle_state",
@@ -1669,7 +1653,6 @@
         "groups",
         "hasattr",
         "height",
-        "hexdigest",
         "hide",
         "hideEvent",
         "imposta_superfici",
@@ -1689,7 +1672,6 @@
         "len",
         "list",
         "lower",
-        "makedirs",
         "map",
         "max",
         "maximumHeight",
@@ -1697,7 +1679,6 @@
         "mostra_anteprima_percorso",
         "move",
         "next",
-        "nome_luogo",
         "nome_luogo_da_coordinate",
         "open",
         "openUrl",
@@ -1705,11 +1686,8 @@
         "page",
         "parentWidget",
         "parse",
-        "percorso_gpx_progetto",
         "post",
-        "precalcola_tappa",
         "print",
-        "radians",
         "raise_",
         "raise_for_status",
         "range",
@@ -1718,13 +1696,14 @@
         "reload_map",
         "remove",
         "removeWidget",
-        "repr",
         "request_stop",
         "resize",
         "resizeEvent",
         "rigenera_mappa",
+        "rimuovi_gpx_se_esiste",
         "round",
         "runJavaScript",
+        "salva_tappa_pianificata",
         "set",
         "setAlignment",
         "setBlurRadius",
@@ -1770,7 +1749,6 @@
         "set_lifecycle_state",
         "setattr",
         "setup_ui",
-        "sha256",
         "show",
         "showEvent",
         "sincronizza_stato_percorso",
@@ -1786,19 +1764,16 @@
         "takeAt",
         "text",
         "toString",
-        "to_xml",
         "top",
         "trova_percorso_gpx",
         "tuple",
         "update",
         "updateGeometry",
         "url",
-        "uuid4",
         "warning",
         "widget",
         "width",
-        "window",
-        "write"
+        "window"
       ]
     },
     "gui/wizard_percorso.py": {
@@ -2877,6 +2852,76 @@
         "which"
       ]
     },
+    "service/mappa_dati_service.py": {
+      "classi": [],
+      "funzioni": [
+        "firma_dati_mappa",
+        "carica_tappe_attive",
+        "carica_coordinate_tappa",
+        "costruisci_geojson_progetto",
+        "nome_luogo"
+      ],
+      "import_interni": [
+        "service.config.BASE_DIR",
+        "service.geometria_service.VERSIONE_ALGORITMO_GEOMETRIA",
+        "service.geometria_service.decomprimi_segmenti",
+        "service.geometria_service.geometria_geojson",
+        "service.gpx_paths.trova_percorso_gpx"
+      ],
+      "import_esterni": [
+        "contextlib",
+        "gpxpy",
+        "hashlib",
+        "math",
+        "os",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "cache_nomi_luoghi",
+        "tappe",
+        "trasferimenti"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "FileNotFoundError",
+        "ValueError",
+        "abs",
+        "append",
+        "basename",
+        "close",
+        "closing",
+        "connect",
+        "copy",
+        "cos",
+        "cursor",
+        "decomprimi_segmenti",
+        "encode",
+        "execute",
+        "exists",
+        "fetchall",
+        "fetchone",
+        "float",
+        "geometria_geojson",
+        "get",
+        "hexdigest",
+        "items",
+        "join",
+        "len",
+        "list",
+        "max",
+        "min",
+        "nome_luogo",
+        "open",
+        "parse",
+        "print",
+        "radians",
+        "repr",
+        "round",
+        "sha256",
+        "str",
+        "trova_percorso_gpx"
+      ]
+    },
     "service/migrazione_catena_stagionale.py": {
       "classi": [],
       "funzioni": [
@@ -3269,6 +3314,63 @@
         "str",
         "update",
         "warning"
+      ]
+    },
+    "service/salvataggio_tappa_service.py": {
+      "classi": [],
+      "funzioni": [
+        "salva_tappa_pianificata",
+        "rimuovi_gpx_se_esiste"
+      ],
+      "import_interni": [
+        "service.config.BASE_DIR",
+        "service.config.DB_NAME",
+        "service.gpx_paths.percorso_gpx_progetto",
+        "service.gpx_paths.trova_percorso_gpx",
+        "service.precalcolo_service.precalcola_tappa"
+      ],
+      "import_esterni": [
+        "contextlib",
+        "gpxpy",
+        "gpxpy.gpx",
+        "os",
+        "sqlite3",
+        "uuid"
+      ],
+      "tabelle_usate": [
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "GPX",
+        "GPXTrack",
+        "GPXTrackPoint",
+        "GPXTrackSegment",
+        "ValueError",
+        "append",
+        "closing",
+        "connect",
+        "cursor",
+        "execute",
+        "exists",
+        "fetchone",
+        "float",
+        "get",
+        "join",
+        "len",
+        "makedirs",
+        "open",
+        "percorso_gpx_progetto",
+        "precalcola_tappa",
+        "print",
+        "remove",
+        "rimuovi_gpx_se_esiste",
+        "round",
+        "str",
+        "to_xml",
+        "trova_percorso_gpx",
+        "uuid4",
+        "write"
       ]
     },
     "service/stats_service.py": {
@@ -9606,7 +9708,7 @@
     "tabelle": [
       {
         "nome": "allarmi_percorso",
-        "righe": 3,
+        "righe": 4,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -9929,7 +10031,7 @@
       },
       {
         "nome": "cache_nomi_luoghi",
-        "righe": 995,
+        "righe": 997,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10469,7 +10571,7 @@
       },
       {
         "nome": "progetti",
-        "righe": 1,
+        "righe": 3,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10607,7 +10709,7 @@
       },
       {
         "nome": "superfici_tappa",
-        "righe": 958,
+        "righe": 984,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10656,7 +10758,7 @@
       },
       {
         "nome": "tappa_analisi",
-        "righe": 958,
+        "righe": 984,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10766,7 +10868,7 @@
       },
       {
         "nome": "tappa_costa_riepilogo",
-        "righe": 958,
+        "righe": 984,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -10900,7 +11002,7 @@
       },
       {
         "nome": "tappa_geometrie",
-        "righe": 957,
+        "righe": 983,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11001,7 +11103,7 @@
       },
       {
         "nome": "tappa_segmenti",
-        "righe": 958,
+        "righe": 985,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11087,7 +11189,7 @@
       },
       {
         "nome": "tappe",
-        "righe": 958,
+        "righe": 984,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11379,7 +11481,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1460,
+        "riga": 1332,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/map"
@@ -11388,7 +11490,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1535,
+        "riga": 1407,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -11397,7 +11499,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 1736,
+        "riga": 1608,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11406,7 +11508,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 2367,
+        "riga": 1961,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -11617,9 +11719,9 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 35,
+    "totale_moduli": 37,
     "totale_classi": 22,
-    "totale_funzioni": 347,
+    "totale_funzioni": 353,
     "endpoint_flask": 8,
     "tabelle_rilevate": 27,
     "simboli_orfani": 66,
@@ -11644,9 +11746,9 @@
     "hotspots": [
       {
         "file": "gui/mappa.py",
-        "score": 470,
+        "score": 444,
         "classi": 9,
-        "funzioni": 86,
+        "funzioni": 85,
         "anomalie": 0
       },
       {
@@ -11692,9 +11794,9 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 35,
+      "moduli": 37,
       "classi": 22,
-      "funzioni": 347,
+      "funzioni": 353,
       "rotte": 8,
       "rischio": "alto"
     },
@@ -11715,7 +11817,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 22 classi, 347 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 353 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 35 moduli, 22 classi, 347 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 37 moduli, 22 classi, 353 funzioni, 8 endpoint Flask, 66 simboli orfani. Rischio: alto. File critici: gui/mappa.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

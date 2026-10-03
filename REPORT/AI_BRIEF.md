@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-03 09:43*
+*Aggiornato: 2026-10-03 10:35*
 
 ## Come leggere il progetto
 
@@ -15,9 +15,9 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 35
+- Moduli Python: 37
 - Classi: 22
-- Funzioni: 347
+- Funzioni: 353
 - Rotte Flask: 8
 - Tabelle DB: 27
 - Simboli orfani: 66
@@ -25,7 +25,7 @@
 
 ## File critici (score più alto)
 
-- `gui/mappa.py` - score 470 - 9 classi, 86 funzioni, 0 anomalie
+- `gui/mappa.py` - score 444 - 9 classi, 85 funzioni, 0 anomalie
 - `app_desktop.py` - score 438 - 8 classi, 70 funzioni, 0 anomalie
 - `gui/dashboard.py` - score 156 - 2 classi, 19 funzioni, 0 anomalie
 - `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
@@ -88,28 +88,28 @@
 
 - Percorso: `data/bikepacking_app.db`
 - Numero di tabelle: 23
-- `allarmi_percorso`: 3 righe
+- `allarmi_percorso`: 4 righe
 - `anagrafica_paesi`: 198 righe
 - `anagrafica_paesi_mondo`: 12 righe
 - `blocchi_ordine`: 24 righe
 - `blocchi_stagione`: 18 righe
 - `cache_geo_paesi`: 2 righe
-- `cache_nomi_luoghi`: 995 righe
+- `cache_nomi_luoghi`: 997 righe
 - `clima_blocco_mese`: 288 righe
 - `clima_paese_mese`: 540 righe
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
 - `impostazioni_semaforo`: 0 righe
-- `progetti`: 1 righe
+- `progetti`: 3 righe
 - `progetto_stagione`: 1 righe
 - `scenari`: 0 righe
-- `superfici_tappa`: 958 righe
-- `tappa_analisi`: 958 righe
-- `tappa_costa_riepilogo`: 958 righe
-- `tappa_geometrie`: 957 righe
-- `tappa_segmenti`: 958 righe
-- `tappe`: 958 righe
+- `superfici_tappa`: 984 righe
+- `tappa_analisi`: 984 righe
+- `tappa_costa_riepilogo`: 984 righe
+- `tappa_geometrie`: 983 righe
+- `tappa_segmenti`: 985 righe
+- `tappe`: 984 righe
 - `trasferimenti`: 28 righe
 
 ## Servizi esterni rilevati
@@ -148,7 +148,7 @@
 
 ## Moduli principali
 
-- `gui/mappa.py`: 9 classi, 86 funzioni
+- `gui/mappa.py`: 9 classi, 85 funzioni
 - `app_desktop.py`: 8 classi, 70 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni
