@@ -132,6 +132,93 @@ def rileva_strade_vietate_progetto(id_progetto):
         })
 
     return allarmi_rilevati
+def ricalcola_allarmi_percorso(id_progetto):
+    """
+    Ricalcola da zero gli allarmi di GAP del percorso e li salva nel database.
+
+    Gli allarmi gia' segnati come risolti dall'utente vengono conservati con
+    il flag `risolto`, in modo che non ricompaiano fra quelli da risolvere.
+    La logica (gap oltre 3 km non coperti da trasferimenti, con soglia dei
+    30 km per distinguere GAP_TERRA da GAP_AMPIO) e' la stessa usata da
+    `rileva_gap_progetto`: qui viene pero' persistita.
+
+    :param id_progetto: identificativo del percorso da analizzare.
+    :return: il numero di allarmi inseriti.
+    """
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
+    try:
+        cursor = conn.cursor()
+
+        # Recupero tappe attive ordinate
+        cursor.execute("""
+            SELECT id, sequenza, nome_file, start_lat, start_lon, end_lat, end_lon
+            FROM tappe
+            WHERE id_progetto = ? AND stato = 'ATTIVA'
+            ORDER BY sequenza ASC
+        """, (id_progetto,))
+        tappe = cursor.fetchall()
+
+        # Recupero allarmi gia' segnati come risolti dall'utente
+        cursor.execute("""
+            SELECT tappa_origine_id, tappa_destinazione_id
+            FROM allarmi_percorso
+            WHERE id_progetto = ? AND risolto = 1
+        """, (id_progetto,))
+        risolti_set = set(cursor.fetchall())
+
+        # Recupero i trasferimenti gia' inseriti (traghetti, treni, ecc.)
+        cursor.execute("""
+            SELECT start_lat, start_lon, end_lat, end_lon
+            FROM trasferimenti
+            WHERE id_progetto = ?
+        """, (id_progetto,))
+        trasferimenti = cursor.fetchall()
+
+        # Pulisce i vecchi allarmi non risolti per ricalcolarli
+        cursor.execute(
+            "DELETE FROM allarmi_percorso WHERE id_progetto = ?", (id_progetto,)
+        )
+
+        inseriti = 0
+        for i in range(len(tappe) - 1):
+            t_curr = tappe[i]
+            t_next = tappe[i+1]
+
+            end_lat, end_lon = t_curr[5], t_curr[6]
+            start_lat, start_lon = t_next[3], t_next[4]
+
+            if None in (end_lat, end_lon, start_lat, start_lon):
+                continue
+
+            gap_km = calcola_distanza_haversine(end_lat, end_lon, start_lat, start_lon)
+
+            # Se c'e' un'interruzione maggiore di 3 km
+            if gap_km <= 3.0:
+                continue
+
+            coperto = any(
+                abs(t[0] - end_lat) < 0.01 and abs(t[1] - end_lon) < 0.01 and
+                abs(t[2] - start_lat) < 0.01 and abs(t[3] - start_lon) < 0.01
+                for t in trasferimenti if t[0] and t[1] and t[2] and t[3]
+            )
+            if coperto:
+                continue
+
+            tipo = 'GAP_TERRA' if gap_km <= 30.0 else 'GAP_AMPIO'
+            msg = f"Interruzione di {round(gap_km, 1)} km tra '{t_curr[2]}' e '{t_next[2]}'."
+            is_risolto = 1 if (t_curr[0], t_next[0]) in risolti_set else 0
+
+            cursor.execute("""
+                INSERT INTO allarmi_percorso
+                (id_progetto, tappa_origine_id, tappa_destinazione_id, tipo_allarme, messaggio, risolto)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (id_progetto, t_curr[0], t_next[0], tipo, msg, is_risolto))
+            inseriti += 1
+
+        conn.commit()
+    finally:
+        conn.close()
+    return inseriti
 
 def registra_trasferimento_gap(id_progetto, id_origine, id_destinazione, tipo_trasporto, note=""):
     """Registra il trasferimento logistico per colmare il GAP."""

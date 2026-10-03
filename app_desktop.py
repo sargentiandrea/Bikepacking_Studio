@@ -2,46 +2,25 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sqlite3
-from contextlib import closing
 import service.audit_service
-import service.catena_stagionale_service
-import service.clima_service
-import service.migrazione_clima
-import service.migrazione_catena_stagionale
-from service.geo_utils import calcola_distanza_haversine
-import math
-import json
 
 from service.map_server import start_local_map_server
 # Avvia il server delle mappe locale su porta 8080
 start_local_map_server(port=8080)
-from PySide6.QtWidgets import QDialog
-from PySide6.QtCore import (
-    Signal,
-    QObject,
-    QThread,
-    Qt,
-    QDate,
-    QSize,
-)
-from datetime import datetime
-# -- Nuovi Moduli GUI --
+from PySide6.QtCore import Qt
+# -- Moduli GUI --
 from gui.dashboard import DashboardPage
 from gui.mappa import MappaWidget
 from gui.widget_blocchi import GestoreBlocchiWidget
-from gui.widget_timeline_catena import TimelineCatenaWidget
+from gui.pagine.controller_clima import ControllerClima
 from gui.pagine.pagina_clima import PaginaClima
 from gui.pagine.pagina_statistiche import PaginaStatistiche
 from gui.pagine.pagina_audit import PaginaAudit
 from gui.pagine.pagina_trasporti import PaginaTrasporti
 from gui.pagine.pagina_dogane import PaginaDogane
-from gui.pagine.stile_pagina import imposta_righe_tabella
-from gui.worker_clima import GestoreEstrazioneClima
-from gui.dialog_clima_soglie import ClimaSoglieDialog
 from gui import dialog_elenco_paesi
 from gui import dialog_nuovo_progetto
 from gui import dialog_wizard_trasferimento
-from service import tappe_service
 from service import progetti_service
 from service import trasferimenti_service
 
@@ -49,21 +28,11 @@ from service import trasferimenti_service
 # Import dei moduli interni del progetto
 import database.database_setup as database
 database.inizializza_database()
-from service.dogane_service import analizza_dogane_progetto, recupera_dogane_salvate
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                              QVBoxLayout, QPushButton, QLabel, QStackedWidget, 
-                             QFrame, QFileDialog, QTableWidget, QTableWidgetItem,
-                             QHeaderView, QMessageBox, QDialog, QFormLayout, 
-                             QLineEdit, QComboBox, QTextEdit,
-                             QDateEdit, QSpinBox, QTabWidget, QScrollArea,
-                             QDoubleSpinBox, QDialogButtonBox)
-from PySide6.QtGui import (
-    QColor,
-    QFont,
-    QIcon,
-    QPixmap,
-)
+                             QFrame, QFileDialog, QMessageBox)
+from PySide6.QtGui import QFont
 # --- FORZATURA ACCELERAZIONE HARDWARE (ANTI-SCHERMO BIANCO) ---
 os.environ["QT_WEBENGINE_DISABLE_GPU"] = "0"
 QApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
@@ -94,21 +63,8 @@ class BikepackingStudioApp(QMainWindow):
         self.current_progetto_id = None
         self.current_progetto_nome = ""
         self.mappa_necessita_aggiornamento = True
-        self._clima_progetto_id = None
-        self._clima_ordine_base = []
-        self._clima_ordine_scenario = None
-        self._clima_scenario_id = None
-        self._clima_ultima_applicazione_id = None
-        self._clima_risultati_correnti = []
-        # Il gestore incapsula thread e worker dell'estrazione clima.
-        self._clima_estrazione = GestoreEstrazioneClima(
-            self,
-            DB_NAME,
-            self._al_progresso_clima,
-            self._estrazione_clima_completata,
-            self._estrazione_clima_fallita,
-            self._estrazione_clima_terminata,
-        )
+        # Il controller possiede stato, calcolo e scenario della pagina clima.
+        self._clima = ControllerClima(self)
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
@@ -268,10 +224,6 @@ class BikepackingStudioApp(QMainWindow):
         )
         return self.page_audit
 
-    def _imposta_righe_tabella(self, tabella, righe):
-        """Delega al helper condiviso il riempimento di una tabella."""
-        imposta_righe_tabella(tabella, righe)
-
     def crea_pagina_trasporti(self):
         """Crea la pagina Trasporti e la registra come `page_trasporti`."""
         self.page_trasporti = PaginaTrasporti(
@@ -351,322 +303,12 @@ class BikepackingStudioApp(QMainWindow):
         self.page_dogane.aggiorna(self.current_progetto_id)
 
     def aggiorna_pagina_clima(self):
-        if not self.current_progetto_id:
-            self._clima_progetto_id = None
-            self._clima_ordine_base = []
-            self._clima_ordine_scenario = None
-            self._clima_scenario_id = None
-            self._clima_ultima_applicazione_id = None
-            self._clima_risultati_correnti = []
-            self.btn_estrai_clima.setEnabled(False)
-            self.lbl_stato_clima.setText("Apri un percorso per calcolare la catena.")
-            self._imposta_righe_tabella(self.table_clima, [])
-            self.timeline_clima.imposta_righe([])
-            self._aggiorna_controlli_scenario([])
-            return
-
-        try:
-            self._clima_progetto_id = self.current_progetto_id
-            self._clima_ordine_base = []
-            self._clima_ordine_scenario = None
-            self._clima_scenario_id = None
-            self._clima_risultati_correnti = []
-            self.btn_estrai_clima.setEnabled(not self._clima_estrazione.attiva)
-            service.migrazione_catena_stagionale.assicura_schema_catena_stagionale(
-                DB_NAME
-            )
-            service.migrazione_clima.assicura_schema_clima(DB_NAME)
-            service.clima_service.assicura_tabelle_clima()
-            scenario_sospeso = (
-                service.catena_stagionale_service.ottieni_scenario_in_sospeso(
-                    self.current_progetto_id
-                )
-            )
-            if scenario_sospeso:
-                self._clima_ordine_scenario = list(
-                    scenario_sospeso["ordine"]
-                )
-                self._clima_scenario_id = int(scenario_sospeso["id"])
-            self._clima_ultima_applicazione_id = (
-                service.catena_stagionale_service
-                .ottieni_ultima_applicazione_scenario(
-                    self.current_progetto_id
-                )
-            )
-            with closing(sqlite3.connect(DB_NAME)) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    """
-                    SELECT data_partenza, modificatore_riposo
-                    FROM progetto_stagione
-                    WHERE id_progetto = ?
-                    """,
-                    (self.current_progetto_id,),
-                )
-                impostazioni = cursor.fetchone()
-
-            data_corrente = QDate.currentDate()
-            self.input_data_partenza.setDate(data_corrente)
-            self.input_riposo.setValue(0)
-            if impostazioni:
-                if impostazioni[0]:
-                    data = datetime.strptime(impostazioni[0], "%Y-%m-%d").date()
-                    self.input_data_partenza.setDate(
-                        QDate(data.year, data.month, data.day)
-                    )
-                self.input_riposo.setValue(impostazioni[1] or 0)
-            self.calcola_pagina_clima()
-        except Exception as errore:
-            self.lbl_stato_clima.setText(
-                f"Errore durante il caricamento clima: {errore}"
-            )
-
-    def calcola_pagina_clima(self):
-        if not self.current_progetto_id:
-            return
-        data = self.input_data_partenza.date()
-        data_partenza = datetime(data.year(), data.month(), data.day()).date()
-        try:
-            risultati_base = service.catena_stagionale_service.calcola_catena(
-                self.current_progetto_id,
-                data_partenza,
-                self.input_riposo.value(),
-            )
-            ordine_base = [
-                risultato["nome_blocco"] for risultato in risultati_base
-            ]
-
-            self._clima_ordine_base = ordine_base
-            if (
-                self._clima_ordine_scenario is None
-                or self._clima_ordine_scenario == ordine_base
-            ):
-                if (
-                    self._clima_scenario_id is not None
-                    and self.current_progetto_id
-                ):
-                    service.catena_stagionale_service.scarta_scenario_in_sospeso(
-                        self.current_progetto_id
-                    )
-                self._clima_ordine_scenario = list(ordine_base)
-                self._clima_scenario_id = None
-                risultati = risultati_base
-            else:
-                risultati = service.catena_stagionale_service.proponi_scenario(
-                    self.current_progetto_id,
-                    self._clima_ordine_scenario,
-                    data_partenza,
-                    self.input_riposo.value(),
-                )
-                scenario_sospeso = (
-                    service.catena_stagionale_service
-                    .ottieni_scenario_in_sospeso(self.current_progetto_id)
-                )
-                self._clima_scenario_id = (
-                    int(scenario_sospeso["id"])
-                    if scenario_sospeso is not None
-                    else None
-                )
-
-            risultati = service.catena_stagionale_service.calcola_semaforo(
-                self.current_progetto_id,
-                risultati,
-            )
-            self._clima_risultati_correnti = risultati
-            righe_tabella = []
-            stile_righe = []
-            for blocco in risultati:
-                for indice_riga, risultato in enumerate(
-                    [blocco, *blocco.get("paesi", [])]
-                ):
-                    paese = indice_riga > 0
-                    etichetta = (
-                        f"  ↳ {risultato['codice_paese']} - "
-                        f"{risultato['nome_paese']}"
-                        if paese
-                        else risultato["nome_blocco"]
-                    )
-                    righe_tabella.append(
-                        [
-                            etichetta,
-                            risultato["numero_tappe"],
-                            f"{risultato['km_totali']:.1f}",
-                            risultato["giorni_pedalata"],
-                            risultato["giorni_riposo"],
-                            risultato["giorni_extra"],
-                            risultato["giorni_totali"],
-                            datetime.strptime(
-                                risultato["data_ingresso"], "%Y-%m-%d"
-                            ).strftime("%d/%m/%Y"),
-                            datetime.strptime(
-                                risultato["data_uscita"], "%Y-%m-%d"
-                            ).strftime("%d/%m/%Y"),
-                            risultato.get("semaforo", "N/D"),
-                            risultato.get("spiegazione_clima", ""),
-                            risultato.get("avviso") or "—",
-                        ]
-                    )
-                    stile_righe.append((risultato, paese))
-
-            self._imposta_righe_tabella(self.table_clima, righe_tabella)
-            for indice, (risultato, paese) in enumerate(stile_righe):
-                for colonna in range(self.table_clima.columnCount()):
-                    cella = self.table_clima.item(indice, colonna)
-                    if cella is None:
-                        continue
-                    if not paese:
-                        carattere = cella.font()
-                        carattere.setBold(True)
-                        cella.setFont(carattere)
-                    if colonna == 9:
-                        cella.setForeground(
-                            QColor(risultato.get("semaforo_colore", "#555555"))
-                        )
-                    if colonna in (9, 10):
-                        cella.setToolTip(
-                            str(risultato.get("spiegazione_clima", ""))
-                        )
-            self.timeline_clima.imposta_righe(risultati)
-            ordine_attivo = [
-                risultato["nome_blocco"] for risultato in risultati
-            ]
-            self._aggiorna_controlli_scenario(ordine_attivo)
-
-            scenario_attivo = ordine_attivo != self._clima_ordine_base
-            avvisi = sum(
-                bool(risultato["avviso"]) for risultato in risultati
-            )
-            paesi_risultati = [
-                paese
-                for risultato in risultati
-                for paese in risultato.get("paesi", [])
-            ]
-            descrizione = (
-                f"Stima con margini per {len(risultati)} blocchi e "
-                f"{len(paesi_risultati)} passaggi di paese."
-                if risultati
-                else "Il percorso non contiene blocchi con tappe attive."
-            )
-            if scenario_attivo:
-                descrizione += " Scenario temporaneo non applicato."
-            if avvisi:
-                descrizione += f" Attenzione: {avvisi} blocchi richiedono verifica."
-            numero_clima = sum(
-                paese["semaforo"] in {"verde", "giallo", "rosso"}
-                for paese in paesi_risultati
-            )
-            numero_parziali = sum(
-                paese["semaforo"] == "Parziale"
-                for paese in paesi_risultati
-            )
-            if numero_clima:
-                descrizione += (
-                    f" Semafori climatici disponibili per {numero_clima} "
-                    "passaggi di paese."
-                )
-                if numero_parziali:
-                    descrizione += (
-                        f" Dati incompleti per altri {numero_parziali} "
-                        "passaggi di paese."
-                    )
-            elif numero_parziali:
-                descrizione += (
-                    f" Dati climatici incompleti per {numero_parziali} "
-                    "passaggi di paese; "
-                    "controlla la copertura."
-                )
-            else:
-                descrizione += (
-                    " Dati CHELSA non ancora disponibili o incompleti: "
-                    "avvia l’estrazione per questo progetto."
-                )
-            self.lbl_stato_clima.setText(descrizione)
-        except Exception as errore:
-            self._imposta_righe_tabella(self.table_clima, [])
-            self.timeline_clima.imposta_righe([])
-            self.lbl_stato_clima.setText(f"Errore durante il calcolo stagionale: {errore}")
-
-    def _carica_soglie_clima(self):
-        if not self.current_progetto_id:
-            return dict(
-                service.catena_stagionale_service.SOGLIE_CLIMA_DEFAULT
-            )
-        return (
-            service.catena_stagionale_service.carica_impostazioni_semaforo(
-                self.current_progetto_id
-            )
-        )
-
-    def apri_soglie_clima(self):
-        if not self.current_progetto_id:
-            QMessageBox.information(
-                self,
-                "Percorso richiesto",
-                "Apri un percorso prima di modificare le soglie.",
-            )
-            return
-        dialogo = ClimaSoglieDialog(self._carica_soglie_clima(), self)
-        if dialogo.exec() != QDialog.DialogCode.Accepted:
-            return
-        try:
-            service.catena_stagionale_service.salva_impostazioni_semaforo(
-                self.current_progetto_id, dialogo.valori()
-            )
-            self.calcola_pagina_clima()
-            self.lbl_stato_clima.setText(
-                "Preferenze del semaforo salvate per questo percorso. "
-                + self.lbl_stato_clima.text()
-            )
-        except Exception as errore:
-            QMessageBox.critical(
-                self,
-                "Impostazioni non salvate",
-                f"Non è stato possibile salvare le soglie: {errore}",
-            )
-
-    def avvia_estrazione_clima(self):
-        """Avvia l'estrazione climatica CHELSA in background."""
-        if not self.current_progetto_id:
-            QMessageBox.information(
-                self,
-                "Percorso richiesto",
-                "Apri un percorso prima di estrarre i dati climatici.",
-            )
-            return
-        if self._clima_estrazione.attiva:
-            return
-
-        self.btn_estrai_clima.setEnabled(False)
-        self.lbl_stato_clima.setText(
-            "Estrazione CHELSA avviata. La prima lettura richiede internet; "
-            "l’interfaccia resta utilizzabile."
-        )
-        self._clima_estrazione.avvia(self.current_progetto_id)
-
-    def _al_progresso_clima(self, messaggio):
-        """Mostra l'avanzamento dell'estrazione nella barra di stato."""
-        self.lbl_stato_clima.setText(messaggio)
-
-    def _estrazione_clima_completata(self, risultato):
-        """Ricalcola la pagina clima e comunica quante finestre sono state lette."""
-        self.calcola_pagina_clima()
-        self.lbl_stato_clima.setText(
-            self.lbl_stato_clima.text()
-            + f" CHELSA aggiornato: {risultato['file_chelsa_letti']} "
-            "finestre raster lette."
-        )
-
-    def _estrazione_clima_fallita(self, messaggio):
-        """Mostra l'errore avvenuto durante l'estrazione."""
-        self.lbl_stato_clima.setText(
-            f"Errore nell’estrazione CHELSA: {messaggio}"
-        )
-
-    def _estrazione_clima_terminata(self):
-        """Riabilita il pulsante di estrazione al termine del thread."""
-        self.btn_estrai_clima.setEnabled(bool(self.current_progetto_id))
+        """Ricarica la pagina clima delegando al controller."""
+        self._clima.aggiorna()
 
     def _aggiorna_controlli_scenario(self, ordine_blocchi):
+        """Abilita e popola i controlli dello scenario in base ai blocchi."""
+        controller = self._clima
         nome_selezionato = self.combo_blocco_scenario.currentData()
         self.combo_blocco_scenario.clear()
         self.combo_posizione_scenario.clear()
@@ -688,150 +330,51 @@ class BikepackingStudioApp(QMainWindow):
         self.btn_applica_scenario.setEnabled(ci_sono_blocchi)
         self.btn_ripristina_scenario.setEnabled(
             ci_sono_blocchi
-            and self._clima_ordine_scenario != self._clima_ordine_base
+            and controller.ordine_scenario != controller.ordine_base
         )
         self.btn_conferma_scenario.setEnabled(
-            self._clima_scenario_id is not None
-            and self._clima_ordine_scenario != self._clima_ordine_base
+            controller.scenario_id is not None
+            and controller.ordine_scenario != controller.ordine_base
         )
         self.btn_annulla_scenario.setEnabled(
-            self._clima_ultima_applicazione_id is not None
+            controller.ultima_applicazione_id is not None
         )
+
+    def calcola_pagina_clima(self):
+        """Ricalcola la catena stagionale delegando al controller clima."""
+        self._clima.calcola()
+
+    def _carica_soglie_clima(self):
+        """Restituisce le soglie del semaforo del progetto corrente."""
+        return self._clima.carica_soglie()
+
+    def apri_soglie_clima(self):
+        """Apre il dialogo delle soglie climatiche del progetto."""
+        self._clima.apri_soglie()
+
+    def avvia_estrazione_clima(self):
+        """Avvia l'estrazione climatica CHELSA in background."""
+        self._clima.avvia_estrazione()
 
     def sposta_blocco_scenario(self):
-        ordine_corrente = [
-            risultato["nome_blocco"]
-            for risultato in self._clima_risultati_correnti
-        ]
-        nome_blocco = self.combo_blocco_scenario.currentData()
-        nuova_posizione = self.combo_posizione_scenario.currentData()
-        if (
-            not ordine_corrente
-            or nome_blocco not in ordine_corrente
-            or nuova_posizione is None
-        ):
-            return
-
-        ordine_proposto = list(ordine_corrente)
-        indice_corrente = ordine_proposto.index(nome_blocco)
-        blocco = ordine_proposto.pop(indice_corrente)
-        ordine_proposto.insert(int(nuova_posizione) - 1, blocco)
-        self._clima_ordine_scenario = ordine_proposto
-        self.calcola_pagina_clima()
+        """Sposta il blocco selezionato nello scenario temporaneo."""
+        self._clima.sposta_blocco()
 
     def ripristina_ordine_scenario(self):
-        if self.current_progetto_id:
-            service.catena_stagionale_service.scarta_scenario_in_sospeso(
-                self.current_progetto_id
-            )
-        self._clima_ordine_scenario = list(self._clima_ordine_base)
-        self._clima_scenario_id = None
-        self.calcola_pagina_clima()
+        """Scarta lo scenario temporaneo e torna all'ordine ufficiale."""
+        self._clima.ripristina_ordine()
 
     def conferma_scenario_clima(self):
-        scenario_id = self._clima_scenario_id
-        if scenario_id is None or not self.current_progetto_id:
-            return
-
-        ordine_precedente = " → ".join(self._clima_ordine_base)
-        ordine_proposto = " → ".join(self._clima_ordine_scenario or [])
-        risposta = QMessageBox.question(
-            self,
-            "Confermare lo scenario?",
-            "L'ordine ufficiale in Gestione blocchi verrà aggiornato.\n\n"
-            f"Prima: {ordine_precedente}\n\nDopo: {ordine_proposto}",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if risposta != QMessageBox.Yes:
-            return
-
-        try:
-            risultato = (
-                service.catena_stagionale_service.conferma_scenario(
-                    scenario_id
-                )
-            )
-            self._clima_scenario_id = None
-            self._clima_ordine_scenario = None
-            self.page_blocchi.carica_blocchi()
-            self.aggiorna_pagina_clima()
-            QMessageBox.information(
-                self,
-                "Scenario applicato",
-                "L'ordine è stato aggiornato e l'ordine precedente è "
-                "conservato per poterlo ripristinare.\n\n"
-                f"Nuova sequenza: {' → '.join(risultato['ordine'])}",
-            )
-        except Exception as errore:
-            QMessageBox.critical(
-                self,
-                "Scenario non applicato",
-                f"L'ordine ufficiale non è stato modificato: {errore}",
-            )
+        """Applica all'ordine ufficiale lo scenario temporaneo."""
+        self._clima.conferma_scenario()
 
     def annulla_ultima_applicazione_scenario(self):
-        if not self.current_progetto_id:
-            return
-        scenario_id = (
-            service.catena_stagionale_service
-            .ottieni_ultima_applicazione_scenario(self.current_progetto_id)
-        )
-        if scenario_id is None:
-            QMessageBox.information(
-                self,
-                "Nessuna applicazione",
-                "Non ci sono scenari da annullare.",
-            )
-            return
-        risposta = QMessageBox.question(
-            self,
-            "Annullare l'ultima applicazione?",
-            "Verrà ripristinato l'ordine dei blocchi precedente allo "
-            "scenario. Eventuali modifiche successive all'ordine "
-            "impediranno il ripristino.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-        if risposta != QMessageBox.Yes:
-            return
-        try:
-            risultato = service.catena_stagionale_service.annulla_scenario(
-                scenario_id
-            )
-            self._clima_ordine_scenario = None
-            self._clima_scenario_id = None
-            self.page_blocchi.carica_blocchi()
-            self.aggiorna_pagina_clima()
-            QMessageBox.information(
-                self,
-                "Ordine ripristinato",
-                "È stato ripristinato l'ordine precedente:\n"
-                f"{' → '.join(risultato['ordine'])}",
-            )
-        except Exception as errore:
-            QMessageBox.critical(
-                self,
-                "Ripristino non riuscito",
-                f"L'ordine non è stato modificato: {errore}",
-            )
+        """Ripristina l'ordine precedente all'ultimo scenario applicato."""
+        self._clima.annulla_ultima_applicazione()
 
     def salva_impostazioni_clima(self):
-        if not self.current_progetto_id:
-            QMessageBox.information(self, "Percorso richiesto", "Apri un percorso prima di salvare le impostazioni.")
-            return
-        data = self.input_data_partenza.date()
-        data_partenza = f"{data.year():04d}-{data.month():02d}-{data.day():02d}"
-        try:
-            service.clima_service.salva_impostazioni_stagione(
-                self.current_progetto_id, data_partenza, self.input_riposo.value()
-            )
-            self.calcola_pagina_clima()
-            self.lbl_stato_clima.setText(
-                "Data e riposo salvati. " + self.lbl_stato_clima.text()
-            )
-        except Exception as errore:
-            self.lbl_stato_clima.setText(f"Errore durante il salvataggio clima: {errore}")
+        """Salva data di partenza e modificatore di riposo del progetto."""
+        self._clima.salva_impostazioni()
 
     def aggiorna_pagina_statistiche(self):
         """Ricalcola la pagina Statistiche per il percorso corrente."""
@@ -863,15 +406,6 @@ class BikepackingStudioApp(QMainWindow):
         """Reindirizza al nuovo modulo DashboardPage."""
         self.page_dashboard.carica_lista_percorsi()
     
-    def apri_percorso_selezionato(self, item):
-        pid, nome = item.data(Qt.UserRole)
-        self.current_progetto_id = pid
-        self.current_progetto_nome = nome
-        self.mappa_necessita_aggiornamento = True
-        self.esegui_audit_automatico()
-        self.aggiorna_tabella_tappe()
-        self.aggiorna_tabella_allarmi()
-
     def crea_nuovo_progetto_dialog(self):
         """Apre il pianificatore guidato per creare un nuovo percorso."""
         def on_creato(nuovo_id, nome):
@@ -907,71 +441,7 @@ class BikepackingStudioApp(QMainWindow):
         """Esegue il controllo dell'integrità del percorso attivo."""
         if not self.current_progetto_id:
             return
-
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-
-        # Recupero tappe attive ordinate
-        cursor.execute("""
-            SELECT id, sequenza, nome_file, start_lat, start_lon, end_lat, end_lon 
-            FROM tappe 
-            WHERE id_progetto = ? AND stato = 'ATTIVA' 
-            ORDER BY sequenza ASC
-        """, (self.current_progetto_id,))
-        tappe = cursor.fetchall()
-
-        # Recupero allarmi già segnati come risolti dall'utente
-        cursor.execute("""
-            SELECT tappa_origine_id, tappa_destinazione_id 
-            FROM allarmi_percorso 
-            WHERE id_progetto = ? AND risolto = 1
-        """, (self.current_progetto_id,))
-        risolti_set = set(cursor.fetchall())
-
-        # Recupero i trasferimenti già inseriti (traghetti, treni, ecc.)
-        cursor.execute("""
-            SELECT start_lat, start_lon, end_lat, end_lon 
-            FROM trasferimenti 
-            WHERE id_progetto = ?
-        """, (self.current_progetto_id,))
-        trasferimenti = cursor.fetchall()
-
-        # Pulisce i vecchi allarmi non risolti per ricalcolarli
-        cursor.execute("DELETE FROM allarmi_percorso WHERE id_progetto = ?", (self.current_progetto_id,))
-
-        for i in range(len(tappe) - 1):
-            t_curr = tappe[i]
-            t_next = tappe[i+1]
-            
-            end_lat, end_lon = t_curr[5], t_curr[6]
-            start_lat, start_lon = t_next[3], t_next[4]
-
-            if None in (end_lat, end_lon, start_lat, start_lon):
-                continue
-
-            gap_km = calcola_distanza_haversine(end_lat, end_lon, start_lat, start_lon)
-
-            # Se c'è un'interruzione maggiore di 3 km
-            if gap_km > 3.0:
-                coperto = any(
-                    abs(t[0] - end_lat) < 0.01 and abs(t[1] - end_lon) < 0.01 and
-                    abs(t[2] - start_lat) < 0.01 and abs(t[3] - start_lon) < 0.01
-                    for t in trasferimenti if t[0] and t[1] and t[2] and t[3]
-                )
-
-                if not coperto:
-                    tipo = 'GAP_TERRA' if gap_km <= 30.0 else 'GAP_AMPIO'
-                    msg = f"Interruzione di {round(gap_km, 1)} km tra '{t_curr[2]}' e '{t_next[2]}'."
-                    is_risolto = 1 if (t_curr[0], t_next[0]) in risolti_set else 0
-
-                    cursor.execute("""
-                        INSERT INTO allarmi_percorso 
-                        (id_progetto, tappa_origine_id, tappa_destinazione_id, tipo_allarme, messaggio, risolto)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (self.current_progetto_id, t_curr[0], t_next[0], tipo, msg, is_risolto))
-
-        conn.commit()
-        conn.close()
+        service.audit_service.ricalcola_allarmi_percorso(self.current_progetto_id)
     
     def raccorda_traccia_istantaneo(self, t1_id, t2_id, t1_nome, t2_nome):
         """Richiama il servizio esterno per generare il raccordo e aggiorna la UI."""
@@ -1015,44 +485,6 @@ class BikepackingStudioApp(QMainWindow):
         if hasattr(self, 'page_dashboard') and self.page_dashboard:
             self.page_dashboard.aggiorna_tabella_tappe()
     
-    def aggiorna_blocco_tappa(self, tappa_id, nuovo_blocco):
-        """Assegna il blocco a una tappa delegando al servizio di dominio."""
-        tappe_service.imposta_blocco_tappa(tappa_id, nuovo_blocco)
-
-    def toggle_pausa_tappa(self, tappa_id, in_pausa):
-        """Mette in pausa o riattiva una tappa e ricalcola l'audit."""
-        tappe_service.imposta_stato_tappa(
-            tappa_id, tappe_service.stato_da_pausa(in_pausa)
-        )
-
-        self.esegui_audit_automatico()
-        self.mappa_necessita_aggiornamento = True
-        self.aggiorna_tabella_tappe()
-        self.aggiorna_tabella_allarmi()
-
-    def cambia_ruolo_tappa(self, tappa_id, index):
-        """Cambia lo stato della tappa dal menu a tendina e ricalcola l'audit."""
-        tappe_service.imposta_stato_tappa(
-            tappa_id, tappe_service.stato_da_ruolo(index)
-        )
-
-        self.esegui_audit_automatico()
-        self.mappa_necessita_aggiornamento = True
-        self.aggiorna_tabella_tappe()
-        self.aggiorna_tabella_allarmi()
-
-    def elimina_singola_tappa(self, tappa_id, nome_file):
-        """Elimina una tappa, il suo file GPX e aggiorna l'audit."""
-        id_progetto = tappe_service.elimina_tappa(
-            tappa_id, self.current_progetto_id
-        )
-        tappe_service.elimina_file_gpx(nome_file, id_progetto)
-
-        self.esegui_audit_automatico()
-        self.mappa_necessita_aggiornamento = True
-        self.aggiorna_tabella_tappe()
-        self.aggiorna_tabella_allarmi()
-
     def elimina_percorso_corrente(self):
         """Chiede conferma e elimina il percorso attivo con tutti i suoi dati."""
         if not self.current_progetto_id:
