@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, 
     QMessageBox,
     QFrame, QLineEdit, QComboBox, QGraphicsDropShadowEffect, QScrollArea,
-    QSizePolicy, QGridLayout
+    QSizePolicy
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEnginePage
@@ -49,8 +49,8 @@ from service.punti_service import (
 )
 
 # Componenti spostati in moduli dedicati (Fase 3.0 del refactor).
-from gui.mappa_barra_superfici import BarraSuperfici
 from gui.mappa_cache import CacheMappaProgetto
+from gui.mappa_dettagli import PannelloDettagliRotta
 from gui.mappa_manager import MapManagerDialog
 from gui.mappa_worker import (
     PianificazionePercorsoWorker,
@@ -282,42 +282,8 @@ class PannelloPianificazioneWidget(QFrame):
         )
         contenuto_layout.addWidget(lbl_attribuzione_geonames)
 
-        lbl_superfici = QLabel("Superfici del percorso")
-        lbl_superfici.setStyleSheet("color: #cbd5e1; font-size: 12px; font-weight: 600; margin-top: 4px; border: none;")
-        contenuto_layout.addWidget(lbl_superfici)
-        self.barra_superfici = BarraSuperfici()
-        contenuto_layout.addWidget(self.barra_superfici)
-        # Griglia (non una singola riga) per la legenda: con molte categorie di
-        # superficie una sola riga orizzontale tagliava il testo delle ultime voci.
-        self.layout_leggenda_superfici = QGridLayout()
-        self.layout_leggenda_superfici.setContentsMargins(0, 4, 0, 0)
-        self.layout_leggenda_superfici.setHorizontalSpacing(12)
-        self.layout_leggenda_superfici.setVerticalSpacing(3)
-        contenuto_layout.addLayout(self.layout_leggenda_superfici)
-        self.lbl_stato_superfici = QLabel("La ripartizione compare dopo il calcolo della rotta.")
-        self.lbl_stato_superfici.setWordWrap(True)
-        self.lbl_stato_superfici.setStyleSheet("font-size: 11px; color: #cbd5e1; line-height: 1.4;")
-        contenuto_layout.addWidget(self.lbl_stato_superfici)
-
-        lbl_dettagli = QLabel("Dettagli tecnici")
-        lbl_dettagli.setStyleSheet("color: #cbd5e1; font-size: 12px; font-weight: 600; margin-top: 4px; border: none;")
-        contenuto_layout.addWidget(lbl_dettagli)
-        # Una colonna sola (non più una griglia 2x2): con nomi lunghi come
-        # "Velocità media stimata" la griglia a due colonne tagliava il testo.
-        dettagli_layout = QVBoxLayout()
-        dettagli_layout.setContentsMargins(0, 0, 0, 0)
-        dettagli_layout.setSpacing(5)
-        stile_dettaglio = "font-size: 12px; color: #f1f5f9; font-weight: 500; border: none;"
-        self.lbl_velocita_media = QLabel("Velocità media stimata: --")
-        self.lbl_altitudine_massima = QLabel("Altitudine massima: --")
-        self.lbl_altitudine_minima = QLabel("Altitudine minima: --")
-        self.lbl_distanza_totale = QLabel("Distanza totale: --")
-        for etichetta in (self.lbl_velocita_media, self.lbl_altitudine_massima,
-                          self.lbl_altitudine_minima, self.lbl_distanza_totale):
-            etichetta.setStyleSheet(stile_dettaglio)
-            etichetta.setWordWrap(True)
-            dettagli_layout.addWidget(etichetta)
-        contenuto_layout.addLayout(dettagli_layout)
+        self.dettagli_rotta = PannelloDettagliRotta()
+        contenuto_layout.addWidget(self.dettagli_rotta)
         
         # --- PROFILO DI INSTRADAMENTO ---
         lbl_profilo = QLabel("Profilo di instradamento")
@@ -377,7 +343,7 @@ class PannelloPianificazioneWidget(QFrame):
             if mostra_dialogo:
                 QMessageBox.warning(self, titolo, messaggio)
             else:
-                self.lbl_stato_superfici.setText(messaggio)
+                self.dettagli_rotta.imposta_stato(messaggio)
             return None
         return dati
 
@@ -433,7 +399,7 @@ class PannelloPianificazioneWidget(QFrame):
     def _anteprima_rotta_completata(self, riuscito, risultato, errore, firma):
         self.btn_salva.setText("Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso")
         if not riuscito:
-            self.lbl_stato_superfici.setText(errore)
+            self.dettagli_rotta.imposta_stato(errore)
             return
         if firma != self._firma_pianificazione():
             return
@@ -442,7 +408,9 @@ class PannelloPianificazioneWidget(QFrame):
         self.firma_ultima_anteprima = firma
         self._aggiorna_dettagli_rotta(risultato.get("statistiche"))
         self.mappa_widget.mostra_anteprima_percorso(risultato["coordinate"])
-        self.lbl_stato_superfici.setText("Anteprima aggiornata; premi il pulsante per salvare la tappa.")
+        self.dettagli_rotta.imposta_stato(
+            "Anteprima aggiornata; premi il pulsante per salvare la tappa."
+        )
 
     def _aggiungi_waypoint_da_coordinate(self, latitudine, longitudine):
         """Inserisce nel form un punto ricevuto dalla mappa e aggiorna l'anteprima."""
@@ -499,13 +467,7 @@ class PannelloPianificazioneWidget(QFrame):
                 self._id_tappa_fine = None
                 self.btn_seleziona_inizio.setEnabled(False)
                 self.btn_seleziona_fine.setEnabled(False)
-                self.lbl_velocita_media.setText("Velocità media stimata: --")
-                self.lbl_altitudine_massima.setText("Altitudine massima: --")
-                self.lbl_altitudine_minima.setText("Altitudine minima: --")
-                self.lbl_distanza_totale.setText("Distanza totale: --")
-                self.barra_superfici.imposta_superfici([])
-                self._popola_legenda_superfici([])
-                self.lbl_stato_superfici.setText("La ripartizione compare dopo il calcolo della rotta.")
+                self.dettagli_rotta.reset()
                 # Invalida eventuali analisi/geocodifiche del percorso precedente
                 # ancora in corso in background: senza questo, un risultato
                 # tardivo potrebbe ripopolare i campi appena svuotati.
@@ -571,10 +533,7 @@ class PannelloPianificazioneWidget(QFrame):
         if richieste_nomi:
             self._avvia_risoluzione_nomi_luoghi(richieste_nomi)
 
-        distanza_totale_km = sum(riga[6] or 0.0 for riga in tappe)
-        self.lbl_distanza_totale.setText(
-            f"Distanza totale: {distanza_totale_km:.1f} km" if distanza_totale_km > 0 else "Distanza totale: --"
-        )
+        self.dettagli_rotta.imposta_distanza_tappe(tappe)
 
         # L'altimetria (min/max) legge e fa il parsing XML di ogni file GPX del
         # percorso: con percorsi molto lunghi (centinaia di tappe) farlo qui,
@@ -620,26 +579,17 @@ class PannelloPianificazioneWidget(QFrame):
         già scaricate. Nessuna chiamata di rete: se il calcolo è già stato
         fatto in precedenza, viene semplicemente riletto dalla cache locale.
         """
-        self.lbl_stato_superfici.setText("Analisi offline delle superfici in corso (mappe locali già scaricate)...")
+        self.dettagli_rotta.imposta_stato(
+            "Analisi offline delle superfici in corso (mappe locali già scaricate)..."
+        )
         # Se un'analisi è già in corso il gestore mette la richiesta in coda e ferma la vecchia.
         self._gestore_superfici.richiedi(id_progetto)
 
     def _fine_analisi_superfici_offline(self, risultato):
         """Mostra le superfici; il gestore le consegna solo se il risultato è ancora attuale."""
-        if not risultato or not risultato.get("disponibile"):
-            motivo = (risultato or {}).get("motivo", "Dati non disponibili.")
-            self.lbl_stato_superfici.setText(f"Superfici non calcolabili offline: {motivo}")
+        if not self.dettagli_rotta.imposta_superfici_offline(risultato):
             return
 
-        self.barra_superfici.imposta_superfici(risultato.get("superfici", []))
-        self._popola_legenda_superfici(risultato.get("superfici", []))
-
-        copertura = risultato.get("copertura_percentuale", 0)
-        n_vietati = len(risultato.get("tratti_vietati", []))
-        messaggio = f"Stima offline da mappe locali già scaricate (copertura {copertura:.0f}% del percorso)."
-        if n_vietati:
-            messaggio += f" Attenzione: {n_vietati} tratto/i probabilmente vietati alle bici (vedi Audit)."
-        self.lbl_stato_superfici.setText(messaggio)
         self._adatta_altezza_al_contenuto()
 
     def _avvia_analisi_altimetria(self, nomi_file):
@@ -652,12 +602,9 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _fine_analisi_altimetria(self, risultato):
         """Mostra l'altimetria; il gestore la consegna solo se il risultato è ancora attuale."""
-        massima = risultato.get("massima")
-        minima = risultato.get("minima")
-        if massima is not None:
-            self.lbl_altitudine_massima.setText(f"Altitudine massima: {int(massima)} m")
-        if minima is not None:
-            self.lbl_altitudine_minima.setText(f"Altitudine minima: {round(minima)} m")
+        self.dettagli_rotta.imposta_altimetria(
+            risultato.get("massima"), risultato.get("minima")
+        )
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -696,6 +643,10 @@ class PannelloPianificazioneWidget(QFrame):
         self.area_scorrimento.setFixedHeight(altezza_scroll)
         self.adjustSize()
         self.updateGeometry()
+
+    def imposta_stato_dettagli(self, testo):
+        """Aggiorna il messaggio del pannello dettagli, anche per le interazioni mappa."""
+        self.dettagli_rotta.imposta_stato(testo)
 
     def _aggiungi_punto_passaggio(self):
         """Aggiunge un campo intermedio prima della destinazione."""
@@ -800,71 +751,15 @@ class PannelloPianificazioneWidget(QFrame):
             if widget:
                 widget.setText(testo_riga_tappa_intermedia(indice, self._dati_tappe_intermedie[indice]["testo"]))
 
-    def _popola_legenda_superfici(self, superfici):
-        """
-        Ricostruisce la legenda delle superfici (usata sia dal calcolo offline
-        sia dal routing manuale) su una griglia a 2 colonne invece di un'unica
-        riga orizzontale: con molte categorie una riga sola tagliava il testo.
-        """
-        while self.layout_leggenda_superfici.count():
-            elemento = self.layout_leggenda_superfici.takeAt(0)
-            if elemento.widget():
-                elemento.widget().deleteLater()
-
-        colonne = 2
-        for indice, superficie in enumerate(superfici or []):
-            legenda = QLabel(f"● {superficie['categoria']} — {superficie['percentuale']:.0f}%")
-            legenda.setStyleSheet(f"font-size: 11px; color: {superficie['colore']}; font-weight: 600;")
-            legenda.setWordWrap(True)
-            self.layout_leggenda_superfici.addWidget(legenda, indice // colonne, indice % colonne)
+    def _aggiorna_dettagli_rotta(self, statistiche):
+        """Aggiorna il widget dedicato e ricalcola l'altezza complessiva del pannello."""
+        self.dettagli_rotta.imposta_dettagli_rotta(statistiche)
+        self._adatta_altezza_al_contenuto()
 
     def _evidenzia_tappa_su_mappa(self, tappa_id):
         """Evidenzia o deseleziona una tappa e centra il relativo tratto."""
         if self.mappa_widget:
             self.mappa_widget.evidenzia_tappa(tappa_id)
-
-    def _aggiorna_dettagli_rotta(self, statistiche):
-        """Aggiorna barra superfici, legenda e KPI della rotta calcolata."""
-        statistiche = statistiche or {}
-        superfici = statistiche.get("superfici", [])
-        self.barra_superfici.imposta_superfici(superfici)
-        self._popola_legenda_superfici(superfici)
-
-        if superfici:
-            non_specificata = next(
-                (voce["percentuale"] for voce in superfici if voce["categoria"] == "Non specificata"),
-                0,
-            )
-            if non_specificata >= 99:
-                self.lbl_stato_superfici.setText("Il servizio di routing non ha fornito tag di superficie per questa rotta.")
-            else:
-                self.lbl_stato_superfici.setText("Stima da tag stradali OpenStreetMap restituiti da BRouter.")
-        else:
-            self.lbl_stato_superfici.setText("Superfici non disponibili.")
-
-        velocita = statistiche.get("velocita_media_kmh")
-        quota_min = statistiche.get("altitudine_min_m")
-        quota_max = statistiche.get("altitudine_max_m")
-        distanza = statistiche.get("distanza_km")
-        self.lbl_velocita_media.setText(
-            f"Velocità media stimata: {velocita:.1f} km/h" if velocita is not None
-            else "Velocità media stimata: --"
-        )
-        self.lbl_altitudine_massima.setText(
-            f"Altitudine massima: {quota_max} m" if quota_max is not None
-            else "Altitudine massima: --"
-        )
-        self.lbl_altitudine_minima.setText(
-            f"Altitudine minima: {quota_min} m" if quota_min is not None
-            else "Altitudine minima: --"
-        )
-        self.lbl_distanza_totale.setText(
-            f"Distanza totale: {distanza:.1f} km" if distanza is not None
-            else "Distanza totale: --"
-        )
-
-        self._adatta_altezza_al_contenuto()
-
 
     def _gestisci_salvataggio_percorso(self):
         """Salva l'anteprima corrente oppure calcola la rotta prima di salvarla."""
@@ -896,7 +791,9 @@ class PannelloPianificazioneWidget(QFrame):
             QMessageBox.warning(self, "Pianificazione non riuscita", errore)
             return
         if firma is not None and firma != self._firma_pianificazione():
-            self.lbl_stato_superfici.setText("I campi sono cambiati durante il routing: ricalcola l'anteprima.")
+            self.dettagli_rotta.imposta_stato(
+                "I campi sono cambiati durante il routing: ricalcola l'anteprima."
+            )
             return
 
         finestra_principale = getattr(self.mappa_widget, "parent_app", None)
@@ -1104,7 +1001,7 @@ class MappaWidget(QWidget):
             f"window.impostaModalitaInterazioneMappa({payload_modalita}, {int(id_progetto)});"
         )
         self._poll_interazioni_timer.start()
-        self.pannello_pianificazione.lbl_stato_superfici.setText(
+        self.pannello_pianificazione.imposta_stato_dettagli(
             "Clicca sulla mappa per posizionare il punto. Esc disattiva la modalità."
             if modalita == "add_waypoint"
             else "Trascina una tappa esistente verso la nuova strada."
@@ -1146,7 +1043,9 @@ class MappaWidget(QWidget):
                     "if(window.impostaModalitaInterazioneMappa) "
                     f"window.impostaModalitaInterazioneMappa(null, {int(id_progetto)});"
                 )
-                self.pannello_pianificazione.lbl_stato_superfici.setText("Modalità mappa disattivata.")
+                self.pannello_pianificazione.imposta_stato_dettagli(
+                    "Modalità mappa disattivata."
+                )
             # Volutamente dentro il ciclo: ogni modalità mappa è "usa e getta".
             # Il JavaScript (inviaInterazioneMappa) la azzera subito dopo aver
             # inviato UN solo evento, quindi dopo averlo gestito il polling non serve più.
