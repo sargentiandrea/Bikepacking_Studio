@@ -228,20 +228,35 @@ def salva_percorso_suddiviso(
     db_name=DB_NAME,
     directory_gpx=GPX_DIR,
     esito=None,
+    tappe_ids_da_sostituire=None,
 ):
     """Salva atomicamente le tappe di un percorso e precalcola ogni GPX.
 
     Se si sta modificando una tappa, il primo segmento la sostituisce e gli
     altri vengono inseriti subito dopo, spostando in avanti le tappe successive.
+    Se sono indicati gli ID delle tappe attive, tutte vengono aggiornate in
+    ordine mantenendo ID, sequenza e blocco, senza creare nuove righe.
     """
     if not tappe:
         raise ValueError("La suddivisione non contiene tappe da salvare.")
+    if tappa_id is not None and tappe_ids_da_sostituire is not None:
+        raise ValueError("Scegli una tappa singola o la sostituzione dell'intero percorso.")
+    if tappe_ids_da_sostituire is not None:
+        tappe_ids_da_sostituire = list(tappe_ids_da_sostituire)
+        if (
+            not tappe_ids_da_sostituire
+            or len(set(tappe_ids_da_sostituire)) != len(tappe_ids_da_sostituire)
+            or len(tappe_ids_da_sostituire) != len(tappe)
+        ):
+            raise ValueError(
+                "Il numero di segmenti deve corrispondere alle tappe attive da sostituire."
+            )
     if esito is None:
         esito = {}
 
     gpx_creati = []
     righe_tappe = []
-    nome_gpx_precedente = None
+    nomi_gpx_precedenti = []
     stato_precedente = "ATTIVA"
     try:
         os.makedirs(directory_gpx, exist_ok=True)
@@ -285,7 +300,26 @@ def salva_percorso_suddiviso(
         with closing(sqlite3.connect(db_name, timeout=30.0)) as conn:
             with conn:
                 cursor = conn.cursor()
-                if tappa_id is not None:
+                if tappe_ids_da_sostituire is not None:
+                    cursor.execute(
+                        """
+                        SELECT id, nome_file FROM tappe
+                        WHERE id_progetto = ? AND stato = 'ATTIVA'
+                        ORDER BY sequenza ASC, id ASC
+                        """,
+                        (id_progetto,),
+                    )
+                    righe_attive = cursor.fetchall()
+                    id_attivi = [riga[0] for riga in righe_attive]
+                    if id_attivi != tappe_ids_da_sostituire:
+                        raise ValueError(
+                            "Le tappe attive del percorso sono cambiate. "
+                            "Ricarica la mappa e ripeti la deviazione."
+                        )
+                    nomi_gpx_precedenti = [
+                        riga[1] for riga in righe_attive if riga[1]
+                    ]
+                elif tappa_id is not None:
                     cursor.execute(
                         """
                         SELECT nome_file, stato, sequenza, blocco
@@ -300,6 +334,9 @@ def salva_percorso_suddiviso(
                         )
                     nome_gpx_precedente, stato_precedente, sequenza, blocco = (
                         riga_esistente
+                    )
+                    nomi_gpx_precedenti = (
+                        [nome_gpx_precedente] if nome_gpx_precedente else []
                     )
                     stato_precedente = stato_precedente or "ATTIVA"
                     blocco = blocco or "Pianificato"
@@ -333,7 +370,23 @@ def salva_percorso_suddiviso(
                         coordinate[-1][1],
                         round(float(tappa["distanza_km"]), 2),
                     )
-                    if indice == 0 and tappa_id is not None:
+                    if tappe_ids_da_sostituire is not None:
+                        id_tappa = tappe_ids_da_sostituire[indice]
+                        cursor.execute(
+                            """
+                            UPDATE tappe SET nome_file = ?, start_lat = ?, start_lon = ?,
+                                end_lat = ?, end_lon = ?, distanza_km = ?
+                            WHERE id = ? AND id_progetto = ? AND stato = 'ATTIVA'
+                            """,
+                            (*valori, id_tappa, id_progetto),
+                        )
+                        if cursor.rowcount != 1:
+                            raise ValueError(
+                                "Una tappa attiva non è stata aggiornata; "
+                                "verifica il progetto e ripeti la deviazione."
+                            )
+                        id_tappe.append(id_tappa)
+                    elif indice == 0 and tappa_id is not None:
                         cursor.execute(
                             """
                             UPDATE tappe SET nome_file = ?, start_lat = ?, start_lon = ?,
@@ -385,26 +438,30 @@ def salva_percorso_suddiviso(
                 print(f"Errore precalcolo tappa {id_salvata}: {errore}")
 
         precalcolo_riuscito = not errori_precalcolo
-        if nome_gpx_precedente and precalcolo_riuscito:
-            percorso_precedente = trova_percorso_gpx(
-                nome_gpx_precedente,
-                id_progetto,
-                directory_gpx=directory_gpx,
-            )
-            if percorso_precedente is not None:
-                try:
-                    os.remove(percorso_precedente)
-                except OSError as errore_file:
-                    print(
-                        "Nota: non è stato possibile rimuovere il GPX precedente: "
-                        f"{errore_file}"
-                    )
+        if nomi_gpx_precedenti and precalcolo_riuscito:
+            for nome_file_precedente in nomi_gpx_precedenti:
+                percorso_precedente = trova_percorso_gpx(
+                    nome_file_precedente,
+                    id_progetto,
+                    directory_gpx=directory_gpx,
+                )
+                if percorso_precedente is not None:
+                    try:
+                        os.remove(percorso_precedente)
+                    except OSError as errore_file:
+                        print(
+                            "Nota: non è stato possibile rimuovere il GPX precedente: "
+                            f"{errore_file}"
+                        )
 
         return {
             "tappa_id": id_tappe[0],
             "tappe_ids": id_tappe,
             "numero_tappe": len(id_tappe),
-            "aggiornata": tappa_id is not None,
+            "aggiornata": (
+                tappa_id is not None or tappe_ids_da_sostituire is not None
+            ),
+            "sostituito_percorso": tappe_ids_da_sostituire is not None,
             "precalcolo_riuscito": precalcolo_riuscito,
             "precalcolo_saltato": False,
             "errore_precalcolo": "; ".join(errori_precalcolo) or None,

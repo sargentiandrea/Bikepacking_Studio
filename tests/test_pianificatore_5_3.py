@@ -17,6 +17,7 @@ from service.stats_service import analizza_dati_rotta_brouter
 from service.suddivisione_percorso_service import (
     ORE_BICI_AL_GIORNO,
     calcola_suddivisione_percorso,
+    calcola_suddivisione_numero_tappe,
 )
 
 
@@ -83,6 +84,29 @@ class TestCalcoloSuddivisione(unittest.TestCase):
                 giorni_per_tappa=1,
                 tempo_totale_ore=None,
             )
+
+    def test_suddivisione_per_numero_tappe_preserva_la_struttura_esistente(self):
+        """La deviazione completa può mantenere il numero di tappe già salvate."""
+        risultato = calcola_suddivisione_numero_tappe(
+            [(0.0, 0.0), (0.0, 1.0), (0.0, 2.0)],
+            distanza_totale_km=222,
+            numero_tappe=2,
+        )
+        distanza_geometria = sum(
+            calcola_distanza_haversine(*inizio, *fine)
+            for inizio, fine in zip(
+                [(0.0, 0.0), (0.0, 1.0)],
+                [(0.0, 1.0), (0.0, 2.0)],
+            )
+        )
+
+        self.assertEqual(risultato["numero_tappe"], 2)
+        self.assertEqual(len(risultato["punti_divisione"]), 1)
+        self.assertAlmostEqual(
+            sum(risultato["distanze_km"]),
+            distanza_geometria,
+            delta=0.1,
+        )
 
     def test_rifiuta_input_ambiguo_o_non_valido(self):
         """Una richiesta deve indicare un solo criterio positivo."""
@@ -294,6 +318,108 @@ class TestSalvataggioSuddivisione(unittest.TestCase):
             righe,
             [(10, 1), (esito["tappe_ids"][1], 2), (11, 3)],
         )
+
+    def test_sostituisce_tutte_le_tappe_attive_preservando_id_ordine_e_blocchi(self):
+        """Una deviazione completa aggiorna le righe esistenti senza aggiungerne."""
+        directory_progetto = os.path.join(self.directory_gpx, "9")
+        os.makedirs(directory_progetto, exist_ok=True)
+        nomi_precedenti = ["vecchia_1.gpx", "vecchia_2.gpx"]
+        for nome in nomi_precedenti:
+            with open(os.path.join(directory_progetto, nome), "w", encoding="utf-8") as file:
+                file.write("GPX precedente")
+        with closing(sqlite3.connect(self.db_name)) as conn:
+            with conn:
+                conn.executemany(
+                    """
+                    INSERT INTO tappe (
+                        id, id_progetto, sequenza, blocco, nome_file, stato
+                    ) VALUES (?, 9, ?, ?, ?, 'ATTIVA')
+                    """,
+                    [
+                        (10, 3, "Italia", nomi_precedenti[0]),
+                        (11, 7, "Alpi", nomi_precedenti[1]),
+                    ],
+                )
+
+        tappe = [
+            {
+                "coordinate": [(44.0, 11.0), (44.5, 11.5)],
+                "distanza_km": 70,
+            },
+            {
+                "coordinate": [(44.5, 11.5), (45.0, 12.0)],
+                "distanza_km": 70,
+            },
+        ]
+        with patch(
+            "service.salvataggio_tappa_service.precalcola_tappa",
+            return_value={"stato": "OK"},
+        ) as precalcolo:
+            esito = salva_percorso_suddiviso(
+                9,
+                tappe,
+                "Modena",
+                "Roma",
+                db_name=self.db_name,
+                directory_gpx=self.directory_gpx,
+                tappe_ids_da_sostituire=[10, 11],
+            )
+
+        with closing(sqlite3.connect(self.db_name)) as conn:
+            righe = conn.execute(
+                """
+                SELECT id, sequenza, blocco, nome_file, stato
+                FROM tappe WHERE id_progetto = 9 ORDER BY sequenza
+                """
+            ).fetchall()
+        self.assertEqual(
+            [(riga[0], riga[1], riga[2], riga[4]) for riga in righe],
+            [(10, 3, "Italia", "ATTIVA"), (11, 7, "Alpi", "ATTIVA")],
+        )
+        self.assertTrue(
+            all(
+                os.path.isfile(os.path.join(directory_progetto, riga[3]))
+                and riga[3] not in nomi_precedenti
+                for riga in righe
+            )
+        )
+        self.assertTrue(
+            all(
+                not os.path.exists(os.path.join(directory_progetto, nome))
+                for nome in nomi_precedenti
+            )
+        )
+        self.assertEqual(precalcolo.call_count, 2)
+        self.assertEqual(esito["tappe_ids"], [10, 11])
+        self.assertTrue(esito["sostituito_percorso"])
+
+    def test_sostituzione_completa_rifiuta_tappe_attive_cambiate(self):
+        """Una mappa obsoleta non aggiorna solo una parte del percorso."""
+        with closing(sqlite3.connect(self.db_name)) as conn:
+            with conn:
+                conn.executemany(
+                    """
+                    INSERT INTO tappe (
+                        id, id_progetto, sequenza, blocco, stato
+                    ) VALUES (?, 9, ?, 'Pianificato', 'ATTIVA')
+                    """,
+                    [(10, 1), (11, 2)],
+                )
+        with self.assertRaisesRegex(ValueError, "sono cambiate"):
+            salva_percorso_suddiviso(
+                9,
+                [{"coordinate": [(44.0, 11.0), (44.5, 11.5)], "distanza_km": 70}],
+                "Modena",
+                "Roma",
+                db_name=self.db_name,
+                directory_gpx=self.directory_gpx,
+                tappe_ids_da_sostituire=[10],
+            )
+        with closing(sqlite3.connect(self.db_name)) as conn:
+            ids = conn.execute(
+                "SELECT id FROM tappe WHERE id_progetto = 9 ORDER BY sequenza"
+            ).fetchall()
+        self.assertEqual(ids, [(10,), (11,)])
 
     def test_input_vuoto_non_crea_gpx_o_righe(self):
         """Una suddivisione vuota viene rifiutata senza effetti collaterali."""

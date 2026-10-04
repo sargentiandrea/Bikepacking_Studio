@@ -68,6 +68,52 @@ def calcola_suddivisione_percorso(
     }
 
 
+def calcola_suddivisione_numero_tappe(
+    coordinate,
+    *,
+    distanza_totale_km,
+    numero_tappe,
+):
+    """Divide una rotta in un numero stabilito di tappe equidistanti."""
+    if isinstance(numero_tappe, bool) or not isinstance(numero_tappe, int):
+        raise ValueError("Il numero di tappe deve essere un intero positivo.")
+    if numero_tappe < 1:
+        raise ValueError("Il numero di tappe deve essere un intero positivo.")
+    if len(coordinate) < 2:
+        raise ValueError("La rotta deve contenere almeno due punti.")
+
+    distanza_route = _numero_positivo(distanza_totale_km, "distanza del percorso")
+    lunghezze_segmenti = [
+        calcola_distanza_haversine(*punto_a[:2], *punto_b[:2])
+        for punto_a, punto_b in zip(coordinate, coordinate[1:])
+    ]
+    distanza_geometria = sum(lunghezze_segmenti)
+    if distanza_geometria <= 0:
+        raise ValueError("La geometria del percorso non ha una lunghezza valida.")
+
+    distanze_divisione = [
+        distanza_geometria * indice / numero_tappe
+        for indice in range(1, numero_tappe)
+    ]
+    tappe = _taglia_geometria(
+        coordinate,
+        lunghezze_segmenti,
+        distanze_divisione,
+    )
+    if len(tappe) != numero_tappe or any(len(tappa) < 2 for tappa in tappe):
+        raise ValueError(
+            "La geometria non consente di mantenere tutte le tappe esistenti."
+        )
+    return {
+        "tappe": tappe,
+        "distanze_km": [round(_distanza_geometria(tappa), 2) for tappa in tappe],
+        "punti_divisione": [tappa[-1] for tappa in tappe[:-1]],
+        "distanza_totale_km": round(distanza_route, 1),
+        "numero_tappe": len(tappe),
+        "modalita": "tappe_esistenti",
+    }
+
+
 def _numero_positivo(valore, nome):
     """Converte e convalida un valore numerico strettamente positivo."""
     try:

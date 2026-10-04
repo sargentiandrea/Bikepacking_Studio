@@ -160,6 +160,50 @@ class MappaWidget(QWidget):
             else "Trascina una tappa esistente verso la nuova strada."
         )
 
+    def geometrie_tappe_per_waypoint(self, id_progetto):
+        """Restituisce le geometrie delle tappe attive già caricate nella mappa."""
+        if self.ultimo_progetto_id_caricato != id_progetto:
+            return None
+        voce_cache = self._cache_mappa.ottieni(id_progetto)
+        if voce_cache is None:
+            return None
+
+        tappe = []
+        for feature in voce_cache["geojson"].get("features", []):
+            proprieta = feature.get("properties", {})
+            geometria = feature.get("geometry", {})
+            if (
+                proprieta.get("tipo") != "tappa"
+                or proprieta.get("stato") != "ATTIVA"
+            ):
+                continue
+
+            if geometria.get("type") == "LineString":
+                segmenti = [geometria.get("coordinates", [])]
+            elif geometria.get("type") == "MultiLineString":
+                segmenti = geometria.get("coordinates", [])
+            else:
+                continue
+
+            coordinate = [
+                [
+                    (float(punto[1]), float(punto[0]))
+                    for punto in segmento
+                    if len(punto) >= 2
+                ]
+                for segmento in segmenti
+            ]
+            coordinate = [segmento for segmento in coordinate if segmento]
+            if coordinate:
+                tappe.append(
+                    {
+                        "id": proprieta.get("tappa_id"),
+                        "sequenza": proprieta.get("sequenza"),
+                        "coordinate": coordinate,
+                    }
+                )
+        return tappe
+
     def _leggi_interazioni_mappa(self):
         """Preleva gli eventi Flask mentre è attiva un'interazione esplicita."""
         try:
@@ -184,7 +228,7 @@ class MappaWidget(QWidget):
                 self._poll_interazioni_timer.stop()
                 continue
             if evento.get("action") == "add_waypoint":
-                self.pannello_pianificazione.aggiungi_waypoint(
+                self.pannello_pianificazione.gestisci_waypoint_da_mappa(
                     evento["lat"], evento["lon"]
                 )
             elif evento.get("action") == "rubberband_waypoint":

@@ -67,7 +67,11 @@ from service.salvataggio_tappa_service import (
     salva_percorso_suddiviso,
     salva_tappa_pianificata,
 )
-from service.suddivisione_percorso_service import calcola_suddivisione_percorso
+from service.suddivisione_percorso_service import (
+    calcola_suddivisione_numero_tappe,
+    calcola_suddivisione_percorso,
+)
+from service.waypoint_service import classifica_punto
 
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
@@ -87,6 +91,8 @@ class PannelloPianificazioneWidget(QFrame):
         self._blocchi_disponibili = []
         self._errore_caricamento_blocchi = False
         self._suddivisione_anteprima = None
+        self._tappe_ids_da_sostituire = None
+        self._waypoint_devia_tappa_singola = False
         self._progetto_sincronizzato_id = "non_ancora_verificato"  # sentinella diversa da None/ID reali
         # Ciclo di vita del worker analisi-superfici nel gestore unico.
         self._gestore_superfici = GestoreWorkerSingolo(
@@ -452,6 +458,23 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _imposta_contesto(self, contesto):
         """Aggiorna il contesto selezionato e mostra solo i campi che gli servono."""
+        if (
+            self._tappe_ids_da_sostituire is not None
+            and contesto != "percorso"
+        ):
+            risposta = QMessageBox.question(
+                self,
+                "Annullare la deviazione completa?",
+                "Se cambi contesto, la modifica di tutte le tappe attive "
+                "verrà annullata. Vuoi continuare?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
+            if risposta != QMessageBox.Yes:
+                self.pulsanti_contesto["percorso"].setChecked(True)
+                return
+            self._azzera_sostituzione_percorso()
+
         self._contesto_selezionato = contesto
         etichette = dict(CONTESTI_PIANIFICAZIONE)
         descrizioni = {
@@ -505,10 +528,17 @@ class PannelloPianificazioneWidget(QFrame):
             opzioni["tempo_totale_ore"] = statistiche.get("tempo_totale_ore")
 
         try:
-            self._suddivisione_anteprima = calcola_suddivisione_percorso(
-                anteprima["coordinate"],
-                **opzioni,
-            )
+            if self._tappe_ids_da_sostituire is not None:
+                self._suddivisione_anteprima = calcola_suddivisione_numero_tappe(
+                    anteprima["coordinate"],
+                    distanza_totale_km=opzioni["distanza_totale_km"],
+                    numero_tappe=len(self._tappe_ids_da_sostituire),
+                )
+            else:
+                self._suddivisione_anteprima = calcola_suddivisione_percorso(
+                    anteprima["coordinate"],
+                    **opzioni,
+                )
         except ValueError as errore:
             self._suddivisione_anteprima = None
             self.lbl_anteprima_suddivisione.setText(str(errore))
@@ -520,11 +550,22 @@ class PannelloPianificazioneWidget(QFrame):
 
         divisione = self._suddivisione_anteprima
         distanze = ", ".join(f"{km:g}" for km in divisione["distanze_km"])
-        unita = "km per tappa" if divisione["modalita"] == "km" else "km al giorno"
-        self.lbl_anteprima_suddivisione.setText(
-            f'{divisione["numero_tappe"]} tappe: {distanze} km ({unita}). '
-            "I punti di divisione sono evidenziati sulla mappa."
-        )
+        if self._tappe_ids_da_sostituire is not None:
+            testo_divisione = (
+                f'{divisione["numero_tappe"]} tappe esistenti: {distanze} km. '
+                "Saranno mantenuti ordine e blocchi attuali."
+            )
+        else:
+            unita = (
+                "km per tappa"
+                if divisione["modalita"] == "km"
+                else "km al giorno"
+            )
+            testo_divisione = (
+                f'{divisione["numero_tappe"]} tappe: {distanze} km ({unita}). '
+                "I punti di divisione sono evidenziati sulla mappa."
+            )
+        self.lbl_anteprima_suddivisione.setText(testo_divisione)
         self.mappa_widget.mostra_anteprima_percorso(
             anteprima["coordinate"],
             divisione["punti_divisione"],
@@ -781,6 +822,243 @@ class PannelloPianificazioneWidget(QFrame):
         self.punti_passaggio[indice_vuoto]["input"].setText(testo_coordinate(latitudine, longitudine))
         self._ricalcola_anteprima()
 
+    def _imposta_sostituzione_percorso(
+        self,
+        tappe,
+        latitudine_waypoint,
+        longitudine_waypoint,
+        tappa_vicina_id,
+    ):
+        """Prepara il ricalcolo completo preservando le tappe e le soste correnti."""
+        if not tappe:
+            return True
+        id_tappe_mappa = [tappa["id"] for tappa in tappe]
+        if any(id_tappa is None for id_tappa in id_tappe_mappa):
+            QMessageBox.warning(
+                self,
+                "Percorso non aggiornabile",
+                "La mappa non contiene l'identificativo di tutte le tappe attive.",
+            )
+            return False
+        try:
+            id_tappe_database = [
+                riga[0] for riga in carica_tappe_attive(
+                    getattr(
+                        getattr(self.mappa_widget, "parent_app", None),
+                        "current_progetto_id",
+                        None,
+                    ),
+                    DB_NAME,
+                )
+            ]
+        except sqlite3.Error as errore:
+            QMessageBox.warning(
+                self,
+                "Percorso non aggiornabile",
+                f"Non è stato possibile verificare le tappe attive: {errore}",
+            )
+            return False
+        if id_tappe_database != id_tappe_mappa:
+            QMessageBox.warning(
+                self,
+                "Mappa non aggiornata",
+                "Le tappe mostrate non corrispondono a tutte quelle attive. "
+                "Ricarica la mappa e riprova.",
+            )
+            return False
+
+        self._tappe_ids_da_sostituire = id_tappe_mappa
+        self._waypoint_devia_tappa_singola = False
+        self.pulsanti_contesto["percorso"].setChecked(True)
+        self._imposta_contesto("percorso")
+        for controllo in (
+            self.radio_km_per_tappa,
+            self.radio_giorni_per_tappa,
+            self.spin_km_per_tappa,
+            self.spin_giorni_per_tappa,
+        ):
+            controllo.setEnabled(False)
+
+        if tappa_vicina_id not in {tappa["id"] for tappa in tappe}:
+            self._azzera_sostituzione_percorso()
+            QMessageBox.warning(
+                self,
+                "Tappa non disponibile",
+                "Non è stato possibile determinare l'ordine del waypoint "
+                "nel percorso attivo.",
+            )
+            return False
+
+        coordinate_tappe = [
+            [
+                punto
+                for segmento in tappa["coordinate"]
+                for punto in segmento
+            ]
+            for tappa in tappe
+        ]
+        self.input_partenza.setText(testo_coordinate(*coordinate_tappe[0][0]))
+        self.input_destinazione.setText(testo_coordinate(*coordinate_tappe[-1][-1]))
+        punti_intermedi = []
+        for indice, (tappa, coordinate) in enumerate(zip(tappe, coordinate_tappe)):
+            if tappa["id"] == tappa_vicina_id:
+                punti_intermedi.append(
+                    testo_coordinate(latitudine_waypoint, longitudine_waypoint)
+                )
+            if indice < len(tappe) - 1:
+                punto_fine = testo_coordinate(*coordinate[-1])
+                if not punti_intermedi or punti_intermedi[-1] != punto_fine:
+                    punti_intermedi.append(punto_fine)
+
+        while self.punti_passaggio:
+            self._rimuovi_punto_passaggio(self.punti_passaggio[-1]["widget"])
+        for testo in punti_intermedi:
+            self._aggiungi_punto_passaggio()
+            self.punti_passaggio[-1]["input"].setText(testo)
+        self._ricalcola_anteprima()
+        return True
+
+    def _azzera_sostituzione_percorso(self):
+        """Riabilita contesto e divisione dopo aver completato la sostituzione."""
+        self._tappe_ids_da_sostituire = None
+        for pulsante in self.pulsanti_contesto.values():
+            pulsante.setEnabled(True)
+        for controllo in (
+            self.radio_km_per_tappa,
+            self.radio_giorni_per_tappa,
+            self.spin_km_per_tappa,
+            self.spin_giorni_per_tappa,
+        ):
+            controllo.setEnabled(True)
+
+    def gestisci_waypoint_da_mappa(self, latitudine, longitudine):
+        """Classifica il click e devia la tappa più vicina o l'intera rotta."""
+        progetto = getattr(
+            getattr(self.mappa_widget, "parent_app", None),
+            "current_progetto_id",
+            None,
+        )
+        tappe = (
+            self.mappa_widget.geometrie_tappe_per_waypoint(progetto)
+            if progetto and hasattr(self.mappa_widget, "geometrie_tappe_per_waypoint")
+            else None
+        )
+
+        if tappe is None:
+            if self.ultima_anteprima:
+                coordinate = self.ultima_anteprima["coordinate"]
+                tappa_id = self.tappa_in_modifica_id
+                tappe = (
+                    [{"id": tappa_id, "coordinate": coordinate}]
+                    if tappa_id is not None
+                    else []
+                )
+            else:
+                QMessageBox.information(
+                    self,
+                    "Mappa in caricamento",
+                    "Attendi che il percorso sia caricato sulla mappa, poi riprova.",
+                )
+                return
+        else:
+            coordinate = [
+                segmento
+                for tappa in tappe
+                for segmento in tappa["coordinate"]
+            ]
+            if not coordinate and self.ultima_anteprima:
+                coordinate = [self.ultima_anteprima["coordinate"]]
+                if self.tappa_in_modifica_id is not None:
+                    tappe = [
+                        {
+                            "id": self.tappa_in_modifica_id,
+                            "coordinate": coordinate,
+                        }
+                    ]
+
+        if not coordinate:
+            self.aggiungi_waypoint(latitudine, longitudine)
+            return
+
+        try:
+            classificazione = classifica_punto(
+                coordinate,
+                tappe,
+                (latitudine, longitudine),
+            )
+        except ValueError as errore:
+            QMessageBox.warning(
+                self,
+                "Waypoint non classificabile",
+                f"Non è stato possibile confrontare il punto con la rotta: {errore}",
+            )
+            return
+
+        if classificazione["classificazione"] == "gia_sul_percorso":
+            QMessageBox.information(
+                self,
+                "Punto già sulla rotta",
+                "Questo punto è già sulla tua rotta: non è stato aggiunto.",
+            )
+            return
+
+        tappa_id = classificazione["tappa_id"]
+        if (
+            classificazione["classificazione"] == "vicino_a_tappa"
+            and tappa_id is not None
+        ):
+            numero_tappa = classificazione["tappa_sequenza"] or tappa_id
+            dialogo = QMessageBox(self)
+            dialogo.setIcon(QMessageBox.Question)
+            dialogo.setWindowTitle("Punto vicino a una tappa")
+            dialogo.setText(
+                f"Il punto è vicino alla tappa {numero_tappa}. "
+                "Vuoi deviare solo quella tappa o ricalcolare tutto il percorso?"
+            )
+            devia_tappa = dialogo.addButton(
+                "Devia questa tappa", QMessageBox.AcceptRole
+            )
+            devia_tutto = dialogo.addButton(
+                "Devia tutto il percorso", QMessageBox.DestructiveRole
+            )
+            dialogo.addButton("Annulla", QMessageBox.RejectRole)
+            dialogo.exec()
+            if dialogo.clickedButton() is devia_tappa:
+                self._azzera_sostituzione_percorso()
+                self._waypoint_devia_tappa_singola = True
+                self.prepara_modifica_tappa(tappa_id, latitudine, longitudine)
+            elif dialogo.clickedButton() is devia_tutto:
+                if tappe:
+                    self._imposta_sostituzione_percorso(
+                        tappe, latitudine, longitudine, tappa_id
+                    )
+                else:
+                    self.aggiungi_waypoint(latitudine, longitudine)
+            return
+
+        dialogo = QMessageBox(self)
+        dialogo.setIcon(QMessageBox.Question)
+        dialogo.setWindowTitle("Deviazione dell'intero percorso")
+        dialogo.setText(
+            "Questo punto è lontano dalla rotta: per raggiungerlo "
+            "è necessario ricalcolare tutto il percorso."
+        )
+        ricalcola = dialogo.addButton(
+            "Ricalcola tutto", QMessageBox.AcceptRole
+        )
+        dialogo.addButton("Annulla", QMessageBox.RejectRole)
+        dialogo.exec()
+        if dialogo.clickedButton() is ricalcola:
+            if tappe:
+                self._imposta_sostituzione_percorso(
+                    tappe,
+                    latitudine,
+                    longitudine,
+                    classificazione["tappa_id"],
+                )
+            else:
+                self.aggiungi_waypoint(latitudine, longitudine)
+
     def prepara_modifica_tappa(self, tappa_id, latitudine, longitudine):
         """Carica gli estremi della tappa esistente e crea una bozza rubber-band."""
         finestra_principale = getattr(self.mappa_widget, "parent_app", None)
@@ -813,6 +1091,9 @@ class PannelloPianificazioneWidget(QFrame):
         id_progetto = getattr(finestra_principale, "current_progetto_id", None)
 
         if id_progetto != self._progetto_sincronizzato_id:
+            if self._tappe_ids_da_sostituire is not None:
+                self._azzera_sostituzione_percorso()
+            self._waypoint_devia_tappa_singola = False
             # Cambio di progetto (o percorso chiuso): puliamo il pannello prima di
             # ripopolarlo, ma solo se non c'è già una modifica manuale in corso.
             self._progetto_sincronizzato_id = id_progetto
@@ -1198,7 +1479,10 @@ class PannelloPianificazioneWidget(QFrame):
             return
 
         suddivisione = None
-        if self._contesto_selezionato == "percorso":
+        sostituzione_percorso = self._tappe_ids_da_sostituire is not None
+        if not self._waypoint_devia_tappa_singola and (
+            sostituzione_percorso or self._contesto_selezionato == "percorso"
+        ):
             self._aggiorna_anteprima_suddivisione()
             suddivisione = self._suddivisione_anteprima
             if suddivisione is None:
@@ -1211,11 +1495,21 @@ class PannelloPianificazioneWidget(QFrame):
             riepilogo = ", ".join(
                 f"{km:g} km" for km in suddivisione["distanze_km"]
             )
+            testo_conferma = (
+                f"Sostituirai tutte le {len(self._tappe_ids_da_sostituire)} "
+                "tappe attive, mantenendo ID, ordine e blocchi."
+                if sostituzione_percorso
+                else "Procedere?"
+            )
             conferma = QMessageBox.question(
                 self,
-                "Conferma suddivisione",
+                (
+                    "Conferma deviazione completa"
+                    if sostituzione_percorso
+                    else "Conferma suddivisione"
+                ),
                 f"Salverai {suddivisione['numero_tappe']} tappe "
-                f"({distanza_km:.1f} km): {riepilogo}.\n\nProcedere?",
+                f"({distanza_km:.1f} km): {riepilogo}.\n\n{testo_conferma}",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.Yes,
             )
@@ -1248,6 +1542,7 @@ class PannelloPianificazioneWidget(QFrame):
                     db_name=DB_NAME,
                     directory_gpx=GPX_DIR,
                     esito=stato_salvataggio,
+                    tappe_ids_da_sostituire=self._tappe_ids_da_sostituire,
                 )
             else:
                 # Scrittura GPX, SQLite e precalcolo: tutta la parte dati sta nel servizio.
@@ -1278,6 +1573,8 @@ class PannelloPianificazioneWidget(QFrame):
                 finestra_principale.page_dashboard.aggiorna_tabella_tappe()
             finestra_principale.mappa_necessita_aggiornamento = True
             self.tappa_in_modifica_id = None
+            self._azzera_sostituzione_percorso()
+            self._waypoint_devia_tappa_singola = False
             self.ultima_anteprima = None
             self.firma_ultima_anteprima = None
             self.btn_salva.setText(self._testo_pulsante_salvataggio())
@@ -1306,7 +1603,12 @@ class PannelloPianificazioneWidget(QFrame):
                 ),
             }
             titolo, messaggio = messaggi_salvataggio[self._contesto_selezionato]
-            if tappa_in_aggiornamento:
+            if esito.get("sostituito_percorso"):
+                messaggio = (
+                    f"Tutte le {esito['numero_tappe']} tappe attive sono state "
+                    "aggiornate mantenendo ordine e blocchi."
+                )
+            elif tappa_in_aggiornamento:
                 messaggio = "La tappa è stata aggiornata. " + messaggio
             QMessageBox.information(
                 self,
@@ -1337,6 +1639,8 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _testo_pulsante_salvataggio(self):
         """Restituisce la dicitura coerente con contesto e modalità di modifica."""
+        if self._tappe_ids_da_sostituire is not None:
+            return "Aggiorna percorso"
         if self.tappa_in_modifica_id:
             return "Aggiorna tappa"
         etichette = {
