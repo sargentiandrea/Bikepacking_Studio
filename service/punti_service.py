@@ -111,12 +111,23 @@ def normalizza_luogo(testo):
     return testo
 
 
-def firma_pianificazione(progetto, partenza, punti, destinazione, profilo, tappa_in_modifica_id):
+def firma_pianificazione(
+    progetto,
+    partenza,
+    punti,
+    destinazione,
+    profilo,
+    tappa_in_modifica_id,
+    contesto=None,
+    blocco=None,
+):
     """
     Crea la chiave che dice se un'anteprima calcolata corrisponde ancora ai campi
     del form: se cambia anche solo un campo, la chiave e diversa.
     I testi vengono normalizzati (spazi, maiuscole, accenti): cosi "Modena" e
     "modena" non fanno ricalcolare inutilmente la rotta.
+    Contesto e blocco fanno parte della chiave per non salvare una rotta con
+    una scelta diversa da quella presente quando e stata calcolata.
     """
     return (
         progetto,
@@ -125,6 +136,8 @@ def firma_pianificazione(progetto, partenza, punti, destinazione, profilo, tappa
         normalizza_luogo(destinazione),
         normalizza_luogo(profilo),
         tappa_in_modifica_id,
+        normalizza_luogo(contesto),
+        normalizza_luogo(blocco),
     )
 
 

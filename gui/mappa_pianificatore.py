@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QComboBox,
+    QButtonGroup,
     QFrame,
     QGraphicsDropShadowEffect,
     QHBoxLayout,
@@ -39,6 +40,12 @@ from service.dettagli_rotta_service import (
 )
 from service.geo_utils import calcola_distanza_haversine
 from service.mappa_dati_service import carica_coordinate_tappa, carica_tappe_attive
+from service.planning_context_service import (
+    CONTESTI_PIANIFICAZIONE,
+    carica_blocchi_progetto,
+    stato_da_contesto,
+    valida_nome_nuovo_blocco,
+)
 from service.punti_service import (
     aggiorna_testi_tappe,
     estremi_tappa,
@@ -71,6 +78,9 @@ class PannelloPianificazioneWidget(QFrame):
         self.tappa_in_modifica_id = None
         self.ultima_anteprima = None
         self.firma_ultima_anteprima = None
+        self._contesto_selezionato = None
+        self._blocchi_disponibili = []
+        self._errore_caricamento_blocchi = False
         self._progetto_sincronizzato_id = "non_ancora_verificato"  # sentinella diversa da None/ID reali
         # Ciclo di vita del worker analisi-superfici nel gestore unico.
         self._gestore_superfici = GestoreWorkerSingolo(
@@ -178,6 +188,62 @@ class PannelloPianificazioneWidget(QFrame):
         contenuto_layout.setContentsMargins(0, 0, 4, 0)
         contenuto_layout.setSpacing(12)
         contenuto_layout.setSizeConstraint(QVBoxLayout.SetMinimumSize)
+
+        lbl_contesto = QLabel("Cosa stai creando?")
+        lbl_contesto.setStyleSheet("color: #f8fafc; font-size: 13px; font-weight: bold;")
+        contenuto_layout.addWidget(lbl_contesto)
+
+        gruppo_righe_contesto = QVBoxLayout()
+        gruppo_righe_contesto.setSpacing(6)
+        self.gruppo_contesti = QButtonGroup(self)
+        self.gruppo_contesti.setExclusive(True)
+        self.pulsanti_contesto = {}
+        for riga_contesti in (CONTESTI_PIANIFICAZIONE[:2], CONTESTI_PIANIFICAZIONE[2:]):
+            layout_riga = QHBoxLayout()
+            layout_riga.setSpacing(6)
+            for valore_contesto, etichetta_contesto in riga_contesti:
+                pulsante = QPushButton(etichetta_contesto)
+                pulsante.setCheckable(True)
+                pulsante.setCursor(Qt.PointingHandCursor)
+                pulsante.setMinimumHeight(38)
+                pulsante.setStyleSheet(
+                    "QPushButton { background: #2d2d2d; color: #cbd5e1; "
+                    "border: 1px solid #475569; border-radius: 6px; padding: 6px; } "
+                    "QPushButton:checked { background: #075985; color: white; "
+                    "border: 1px solid #38bdf8; font-weight: bold; }"
+                )
+                pulsante.clicked.connect(
+                    lambda selezionato, valore=valore_contesto: (
+                        self._imposta_contesto(valore) if selezionato else None
+                    )
+                )
+                self.gruppo_contesti.addButton(pulsante)
+                self.pulsanti_contesto[valore_contesto] = pulsante
+                layout_riga.addWidget(pulsante)
+            gruppo_righe_contesto.addLayout(layout_riga)
+        contenuto_layout.addLayout(gruppo_righe_contesto)
+
+        self.lbl_riepilogo_contesto = QLabel(
+            "Scegli una delle quattro opzioni prima di salvare."
+        )
+        self.lbl_riepilogo_contesto.setWordWrap(True)
+        contenuto_layout.addWidget(self.lbl_riepilogo_contesto)
+
+        self.pannello_blocco_contesto = QWidget()
+        layout_blocco_contesto = QVBoxLayout(self.pannello_blocco_contesto)
+        layout_blocco_contesto.setContentsMargins(0, 0, 0, 0)
+        layout_blocco_contesto.setSpacing(6)
+        self.combo_blocco_contesto = QComboBox()
+        self.combo_blocco_contesto.currentIndexChanged.connect(
+            self._aggiorna_nuovo_blocco_visibile
+        )
+        self.input_nuovo_blocco = QLineEdit()
+        self.input_nuovo_blocco.setPlaceholderText("Nome del nuovo blocco...")
+        layout_blocco_contesto.addWidget(QLabel("A quale blocco appartiene?"))
+        layout_blocco_contesto.addWidget(self.combo_blocco_contesto)
+        layout_blocco_contesto.addWidget(self.input_nuovo_blocco)
+        self.pannello_blocco_contesto.setVisible(False)
+        contenuto_layout.addWidget(self.pannello_blocco_contesto)
         
         # --- SEZIONE PARTENZA ---
         layout_partenza = QHBoxLayout()
@@ -298,7 +364,7 @@ class PannelloPianificazioneWidget(QFrame):
         contenuto_layout.addWidget(self.combo_profilo)
         
         # --- PULSANTE DI SALVATAGGIO / AZIONE ---
-        self.btn_salva = QPushButton("Salva Percorso")
+        self.btn_salva = QPushButton("Scegli cosa creare")
         self.btn_salva.setStyleSheet("""
             QPushButton {
                 background-color: #0284c7;
@@ -320,8 +386,121 @@ class PannelloPianificazioneWidget(QFrame):
         layout.addWidget(self.area_scorrimento)
         self.adatta_altezza()
 
+    def _imposta_contesto(self, contesto):
+        """Aggiorna il contesto selezionato e mostra solo i campi che gli servono."""
+        self._contesto_selezionato = contesto
+        etichette = dict(CONTESTI_PIANIFICAZIONE)
+        descrizioni = {
+            "tappa_unica": "Una sola tappa, senza suddivisione automatica.",
+            "percorso": "Un percorso completo, pronto per la successiva suddivisione.",
+            "parte_viaggio": "Una tappa da aggiungere a un blocco del viaggio.",
+            "test": "Una bozza tecnica, non conteggiata come tappa attiva.",
+        }
+        self.lbl_riepilogo_contesto.setText(
+            f"{etichette[contesto]}: {descrizioni[contesto]}"
+        )
+        if hasattr(self, "btn_salva"):
+            self.btn_salva.setText(self._testo_pulsante_salvataggio())
+        mostra_blocchi = contesto == "parte_viaggio"
+        self.pannello_blocco_contesto.setVisible(mostra_blocchi)
+        if mostra_blocchi:
+            self._carica_blocchi_contesto()
+
+    def _carica_blocchi_contesto(self):
+        """Carica i blocchi del progetto per l'assegnazione della nuova tappa."""
+        progetto = getattr(
+            getattr(self.mappa_widget, "parent_app", None),
+            "current_progetto_id",
+            None,
+        )
+        self.combo_blocco_contesto.clear()
+        self._blocchi_disponibili = []
+        self._errore_caricamento_blocchi = False
+        if not progetto:
+            self.lbl_riepilogo_contesto.setText(
+                "Apri prima un percorso per scegliere o creare un blocco."
+            )
+            return
+        try:
+            self._blocchi_disponibili = carica_blocchi_progetto(progetto, DB_NAME)
+        except sqlite3.Error as errore:
+            self._errore_caricamento_blocchi = True
+            self.combo_blocco_contesto.setEnabled(False)
+            QMessageBox.critical(
+                self,
+                "Blocchi non disponibili",
+                f"Non è stato possibile leggere i blocchi del percorso: {errore}",
+            )
+            return
+
+        self.combo_blocco_contesto.setEnabled(True)
+        self.combo_blocco_contesto.addItems(self._blocchi_disponibili)
+        self.combo_blocco_contesto.addItem("+ Crea un nuovo blocco...")
+        if not self._blocchi_disponibili:
+            self.combo_blocco_contesto.setCurrentIndex(0)
+        self._aggiorna_nuovo_blocco_visibile()
+
+    def _aggiorna_nuovo_blocco_visibile(self):
+        """Mostra il campo nome solo quando è selezionata la creazione di un blocco."""
+        crea_nuovo = (
+            self._contesto_selezionato == "parte_viaggio"
+            and self.combo_blocco_contesto.currentIndex()
+            == len(self._blocchi_disponibili)
+        )
+        self.input_nuovo_blocco.setVisible(crea_nuovo)
+
+    def _dati_contesto_salvataggio(self, mostra_dialogo=True):
+        """Valida la scelta e restituisce stato, blocco e modalità di creazione."""
+        if self._contesto_selezionato is None:
+            if mostra_dialogo:
+                QMessageBox.warning(
+                    self,
+                    "Contesto richiesto",
+                    "Scegli cosa stai creando prima di salvare.",
+                )
+            return None
+
+        blocco = None
+        crea_blocco = False
+        if self._contesto_selezionato == "parte_viaggio":
+            if self._errore_caricamento_blocchi:
+                if mostra_dialogo:
+                    QMessageBox.warning(
+                        self,
+                        "Blocchi non disponibili",
+                        "Riprova dopo aver verificato il database del percorso.",
+                    )
+                return None
+            indice = self.combo_blocco_contesto.currentIndex()
+            if indice == len(self._blocchi_disponibili):
+                blocco, errore = valida_nome_nuovo_blocco(
+                    self.input_nuovo_blocco.text(),
+                    self._blocchi_disponibili,
+                )
+                crea_blocco = True
+            elif 0 <= indice < len(self._blocchi_disponibili):
+                blocco = self._blocchi_disponibili[indice]
+                errore = None
+            else:
+                blocco = None
+                errore = "Scegli un blocco esistente o creane uno nuovo."
+            if errore:
+                if mostra_dialogo:
+                    QMessageBox.warning(self, "Blocco richiesto", errore)
+                return None
+
+        return stato_da_contesto(self._contesto_selezionato), blocco, crea_blocco
+
     def _firma_pianificazione(self):
         """Crea una chiave per sapere se l'anteprima corrisponde ai campi attuali."""
+        blocco = None
+        if self._contesto_selezionato == "parte_viaggio":
+            indice = self.combo_blocco_contesto.currentIndex()
+            blocco = (
+                self.input_nuovo_blocco.text()
+                if indice == len(self._blocchi_disponibili)
+                else self.combo_blocco_contesto.currentText()
+            )
         return firma_pianificazione(
             getattr(getattr(self.mappa_widget, "parent_app", None), "current_progetto_id", None),
             self.input_partenza.text(),
@@ -329,6 +508,8 @@ class PannelloPianificazioneWidget(QFrame):
             self.input_destinazione.text(),
             self.combo_profilo.currentText(),
             self.tappa_in_modifica_id,
+            self._contesto_selezionato,
+            blocco,
         )
 
     def _valida_pianificazione(self, mostra_dialogo=True):
@@ -422,9 +603,7 @@ class PannelloPianificazioneWidget(QFrame):
     def _ripristina_pulsante_salvataggio(self):
         """Rende il pulsante Salva di nuovo attivo con la dicitura giusta."""
         self.btn_salva.setEnabled(True)
-        self.btn_salva.setText(
-            "Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso"
-        )
+        self.btn_salva.setText(self._testo_pulsante_salvataggio())
 
     def _worker_pianificazione_terminato(self):
         """Ripristina il pulsante quando il worker di routing termina."""
@@ -440,7 +619,7 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _anteprima_rotta_completata(self, riuscito, risultato, errore, firma):
         """Aggiorna anteprima e dettagli dopo il completamento del routing."""
-        self.btn_salva.setText("Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso")
+        self.btn_salva.setText(self._testo_pulsante_salvataggio())
         if not riuscito:
             self.dettagli_rotta.imposta_stato_con_azioni(
                 testo_stato_errore_routing(errore),
@@ -491,7 +670,7 @@ class PannelloPianificazioneWidget(QFrame):
             while self.punti_passaggio:
                 self._rimuovi_punto_passaggio(self.punti_passaggio[-1]["widget"])
             self.tappa_in_modifica_id = tappa_id
-            self.btn_salva.setText("Aggiorna tappa")
+            self.btn_salva.setText(self._testo_pulsante_salvataggio())
             self.aggiungi_waypoint(latitudine, longitudine)
         except (OSError, sqlite3.Error, ValueError) as errore:
             QMessageBox.warning(self, "Modifica tratta non riuscita", str(errore))
@@ -819,6 +998,8 @@ class PannelloPianificazioneWidget(QFrame):
 
     def _gestisci_salvataggio_percorso(self):
         """Salva l'anteprima corrente oppure calcola la rotta prima di salvarla."""
+        if self._dati_contesto_salvataggio() is None:
+            return
         dati = self._valida_pianificazione()
         if not dati:
             return
@@ -841,7 +1022,7 @@ class PannelloPianificazioneWidget(QFrame):
     def _salvataggio_percorso_completato(self, riuscito, risultato, errore, firma=None):
         """Scrive la traccia GPX e i relativi dati solo dopo un routing valido."""
         self.btn_salva.setEnabled(True)
-        self.btn_salva.setText("Aggiorna tappa" if self.tappa_in_modifica_id else "Salva Percorso")
+        self.btn_salva.setText(self._testo_pulsante_salvataggio())
 
         if not riuscito:
             # L'errore va nella riga di stato con la sua azione Riprova: un
@@ -857,6 +1038,11 @@ class PannelloPianificazioneWidget(QFrame):
                 [("Riprova", self._ricalcola_anteprima)],
             )
             return
+
+        dati_contesto = self._dati_contesto_salvataggio()
+        if dati_contesto is None:
+            return
+        stato_contesto, blocco_contesto, crea_blocco = dati_contesto
 
         finestra_principale = getattr(self.mappa_widget, "parent_app", None)
         id_progetto_corrente = getattr(finestra_principale, "current_progetto_id", None)
@@ -899,6 +1085,9 @@ class PannelloPianificazioneWidget(QFrame):
                 db_name=DB_NAME,
                 directory_gpx=GPX_DIR,
                 esito=stato_salvataggio,
+                stato=stato_contesto,
+                blocco=blocco_contesto,
+                crea_blocco=crea_blocco,
             )
             tappa_in_aggiornamento = esito["aggiornata"]
             precalcolo_riuscito = esito["precalcolo_riuscito"]
@@ -914,7 +1103,7 @@ class PannelloPianificazioneWidget(QFrame):
             self.tappa_in_modifica_id = None
             self.ultima_anteprima = None
             self.firma_ultima_anteprima = None
-            self.btn_salva.setText("Salva Percorso")
+            self.btn_salva.setText(self._testo_pulsante_salvataggio())
             self.mappa_widget.rigenera_mappa(
                 id_progetto_corrente,
                 DB_NAME,
@@ -922,13 +1111,27 @@ class PannelloPianificazioneWidget(QFrame):
                 adatta_visuale=False,
             )
 
+            messaggi_salvataggio = {
+                "tappa_unica": ("Tappa salvata", "La tappa è stata salvata."),
+                "percorso": ("Percorso salvato", "Il percorso è stato salvato."),
+                "parte_viaggio": (
+                    "Tappa aggiunta al blocco",
+                    f"La tappa è stata aggiunta al blocco «{blocco_contesto}».",
+                ),
+                "test": (
+                    "Bozza tecnica salvata",
+                    "La traccia è stata salvata come bozza e non è inclusa nei calcoli.",
+                ),
+            }
+            titolo, messaggio = messaggi_salvataggio[self._contesto_selezionato]
+            if tappa_in_aggiornamento:
+                messaggio = "La tappa è stata aggiornata. " + messaggio
             QMessageBox.information(
                 self,
-                "Percorso salvato",
-                f"La tappa è stata {'aggiornata' if tappa_in_aggiornamento else 'aggiunta'} al progetto. "
-                f"Distanza: {distanza_km:.1f} km.",
+                titolo,
+                f"{messaggio} Distanza: {distanza_km:.1f} km.",
             )
-            if not precalcolo_riuscito:
+            if not precalcolo_riuscito and not esito.get("precalcolo_saltato"):
                 QMessageBox.warning(
                     self,
                     "Precalcolo non completato",
@@ -943,3 +1146,15 @@ class PannelloPianificazioneWidget(QFrame):
                 "Errore di salvataggio",
                 f"Il percorso non è stato salvato nel database: {errore_salvataggio}",
             )
+
+    def _testo_pulsante_salvataggio(self):
+        """Restituisce la dicitura coerente con contesto e modalità di modifica."""
+        if self.tappa_in_modifica_id:
+            return "Aggiorna tappa"
+        etichette = {
+            "tappa_unica": "Salva tappa",
+            "percorso": "Salva percorso",
+            "parte_viaggio": "Salva nel blocco",
+            "test": "Salva bozza",
+        }
+        return etichette.get(self._contesto_selezionato, "Salva Percorso")

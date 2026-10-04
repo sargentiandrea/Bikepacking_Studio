@@ -214,12 +214,19 @@ class DashboardPage(QWidget):
 
             # 5. Colonna Ruolo / Tipo (ComboBox)
             combo_ruolo = QComboBox()
-            combo_ruolo.addItems(["Traccia Principale (ATTIVA)", "Variante Opzionale (VARIANTE)", "Sospesa / Pausa (SOSPESA)"])
+            combo_ruolo.addItems([
+                "Traccia Principale (ATTIVA)",
+                "Variante Opzionale (VARIANTE)",
+                "Sospesa / Pausa (SOSPESA)",
+                "Bozza tecnica (BOZZA)",
+            ])
             
             if stato_val == 'ATTIVA':
                 combo_ruolo.setCurrentIndex(0)
             elif stato_val == 'VARIANTE':
                 combo_ruolo.setCurrentIndex(1)
+            elif stato_val == 'BOZZA':
+                combo_ruolo.setCurrentIndex(3)
             else:
                 combo_ruolo.setCurrentIndex(2)
 
@@ -238,7 +245,11 @@ class DashboardPage(QWidget):
             layout_btns.setSpacing(4)
 
             is_pausa = (stato_val == 'SOSPESA')
-            btn_pausa = QPushButton("▶️ Attiva" if is_pausa else "⏸️ Pausa")
+            is_bozza = (stato_val == 'BOZZA')
+            btn_pausa = QPushButton(
+                "Bozza tecnica" if is_bozza else "▶️ Attiva" if is_pausa else "⏸️ Pausa"
+            )
+            btn_pausa.setEnabled(not is_bozza)
             btn_pausa.setStyleSheet("background-color: #f39c12; color: white; font-weight: bold; font-size: 11px;")
             btn_pausa.clicked.connect(lambda _, t_id=tappa_id, p=is_pausa: self.toggle_pausa_tappa(t_id, p))
 

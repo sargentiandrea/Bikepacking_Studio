@@ -12,7 +12,7 @@ from service.config import DB_NAME
 from service.gpx_paths import trova_percorso_gpx
 
 # Traduzione degli indici del menu a tendina negli stati della tappa.
-STATI_PER_RUOLO = {0: 'ATTIVA', 1: 'VARIANTE', 2: 'SOSPESA'}
+STATI_PER_RUOLO = {0: 'ATTIVA', 1: 'VARIANTE', 2: 'SOSPESA', 3: 'BOZZA'}
 
 # Blocco assegnato quando l'utente lascia vuoto il campo.
 BLOCCO_PREDEFINITO = "Generale"
@@ -54,7 +54,7 @@ def imposta_blocco_tappa(tappa_id, nuovo_blocco):
 
 
 def imposta_stato_tappa(tappa_id, stato):
-    """Imposta lo stato della tappa (`ATTIVA`, `SOSPESA` o `VARIANTE`)."""
+    """Imposta lo stato della tappa (`ATTIVA`, `SOSPESA`, `VARIANTE` o `BOZZA`)."""
     conn = sqlite3.connect(DB_NAME)
     try:
         cursor = conn.cursor()
