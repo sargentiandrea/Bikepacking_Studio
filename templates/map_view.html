@@ -121,14 +121,14 @@
             inviaInterazioneMappa('cancel_interaction', null);
         });
 
-        window.aggiornaAnteprimaPercorso = function(routeGeoJson) {
+        window.aggiornaAnteprimaPercorso = function(routeGeoJson, adattaVisuale = true) {
             if (!map || !mappaPronta) return;
             const source = map.getSource('planned-route');
             if (!source) return;
             source.setData(routeGeoJson || { type: 'FeatureCollection', features: [] });
             const line = routeGeoJson && routeGeoJson.features &&
                 routeGeoJson.features.find(feature => feature.geometry && feature.geometry.type === 'LineString');
-            if (line && line.geometry.coordinates.length) {
+            if (adattaVisuale && line && line.geometry.coordinates.length) {
                 const first = line.geometry.coordinates[0];
                 const bounds = new maplibregl.LngLatBounds(first, first);
                 line.geometry.coordinates.forEach(point => bounds.extend(point));

@@ -616,6 +616,7 @@ def analizza_dati_rotta_brouter(proprieta, coordinate):
 
     return {
         "distanza_km": round(distanza_totale_km, 2),
+        "tempo_totale_ore": round(tempo_totale_secondi / 3600.0, 2),
         "velocita_media_kmh": round(velocita_media_kmh, 1) if velocita_media_kmh is not None else None,
         "altitudine_min_m": round(min(quote)) if quote else None,
         "altitudine_max_m": round(max(quote)) if quote else None,

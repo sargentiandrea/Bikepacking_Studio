@@ -219,6 +219,202 @@ def salva_tappa_pianificata(
     }
 
 
+def salva_percorso_suddiviso(
+    id_progetto,
+    tappe,
+    partenza,
+    destinazione,
+    tappa_id=None,
+    db_name=DB_NAME,
+    directory_gpx=GPX_DIR,
+    esito=None,
+):
+    """Salva atomicamente le tappe di un percorso e precalcola ogni GPX.
+
+    Se si sta modificando una tappa, il primo segmento la sostituisce e gli
+    altri vengono inseriti subito dopo, spostando in avanti le tappe successive.
+    """
+    if not tappe:
+        raise ValueError("La suddivisione non contiene tappe da salvare.")
+    if esito is None:
+        esito = {}
+
+    gpx_creati = []
+    righe_tappe = []
+    nome_gpx_precedente = None
+    stato_precedente = "ATTIVA"
+    try:
+        os.makedirs(directory_gpx, exist_ok=True)
+        for indice, tappa in enumerate(tappe, start=1):
+            coordinate = tappa["coordinate"]
+            if len(coordinate) < 2:
+                raise ValueError(f"La tappa {indice} non contiene una geometria valida.")
+            nome_file = f"Pianificato_{id_progetto}_{uuid.uuid4().hex[:10]}.gpx"
+            percorso_file = percorso_gpx_progetto(
+                id_progetto,
+                nome_file,
+                directory_gpx=directory_gpx,
+            )
+            os.makedirs(percorso_file.parent, exist_ok=True)
+
+            traccia = gpxpy.gpx.GPX()
+            traccia.creator = "Bikepacking Studio"
+            segmento = gpxpy.gpx.GPXTrackSegment()
+            for punto in coordinate:
+                latitudine, longitudine = punto[:2]
+                elevazione = float(punto[2]) if len(punto) > 2 else None
+                segmento.points.append(
+                    gpxpy.gpx.GPXTrackPoint(
+                        latitudine,
+                        longitudine,
+                        elevation=elevazione,
+                    )
+                )
+            track = gpxpy.gpx.GPXTrack(
+                name=f"{partenza} - {destinazione} (tappa {indice})"
+            )
+            track.segments.append(segmento)
+            traccia.tracks.append(track)
+            gpx_creati.append(percorso_file)
+            with open(percorso_file, "w", encoding="utf-8") as file:
+                file.write(traccia.to_xml())
+            righe_tappe.append((tappa, nome_file, percorso_file))
+
+        esito["file_gpx"] = list(gpx_creati)
+        id_tappe = []
+        with closing(sqlite3.connect(db_name, timeout=30.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
+                if tappa_id is not None:
+                    cursor.execute(
+                        """
+                        SELECT nome_file, stato, sequenza, blocco
+                        FROM tappe WHERE id = ? AND id_progetto = ?
+                        """,
+                        (tappa_id, id_progetto),
+                    )
+                    riga_esistente = cursor.fetchone()
+                    if not riga_esistente:
+                        raise ValueError(
+                            "La tappa da aggiornare non è più presente nel progetto."
+                        )
+                    nome_gpx_precedente, stato_precedente, sequenza, blocco = (
+                        riga_esistente
+                    )
+                    stato_precedente = stato_precedente or "ATTIVA"
+                    blocco = blocco or "Pianificato"
+                    cursor.execute(
+                        """
+                        UPDATE tappe SET sequenza = sequenza + ?
+                        WHERE id_progetto = ? AND sequenza > ? AND id != ?
+                        """,
+                        (len(tappe) - 1, id_progetto, sequenza, tappa_id),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT COALESCE(MAX(sequenza), 0) + 1
+                        FROM tappe WHERE id_progetto = ?
+                        """,
+                        (id_progetto,),
+                    )
+                    sequenza = cursor.fetchone()[0]
+                    blocco = "Pianificato"
+
+                for indice, riga in enumerate(righe_tappe):
+                    tappa = riga[0]
+                    nome_file = riga[1]
+                    coordinate = tappa["coordinate"]
+                    valori = (
+                        nome_file,
+                        coordinate[0][0],
+                        coordinate[0][1],
+                        coordinate[-1][0],
+                        coordinate[-1][1],
+                        round(float(tappa["distanza_km"]), 2),
+                    )
+                    if indice == 0 and tappa_id is not None:
+                        cursor.execute(
+                            """
+                            UPDATE tappe SET nome_file = ?, start_lat = ?, start_lon = ?,
+                                end_lat = ?, end_lon = ?, distanza_km = ?, stato = ?
+                            WHERE id = ? AND id_progetto = ?
+                            """,
+                            (*valori, stato_precedente, tappa_id, id_progetto),
+                        )
+                        if cursor.rowcount != 1:
+                            raise ValueError(
+                                "La tappa non è stata aggiornata; verifica il progetto attivo."
+                            )
+                        id_tappe.append(tappa_id)
+                    else:
+                        cursor.execute(
+                            """
+                            INSERT INTO tappe (
+                                id_progetto, sequenza, blocco, nome_file,
+                                start_lat, start_lon, end_lat, end_lon,
+                                distanza_km, stato
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ATTIVA')
+                            """,
+                            (
+                                id_progetto,
+                                sequenza + indice,
+                                blocco,
+                                *valori,
+                            ),
+                        )
+                        id_tappe.append(cursor.lastrowid)
+
+        errori_precalcolo = []
+        for id_salvata, riga in zip(id_tappe, righe_tappe):
+            percorso_file = riga[2]
+            try:
+                risultato_precalcolo = precalcola_tappa(
+                    id_salvata,
+                    str(percorso_file),
+                    db_name,
+                )
+                if risultato_precalcolo.get("stato") == "ERRORE":
+                    errori_precalcolo.append(
+                        risultato_precalcolo.get(
+                            "errore", f"errore durante il precalcolo della tappa {id_salvata}"
+                        )
+                    )
+            except Exception as errore:
+                errori_precalcolo.append(str(errore))
+                print(f"Errore precalcolo tappa {id_salvata}: {errore}")
+
+        precalcolo_riuscito = not errori_precalcolo
+        if nome_gpx_precedente and precalcolo_riuscito:
+            percorso_precedente = trova_percorso_gpx(
+                nome_gpx_precedente,
+                id_progetto,
+                directory_gpx=directory_gpx,
+            )
+            if percorso_precedente is not None:
+                try:
+                    os.remove(percorso_precedente)
+                except OSError as errore_file:
+                    print(
+                        "Nota: non è stato possibile rimuovere il GPX precedente: "
+                        f"{errore_file}"
+                    )
+
+        return {
+            "tappa_id": id_tappe[0],
+            "tappe_ids": id_tappe,
+            "numero_tappe": len(id_tappe),
+            "aggiornata": tappa_id is not None,
+            "precalcolo_riuscito": precalcolo_riuscito,
+            "precalcolo_saltato": False,
+            "errore_precalcolo": "; ".join(errori_precalcolo) or None,
+        }
+    except Exception:
+        for percorso_file in gpx_creati:
+            rimuovi_gpx_se_esiste(percorso_file)
+        raise
+
+
 def _completa_ordine_blocchi(cursor, id_progetto):
     """Registra in coda eventuali blocchi già usati ma assenti dall'ordine salvato."""
     cursor.execute(
@@ -316,6 +512,10 @@ def _riordina_tappe_per_blocco(cursor, id_progetto):
 
 def rimuovi_gpx_se_esiste(file_gpx):
     """Cancella un GPX appena scritto; ignora gli errori di cancellazione."""
+    if isinstance(file_gpx, (list, tuple)):
+        for percorso in file_gpx:
+            rimuovi_gpx_se_esiste(percorso)
+        return
     if file_gpx and os.path.exists(file_gpx):
         try:
             os.remove(file_gpx)

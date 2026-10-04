@@ -205,21 +205,46 @@ class MappaWidget(QWidget):
             # Con zero eventi il timer resta attivo in attesa del click: non spostare fuori dal for.
             self._poll_interazioni_timer.stop()
 
-    def mostra_anteprima_percorso(self, coordinate):
-        """Mostra la rotta calcolata in un layer temporaneo, senza scriverla nel DB."""
+    def mostra_anteprima_percorso(
+        self,
+        coordinate,
+        punti_divisione=None,
+        adatta_visuale=True,
+    ):
+        """Mostra la rotta e gli eventuali confini tra tappe senza scriverli nel DB."""
         geojson = {
             "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature",
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [[punto[1], punto[0]] for punto in coordinate],
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [
+                            [punto[1], punto[0]] for punto in coordinate
+                        ],
+                    },
+                    "properties": {"tipo": "anteprima_pianificazione"},
                 },
-                "properties": {"tipo": "anteprima_pianificazione"},
-            }],
+                *[
+                    {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [punto[1], punto[0]],
+                        },
+                        "properties": {
+                            "tipo": "divisione_tappa",
+                            "sequenza": indice,
+                        },
+                    }
+                    for indice, punto in enumerate(punti_divisione or [], start=1)
+                ],
+            ],
         }
         self.web_view.page().runJavaScript(
-            f"if(window.aggiornaAnteprimaPercorso) window.aggiornaAnteprimaPercorso({json.dumps(geojson)});"
+            "if(window.aggiornaAnteprimaPercorso) "
+            f"window.aggiornaAnteprimaPercorso({json.dumps(geojson)}, "
+            f"{json.dumps(adatta_visuale)});"
         )
 
     def cancella_anteprima_percorso(self):

@@ -15,8 +15,11 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QRadioButton,
     QScrollArea,
     QSizePolicy,
+    QDoubleSpinBox,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -61,8 +64,10 @@ from service.punti_service import (
 )
 from service.salvataggio_tappa_service import (
     rimuovi_gpx_se_esiste,
+    salva_percorso_suddiviso,
     salva_tappa_pianificata,
 )
+from service.suddivisione_percorso_service import calcola_suddivisione_percorso
 
 
 GPX_DIR = os.path.join(BASE_DIR, "gpx")
@@ -81,6 +86,7 @@ class PannelloPianificazioneWidget(QFrame):
         self._contesto_selezionato = None
         self._blocchi_disponibili = []
         self._errore_caricamento_blocchi = False
+        self._suddivisione_anteprima = None
         self._progetto_sincronizzato_id = "non_ancora_verificato"  # sentinella diversa da None/ID reali
         # Ciclo di vita del worker analisi-superfici nel gestore unico.
         self._gestore_superfici = GestoreWorkerSingolo(
@@ -244,7 +250,65 @@ class PannelloPianificazioneWidget(QFrame):
         layout_blocco_contesto.addWidget(self.input_nuovo_blocco)
         self.pannello_blocco_contesto.setVisible(False)
         contenuto_layout.addWidget(self.pannello_blocco_contesto)
-        
+
+        self.pannello_suddivisione = QWidget()
+        layout_suddivisione = QVBoxLayout(self.pannello_suddivisione)
+        layout_suddivisione.setContentsMargins(0, 0, 0, 0)
+        layout_suddivisione.setSpacing(6)
+        lbl_suddivisione = QLabel("Suddividi il percorso in tappe")
+        lbl_suddivisione.setStyleSheet(
+            "color: #f8fafc; font-size: 12px; font-weight: bold;"
+        )
+        layout_suddivisione.addWidget(lbl_suddivisione)
+
+        riga_km = QHBoxLayout()
+        self.radio_km_per_tappa = QRadioButton("Km per tappa")
+        self.radio_km_per_tappa.setChecked(True)
+        self.spin_km_per_tappa = QDoubleSpinBox()
+        self.spin_km_per_tappa.setRange(1.0, 10000.0)
+        self.spin_km_per_tappa.setDecimals(1)
+        self.spin_km_per_tappa.setValue(120.0)
+        self.spin_km_per_tappa.setSuffix(" km")
+        riga_km.addWidget(self.radio_km_per_tappa)
+        riga_km.addStretch()
+        riga_km.addWidget(self.spin_km_per_tappa)
+        layout_suddivisione.addLayout(riga_km)
+
+        riga_giorni = QHBoxLayout()
+        self.radio_giorni_per_tappa = QRadioButton("Giorni per tappa")
+        self.spin_giorni_per_tappa = QSpinBox()
+        self.spin_giorni_per_tappa.setRange(1, 365)
+        self.spin_giorni_per_tappa.setValue(1)
+        self.spin_giorni_per_tappa.setSuffix(" giorni")
+        riga_giorni.addWidget(self.radio_giorni_per_tappa)
+        riga_giorni.addStretch()
+        riga_giorni.addWidget(self.spin_giorni_per_tappa)
+        layout_suddivisione.addLayout(riga_giorni)
+        lbl_stima_giornata = QLabel("La stima considera 6 ore effettive di bici al giorno.")
+        lbl_stima_giornata.setWordWrap(True)
+        layout_suddivisione.addWidget(lbl_stima_giornata)
+
+        self.lbl_anteprima_suddivisione = QLabel(
+            "L'anteprima della suddivisione comparirà dopo il calcolo della rotta."
+        )
+        self.lbl_anteprima_suddivisione.setWordWrap(True)
+        layout_suddivisione.addWidget(self.lbl_anteprima_suddivisione)
+        self.pannello_suddivisione.setVisible(False)
+        contenuto_layout.addWidget(self.pannello_suddivisione)
+
+        self.radio_km_per_tappa.toggled.connect(
+            self._modalita_suddivisione_modificata
+        )
+        self.radio_giorni_per_tappa.toggled.connect(
+            self._modalita_suddivisione_modificata
+        )
+        self.spin_km_per_tappa.valueChanged.connect(
+            self._aggiorna_anteprima_suddivisione
+        )
+        self.spin_giorni_per_tappa.valueChanged.connect(
+            self._aggiorna_anteprima_suddivisione
+        )
+
         # --- SEZIONE PARTENZA ---
         layout_partenza = QHBoxLayout()
         layout_partenza.setSpacing(8)
@@ -403,8 +467,69 @@ class PannelloPianificazioneWidget(QFrame):
             self.btn_salva.setText(self._testo_pulsante_salvataggio())
         mostra_blocchi = contesto == "parte_viaggio"
         self.pannello_blocco_contesto.setVisible(mostra_blocchi)
+        mostra_suddivisione = contesto == "percorso"
+        self.pannello_suddivisione.setVisible(mostra_suddivisione)
         if mostra_blocchi:
             self._carica_blocchi_contesto()
+        self._aggiorna_anteprima_suddivisione()
+
+    def _modalita_suddivisione_modificata(self, selezionata):
+        """Ricalcola l'anteprima solo quando cambia la modalità selezionata."""
+        if selezionata:
+            self._aggiorna_anteprima_suddivisione()
+
+    def _aggiorna_anteprima_suddivisione(self):
+        """Aggiorna il riepilogo e i punti di divisione sulla mappa."""
+        anteprima = self.ultima_anteprima
+        if self._contesto_selezionato != "percorso" or not anteprima:
+            self._suddivisione_anteprima = None
+            if hasattr(self, "lbl_anteprima_suddivisione"):
+                self.lbl_anteprima_suddivisione.setText(
+                    "L'anteprima della suddivisione comparirà dopo il calcolo della rotta."
+                )
+            if anteprima and self.mappa_widget:
+                self.mappa_widget.mostra_anteprima_percorso(
+                    anteprima["coordinate"],
+                    adatta_visuale=False,
+                )
+            return
+
+        statistiche = anteprima.get("statistiche") or {}
+        opzioni = {
+            "distanza_totale_km": statistiche.get("distanza_km"),
+        }
+        if self.radio_km_per_tappa.isChecked():
+            opzioni["km_per_tappa"] = self.spin_km_per_tappa.value()
+        else:
+            opzioni["giorni_per_tappa"] = self.spin_giorni_per_tappa.value()
+            opzioni["tempo_totale_ore"] = statistiche.get("tempo_totale_ore")
+
+        try:
+            self._suddivisione_anteprima = calcola_suddivisione_percorso(
+                anteprima["coordinate"],
+                **opzioni,
+            )
+        except ValueError as errore:
+            self._suddivisione_anteprima = None
+            self.lbl_anteprima_suddivisione.setText(str(errore))
+            self.mappa_widget.mostra_anteprima_percorso(
+                anteprima["coordinate"],
+                adatta_visuale=False,
+            )
+            return
+
+        divisione = self._suddivisione_anteprima
+        distanze = ", ".join(f"{km:g}" for km in divisione["distanze_km"])
+        unita = "km per tappa" if divisione["modalita"] == "km" else "km al giorno"
+        self.lbl_anteprima_suddivisione.setText(
+            f'{divisione["numero_tappe"]} tappe: {distanze} km ({unita}). '
+            "I punti di divisione sono evidenziati sulla mappa."
+        )
+        self.mappa_widget.mostra_anteprima_percorso(
+            anteprima["coordinate"],
+            divisione["punti_divisione"],
+            adatta_visuale=False,
+        )
 
     def _carica_blocchi_contesto(self):
         """Carica i blocchi del progetto per l'assegnazione della nuova tappa."""
@@ -645,6 +770,7 @@ class PannelloPianificazioneWidget(QFrame):
                 testo_stato_anteprima_pronta(distanza_km),
             )
         )
+        self._aggiorna_anteprima_suddivisione()
 
     def aggiungi_waypoint(self, latitudine, longitudine):
         """Inserisce nel form un punto ricevuto dalla mappa e aggiorna l'anteprima."""
@@ -1071,24 +1197,75 @@ class PannelloPianificazioneWidget(QFrame):
             QMessageBox.warning(self, "Traccia non valida", "Il percorso calcolato non contiene una distanza valida.")
             return
 
+        suddivisione = None
+        if self._contesto_selezionato == "percorso":
+            self._aggiorna_anteprima_suddivisione()
+            suddivisione = self._suddivisione_anteprima
+            if suddivisione is None:
+                QMessageBox.warning(
+                    self,
+                    "Suddivisione non disponibile",
+                    self.lbl_anteprima_suddivisione.text(),
+                )
+                return
+            riepilogo = ", ".join(
+                f"{km:g} km" for km in suddivisione["distanze_km"]
+            )
+            conferma = QMessageBox.question(
+                self,
+                "Conferma suddivisione",
+                f"Salverai {suddivisione['numero_tappe']} tappe "
+                f"({distanza_km:.1f} km): {riepilogo}.\n\nProcedere?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes,
+            )
+            if conferma != QMessageBox.Yes:
+                return
+
         # Il file GPX appena scritto serve a ripulire se un passo successivo della GUI fallisce.
         stato_salvataggio = {}
+        salvataggio_database_completato = False
         try:
-            # Scrittura GPX, SQLite e precalcolo: tutta la parte dati sta nel servizio.
-            esito = salva_tappa_pianificata(
-                id_progetto_corrente,
-                coordinate,
-                partenza,
-                destinazione,
-                distanza_km,
-                tappa_id=risultato.get("tappa_id"),
-                db_name=DB_NAME,
-                directory_gpx=GPX_DIR,
-                esito=stato_salvataggio,
-                stato=stato_contesto,
-                blocco=blocco_contesto,
-                crea_blocco=crea_blocco,
-            )
+            if suddivisione is not None:
+                tappe_da_salvare = []
+                coordinate_per_tappa = suddivisione["tappe"]
+                distanze_per_tappa = suddivisione["distanze_km"]
+                for coordinate_tappa, distanza_tappa in zip(
+                    coordinate_per_tappa, distanze_per_tappa
+                ):
+                    tappe_da_salvare.append(
+                        {
+                            "coordinate": coordinate_tappa,
+                            "distanza_km": distanza_tappa,
+                        }
+                    )
+                esito = salva_percorso_suddiviso(
+                    id_progetto_corrente,
+                    tappe_da_salvare,
+                    partenza,
+                    destinazione,
+                    tappa_id=risultato.get("tappa_id"),
+                    db_name=DB_NAME,
+                    directory_gpx=GPX_DIR,
+                    esito=stato_salvataggio,
+                )
+            else:
+                # Scrittura GPX, SQLite e precalcolo: tutta la parte dati sta nel servizio.
+                esito = salva_tappa_pianificata(
+                    id_progetto_corrente,
+                    coordinate,
+                    partenza,
+                    destinazione,
+                    distanza_km,
+                    tappa_id=risultato.get("tappa_id"),
+                    db_name=DB_NAME,
+                    directory_gpx=GPX_DIR,
+                    esito=stato_salvataggio,
+                    stato=stato_contesto,
+                    blocco=blocco_contesto,
+                    crea_blocco=crea_blocco,
+                )
+            salvataggio_database_completato = True
             tappa_in_aggiornamento = esito["aggiornata"]
             precalcolo_riuscito = esito["precalcolo_riuscito"]
             errore_precalcolo = esito["errore_precalcolo"]
@@ -1110,10 +1287,15 @@ class PannelloPianificazioneWidget(QFrame):
                 force=True,
                 adatta_visuale=False,
             )
+            if suddivisione is not None:
+                self.mappa_widget.cancella_anteprima_percorso()
 
             messaggi_salvataggio = {
                 "tappa_unica": ("Tappa salvata", "La tappa è stata salvata."),
-                "percorso": ("Percorso salvato", "Il percorso è stato salvato."),
+                "percorso": (
+                    "Percorso suddiviso e salvato",
+                    f"Il percorso è stato suddiviso in {esito['numero_tappe']} tappe.",
+                ),
                 "parte_viaggio": (
                     "Tappa aggiunta al blocco",
                     f"La tappa è stata aggiunta al blocco «{blocco_contesto}».",
@@ -1140,11 +1322,17 @@ class PannelloPianificazioneWidget(QFrame):
                     "Il GPX precedente è stato conservato.",
                 )
         except Exception as errore_salvataggio:
-            rimuovi_gpx_se_esiste(stato_salvataggio.get("file_gpx"))
+            if not salvataggio_database_completato:
+                rimuovi_gpx_se_esiste(stato_salvataggio.get("file_gpx"))
             QMessageBox.critical(
                 self,
                 "Errore di salvataggio",
-                f"Il percorso non è stato salvato nel database: {errore_salvataggio}",
+                (
+                    "Il percorso è stato salvato, ma non è stato possibile aggiornare "
+                    f"tutti i pannelli: {errore_salvataggio}"
+                    if salvataggio_database_completato
+                    else f"Il percorso non è stato salvato nel database: {errore_salvataggio}"
+                ),
             )
 
     def _testo_pulsante_salvataggio(self):
