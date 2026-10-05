@@ -1,13 +1,13 @@
 {
   "meta": {
-    "data_analisi": "2026-10-03T23:32:14.835330",
+    "data_analisi": "2026-10-06T00:26:21.460046",
     "nome_progetto": "Bikepacking_Studio",
     "versione_script": "v3.0"
   },
   "sintesi": {
-    "totale_moduli": 66,
-    "totale_classi": 30,
-    "totale_funzioni": 455,
+    "totale_moduli": 77,
+    "totale_classi": 48,
+    "totale_funzioni": 585,
     "totale_rotte_flask": 8,
     "totale_tabelle": 27,
     "tabelle_create": [
@@ -69,6 +69,7 @@
       "__future__",
       "argparse",
       "collections",
+      "collections.abc",
       "contextlib",
       "csv",
       "datetime",
@@ -102,9 +103,14 @@
       "sqlite3",
       "subprocess",
       "sys",
+      "tempfile",
       "threading",
       "time",
+      "types",
       "typing",
+      "unicodedata",
+      "unittest",
+      "unittest.mock",
       "urllib.error",
       "urllib.parse",
       "urllib.request",
@@ -141,7 +147,8 @@
         "gui/widget_timeline_catena.py",
         "gui/wizard_percorso.py",
         "gui/worker_clima.py",
-        "service/mappa_dati_service.py"
+        "service/mappa_dati_service.py",
+        "tests/test_pianificatore_5_1_gui.py"
       ],
       "database": [
         "database/database_setup.py"
@@ -173,23 +180,33 @@
         "service/migrazione_tappa_costa.py",
         "service/migrazione_tappa_costa_metadati.py",
         "service/migrazione_tappa_geometrie.py",
+        "service/planning_context_service.py",
         "service/precalcolo_batch_service.py",
         "service/precalcolo_service.py",
         "service/progetti_service.py",
         "service/punti_service.py",
+        "service/routing_timeout_service.py",
         "service/salvataggio_tappa_service.py",
         "service/sprite_bandiere_service.py",
         "service/stats_service.py",
+        "service/suddivisione_percorso_service.py",
         "service/superfici_service.py",
         "service/tappe_service.py",
-        "service/trasferimenti_service.py"
+        "service/trasferimenti_service.py",
+        "service/waypoint_service.py"
       ],
       "altro": [
         "app_desktop.py",
         "backup.py",
+        "import_clima_mondiale.py",
         "installa_geonames.py",
         "resources/genera_catalogo_sprite.py",
-        "static/aggiorna_sprite.py"
+        "static/aggiorna_sprite.py",
+        "tests/test_coda_routing.py",
+        "tests/test_pianificatore_5_1.py",
+        "tests/test_pianificatore_5_2.py",
+        "tests/test_pianificatore_5_3.py",
+        "tests/test_pianificatore_5_4.py"
       ]
     },
     "rotte_api": {
@@ -297,11 +314,6 @@
         "file": "gui/mappa.py"
       },
       {
-        "simbolo": "cancella_anteprima_percorso",
-        "tipo": "funzione",
-        "file": "gui/mappa.py"
-      },
-      {
         "simbolo": "carica_allarmi_attivi",
         "tipo": "funzione",
         "file": "gui/pagine/pagina_audit.py"
@@ -330,6 +342,11 @@
         "simbolo": "EstrazioneClimaWorker",
         "tipo": "classe",
         "file": "gui/worker_clima.py"
+      },
+      {
+        "simbolo": "righe_progetto_1",
+        "tipo": "funzione",
+        "file": "import_clima_mondiale.py"
       },
       {
         "simbolo": "genera_singolo_pdf",
@@ -365,6 +382,11 @@
         "simbolo": "calcola_catena_stagionale",
         "tipo": "funzione",
         "file": "service/clima_service.py"
+      },
+      {
+        "simbolo": "testo_stato_in_modifica",
+        "tipo": "funzione",
+        "file": "service/dettagli_rotta_service.py"
       },
       {
         "simbolo": "inizializza_tabelle_dogane",
@@ -517,9 +539,429 @@
         "file": "service/superfici_service.py"
       },
       {
+        "simbolo": "proietta",
+        "tipo": "funzione",
+        "file": "service/waypoint_service.py"
+      },
+      {
         "simbolo": "get_props",
         "tipo": "funzione",
         "file": "static/aggiorna_sprite.py"
+      },
+      {
+        "simbolo": "WorkerFalso",
+        "tipo": "classe",
+        "file": "tests/test_coda_routing.py"
+      },
+      {
+        "simbolo": "TestCodaRouting",
+        "tipo": "classe",
+        "file": "tests/test_coda_routing.py"
+      },
+      {
+        "simbolo": "test_richieste_in_successione_non_si_pierdono",
+        "tipo": "funzione",
+        "file": "tests/test_coda_routing.py"
+      },
+      {
+        "simbolo": "test_worker_annullato_non_blocca_la_coda",
+        "tipo": "funzione",
+        "file": "tests/test_coda_routing.py"
+      },
+      {
+        "simbolo": "test_invalida_scarta_il_risultato_in_arrivo",
+        "tipo": "funzione",
+        "file": "tests/test_coda_routing.py"
+      },
+      {
+        "simbolo": "test_gestore_preserva_i_worker_vivi",
+        "tipo": "funzione",
+        "file": "tests/test_coda_routing.py"
+      },
+      {
+        "simbolo": "TestFirmaNormalizzata",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "TestWorkerAnnullabile",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "TestTestiStato",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "TestTimeoutDifferenziato",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "TestStimaDistanza",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "TestAvvisoPercorsoLungo",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_maiuscole_spazi_e_accenti_non_contano",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_luoghi_diversi_restano_diversi",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_profilo_e_progetto_contano",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_normalizza_luogo_rimuove_gli_accenti",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_normalizza_luogo_tolera_none",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_annullamento_preventivo_notifica_comunque",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_timeout_massimo_dichiarato",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_errore_mostra_il_motivo",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_anteprima_pronta_mostra_la_distanza",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_anteprima_pronta_senza_distanza",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_percorso_breve_usa_il_tetto_base",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_percorso_medio_cresce_di_10_su_100_km",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_bologna_napoli_ha_margine_su_il_tempo_misurato",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_il_tetto_ha_un_massimo",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_valori_assenti_usano_il_massimo",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_punti_insufficienti_danno_zero",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_punti_senza_coordinate_ignored",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_la_stima_correge_la_distanza_aerea",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_avviso_sotto_soglia_assente",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_avviso_oltre_soglia_presente",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_avviso_tolera_distanza_ignota",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "test_soglia_di_200_km",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1.py"
+      },
+      {
+        "simbolo": "TestPannelloDettagli",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_1_gui.py"
+      },
+      {
+        "simbolo": "test_azioni_iniziali_assenti",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1_gui.py"
+      },
+      {
+        "simbolo": "test_messaggio_con_azione",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1_gui.py"
+      },
+      {
+        "simbolo": "test_azioni_sostituite_non_accumulano",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1_gui.py"
+      },
+      {
+        "simbolo": "test_reset_pulisce_azioni_e_stato",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1_gui.py"
+      },
+      {
+        "simbolo": "test_pulsante_aziona_chiamata",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_1_gui.py"
+      },
+      {
+        "simbolo": "TestContestoPianificazione",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "TestSalvataggioContesto",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "TestNomeNuovoBlocco",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_sono_disponibili_i_quattro_contesti_previsti",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_il_test_tecnico_diventa_una_bozza",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_contesto_sconosciuto_viene_rifiutato",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_la_firma_distingue_contesto_e_blocco",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_il_ruolo_bozza_e_riconoscibile_dalla_dashboard",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_il_pannello_chiede_il_contesto_prima_di_salvare",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_test_tecnico_non_calcola_le_metriche",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_tappa_nuova_si_accoda_al_blocco_selezionato",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_nuovo_blocco_viene_aggiunto_in_coda_all_ordine",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_tappa_esistente_viene_accodata_al_blocco_scelto",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_normalizza_spazi_e_accetta_nome_univoco",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "test_rifiuta_nome_vuoto_o_duplicato",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_2.py"
+      },
+      {
+        "simbolo": "TestCalcoloSuddivisione",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "TestStatisticheTemporaliRouting",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "TestInterfacciaSuddivisione",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "TestSalvataggioSuddivisione",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_divide_per_chilometri_e_conserva_i_punti_di_confine",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_parametro_superiore_alla_rotta_produce_una_tappa",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_un_giorno_per_tappa_usa_tempo_e_sei_ore_giornaliere",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_senza_tempo_routing_i_giorni_non_si_possono_calcolare",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_suddivisione_per_numero_tappe_preserva_la_struttura_esistente",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_rifiuta_input_ambiguo_o_non_valido",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_riporta_tempo_totale_in_ore",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_il_pannello_e_visibile_solo_per_il_contesto_percorso",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_i_cambi_km_o_giorni_aggiornano_testo_e_punti_mappa",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "mostra_anteprima",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_salva_tutte_le_tappe_e_le_metriche_nell_ordine",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_modifica_tappa_inserisce_i_segmenti_successivi_subito_dopo",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_sostituisce_tutte_le_tappe_attive_preservando_id_ordine_e_blocchi",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_sostituzione_completa_rifiuta_tappe_attive_cambiate",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_input_vuoto_non_crea_gpx_o_righe",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "test_errore_database_rimuove_i_gpx_temporanei",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_3.py"
+      },
+      {
+        "simbolo": "TestClassificazioneWaypoint",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "TestGestioneWaypointMappa",
+        "tipo": "classe",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "test_punto_gia_sulla_rotta_viene_riconosciuto",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "test_punto_vicino_sceglie_la_tappa_geometricamente_piu_vicina",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "test_punto_lontano_non_collega_linee_disgiunte",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "test_rifiuta_geometria_non_valida",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "test_punto_sulla_rotta_non_crea_un_campo_intermedio",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_4.py"
+      },
+      {
+        "simbolo": "test_devia_tutto_mantiene_tappe_e_inserisce_il_waypoint_nella_posizione",
+        "tipo": "funzione",
+        "file": "tests/test_pianificatore_5_4.py"
       }
     ],
     "duplicazioni": [
@@ -555,6 +997,16 @@
         "numero_copie": 4
       },
       {
+        "nome": "setUpClass",
+        "file": [
+          "tests/test_coda_routing.py",
+          "tests/test_pianificatore_5_1_gui.py",
+          "tests/test_pianificatore_5_3.py",
+          "tests/test_pianificatore_5_4.py"
+        ],
+        "numero_copie": 4
+      },
+      {
         "nome": "crea_nuovo_progetto_dialog",
         "file": [
           "app_desktop.py",
@@ -569,6 +1021,15 @@
           "gui/dashboard.py",
           "gui/widget_blocchi.py",
           "gui/wizard_percorso.py"
+        ],
+        "numero_copie": 3
+      },
+      {
+        "nome": "setUp",
+        "file": [
+          "tests/test_pianificatore_5_1_gui.py",
+          "tests/test_pianificatore_5_2.py",
+          "tests/test_pianificatore_5_3.py"
         ],
         "numero_copie": 3
       },
@@ -669,6 +1130,14 @@
         "numero_copie": 2
       },
       {
+        "nome": "request_stop",
+        "file": [
+          "gui/mappa_worker.py",
+          "tests/test_coda_routing.py"
+        ],
+        "numero_copie": 2
+      },
+      {
         "nome": "conferma_scenario",
         "file": [
           "gui/pagine/controller_clima.py",
@@ -702,18 +1171,24 @@
       }
     ],
     "mappa_dipendenze": {
-      "gui/dialog_nuovo_progetto.py": [
+      "gui/dialog_wizard_trasferimento.py": [
         "app_desktop"
       ],
-      "service/audit_service.py": [
-        "app_desktop",
-        "gui/pagine/pagina_trasporti"
+      "database/database_setup.py": [
+        "app_desktop"
+      ],
+      "gui/dialog_elenco_paesi.py": [
+        "app_desktop"
       ],
       "service/stats_service.py": [
         "app_desktop",
         "gui/pagine/pagina_statistiche"
       ],
-      "gui/dialog_elenco_paesi.py": [
+      "service/audit_service.py": [
+        "app_desktop",
+        "gui/pagine/pagina_trasporti"
+      ],
+      "service/trasferimenti_service.py": [
         "app_desktop"
       ],
       "service/progetti_service.py": [
@@ -721,13 +1196,7 @@
         "gui/dashboard",
         "gui/dialog_nuovo_progetto"
       ],
-      "database/database_setup.py": [
-        "app_desktop"
-      ],
-      "gui/dialog_wizard_trasferimento.py": [
-        "app_desktop"
-      ],
-      "service/trasferimenti_service.py": [
+      "gui/dialog_nuovo_progetto.py": [
         "app_desktop"
       ],
       "service/tappe_service.py": [
@@ -736,16 +1205,16 @@
       "service/sprite_bandiere_service.py": [
         "gui/dialog_elenco_paesi"
       ],
-      "service/migrazione_clima.py": [
+      "service/migrazione_catena_stagionale.py": [
         "gui/pagine/controller_clima"
       ],
       "service/catena_stagionale_service.py": [
         "gui/pagine/controller_clima"
       ],
-      "service/migrazione_catena_stagionale.py": [
+      "service/clima_service.py": [
         "gui/pagine/controller_clima"
       ],
-      "service/clima_service.py": [
+      "service/migrazione_clima.py": [
         "gui/pagine/controller_clima"
       ],
       "service/blocchi_ordine_service.py": [
@@ -1162,6 +1631,7 @@
         "setContentsMargins",
         "setCurrentIndex",
         "setData",
+        "setEnabled",
         "setFont",
         "setHorizontalHeaderLabels",
         "setItem",
@@ -1421,6 +1891,7 @@
         "_pagina_mappa_caricata",
         "_ridimensiona_mappa",
         "attiva_modalita_interazione",
+        "geometrie_tappe_per_waypoint",
         "_leggi_interazioni_mappa",
         "mostra_anteprima_percorso",
         "cancella_anteprima_percorso",
@@ -1491,7 +1962,6 @@
         "addLayout",
         "addStretch",
         "addWidget",
-        "aggiungi_waypoint",
         "append",
         "callable",
         "connect",
@@ -1500,8 +1970,11 @@
         "dumps",
         "e_valida",
         "emit",
+        "enumerate",
         "exec",
         "firma_dati_mappa",
+        "float",
+        "gestisci_waypoint_da_mappa",
         "get",
         "get_lifecycle_state",
         "getattr",
@@ -1515,6 +1988,7 @@
         "join",
         "json",
         "leggi_token_corrente",
+        "len",
         "lower",
         "max",
         "move",
@@ -1631,6 +2105,7 @@
       "funzioni": [
         "__init__",
         "imposta_stato",
+        "imposta_stato_con_azioni",
         "imposta_distanza_tappe",
         "imposta_altimetria",
         "imposta_superfici",
@@ -1650,6 +2125,7 @@
         "service.dettagli_rotta_service.testo_voce_legenda"
       ],
       "import_esterni": [
+        "PySide6.QtCore",
         "PySide6.QtWidgets"
       ],
       "tabelle_usate": [],
@@ -1657,22 +2133,27 @@
       "chiamate_funzioni": [
         "BarraSuperfici",
         "QGridLayout",
+        "QHBoxLayout",
         "QLabel",
+        "QPushButton",
         "QVBoxLayout",
         "__init__",
         "_popola_legenda",
         "addLayout",
         "addWidget",
         "bool",
+        "connect",
         "count",
         "deleteLater",
         "enumerate",
         "get",
         "imposta_kpi",
         "imposta_stato",
+        "imposta_stato_con_azioni",
         "imposta_superfici",
         "prepara_kpi_rotta",
         "setContentsMargins",
+        "setCursor",
         "setFrameShape",
         "setHorizontalSpacing",
         "setSpacing",
@@ -1757,14 +2238,26 @@
       ],
       "funzioni": [
         "__init__",
+        "_imposta_contesto",
+        "_modalita_suddivisione_modificata",
+        "_aggiorna_anteprima_suddivisione",
+        "_carica_blocchi_contesto",
+        "_aggiorna_nuovo_blocco_visibile",
+        "_dati_contesto_salvataggio",
         "_firma_pianificazione",
         "_valida_pianificazione",
         "_avvia_worker_rotta",
-        "_completamento_worker_pianificazione",
+        "_crea_worker_rotta",
+        "_risultato_worker_rotta",
+        "_annulla_calcolo_rotta",
+        "_ripristina_pulsante_salvataggio",
         "_worker_pianificazione_terminato",
         "_ricalcola_anteprima",
         "_anteprima_rotta_completata",
         "aggiungi_waypoint",
+        "_imposta_sostituzione_percorso",
+        "_azzera_sostituzione_percorso",
+        "gestisci_waypoint_da_mappa",
         "prepara_modifica_tappa",
         "sincronizza_stato_percorso",
         "_avvia_risoluzione_nomi_luoghi",
@@ -1786,7 +2279,8 @@
         "_aggiorna_dettagli_rotta",
         "_evidenzia_tappa_su_mappa",
         "_gestisci_salvataggio_percorso",
-        "_salvataggio_percorso_completato"
+        "_salvataggio_percorso_completato",
+        "_testo_pulsante_salvataggio"
       ],
       "import_interni": [
         "gui.mappa_dettagli.PannelloDettagliRotta",
@@ -1797,9 +2291,19 @@
         "gui.mappa_worker_manager.GestoreWorkerSingolo",
         "service.config.BASE_DIR",
         "service.config.DB_NAME",
+        "service.dettagli_rotta_service.testo_stato_annullato",
+        "service.dettagli_rotta_service.testo_stato_anteprima_pronta",
+        "service.dettagli_rotta_service.testo_stato_calcolo",
+        "service.dettagli_rotta_service.testo_stato_campi_cambiati",
+        "service.dettagli_rotta_service.testo_stato_errore_routing",
+        "service.dettagli_rotta_service.testo_stato_percorso_lungo",
         "service.geo_utils.calcola_distanza_haversine",
         "service.mappa_dati_service.carica_coordinate_tappa",
         "service.mappa_dati_service.carica_tappe_attive",
+        "service.planning_context_service.CONTESTI_PIANIFICAZIONE",
+        "service.planning_context_service.carica_blocchi_progetto",
+        "service.planning_context_service.stato_da_contesto",
+        "service.planning_context_service.valida_nome_nuovo_blocco",
         "service.punti_service.aggiorna_testi_tappe",
         "service.punti_service.estremi_tappa",
         "service.punti_service.etichetta_punto",
@@ -1812,7 +2316,11 @@
         "service.punti_service.testo_segnaposto_punto",
         "service.punti_service.valida_pianificazione",
         "service.salvataggio_tappa_service.rimuovi_gpx_se_esiste",
-        "service.salvataggio_tappa_service.salva_tappa_pianificata"
+        "service.salvataggio_tappa_service.salva_percorso_suddiviso",
+        "service.salvataggio_tappa_service.salva_tappa_pianificata",
+        "service.suddivisione_percorso_service.calcola_suddivisione_numero_tappe",
+        "service.suddivisione_percorso_service.calcola_suddivisione_percorso",
+        "service.waypoint_service.classifica_punto"
       ],
       "import_esterni": [
         "PySide6.QtCore",
@@ -1827,35 +2335,51 @@
         "GestoreWorkerSingolo",
         "PannelloDettagliRotta",
         "PianificazionePercorsoWorker",
+        "QButtonGroup",
         "QColor",
         "QComboBox",
+        "QDoubleSpinBox",
         "QGraphicsDropShadowEffect",
         "QHBoxLayout",
         "QLabel",
         "QLineEdit",
+        "QMessageBox",
         "QPushButton",
+        "QRadioButton",
         "QScrollArea",
+        "QSpinBox",
         "QVBoxLayout",
         "QWidget",
         "__init__",
+        "_aggiorna_anteprima_suddivisione",
         "_aggiorna_dettagli_rotta",
+        "_aggiorna_nuovo_blocco_visibile",
         "_aggiorna_testo_tappe_intermedie",
         "_aggiungi_punto_passaggio",
         "_avvia_analisi_altimetria",
         "_avvia_analisi_superfici_offline",
         "_avvia_risoluzione_nomi_luoghi",
         "_avvia_worker_rotta",
+        "_azzera_sostituzione_percorso",
+        "_carica_blocchi_contesto",
         "_costruisci_riga_tappa_intermedia",
+        "_dati_contesto_salvataggio",
         "_evidenzia_tappa_su_mappa",
         "_firma_pianificazione",
+        "_imposta_contesto",
+        "_imposta_sostituzione_percorso",
         "_popola_tappe_intermedie",
         "_ricalcola_anteprima",
         "_rimuovi_punto_passaggio",
         "_rinumera_punti_passaggio",
+        "_ripristina_pulsante_salvataggio",
         "_salvataggio_percorso_completato",
+        "_testo_pulsante_salvataggio",
         "_valida_pianificazione",
         "activate",
         "adatta_altezza",
+        "addButton",
+        "addItem",
         "addItems",
         "addLayout",
         "addStretch",
@@ -1865,18 +2389,26 @@
         "aggiorna_tabella_tappe",
         "aggiorna_testi_tappe",
         "aggiungi_waypoint",
+        "any",
         "append",
         "attiva_modalita_interazione",
         "bottom",
         "calcola_distanza_haversine",
-        "callback_worker_pianificazione",
+        "calcola_suddivisione_numero_tappe",
+        "calcola_suddivisione_percorso",
+        "callback",
+        "cancella_anteprima_percorso",
+        "carica_blocchi_progetto",
         "carica_coordinate_tappa",
         "carica_tappe_attive",
+        "classifica_punto",
         "clear",
+        "clickedButton",
         "connect",
         "contentsMargins",
         "count",
         "critical",
+        "currentIndex",
         "currentText",
         "deleteLater",
         "dict",
@@ -1885,8 +2417,10 @@
         "estremi_tappa",
         "etichetta_punto",
         "evidenzia_tappa",
+        "exec",
         "extend",
         "firma_pianificazione",
+        "geometrie_tappe_per_waypoint",
         "get",
         "getattr",
         "hasattr",
@@ -1895,6 +2429,7 @@
         "imposta_dettagli_rotta",
         "imposta_distanza_tappe",
         "imposta_stato",
+        "imposta_stato_con_azioni",
         "imposta_superfici_offline",
         "indice_primo_punto_vuoto",
         "information",
@@ -1913,14 +2448,17 @@
         "min",
         "mostra_anteprima_percorso",
         "parentWidget",
+        "prepara_modifica_tappa",
         "prepara_tappe_intermedie",
         "print",
+        "question",
         "range",
         "removeWidget",
         "reset",
         "richiedi",
         "rigenera_mappa",
         "rimuovi_gpx_se_esiste",
+        "salva_percorso_suddiviso",
         "salva_tappa_pianificata",
         "setAlignment",
         "setBlurRadius",
@@ -1928,33 +2466,42 @@
         "setChecked",
         "setColor",
         "setContentsMargins",
+        "setCurrentIndex",
         "setCursor",
+        "setDecimals",
         "setEnabled",
+        "setExclusive",
         "setFixedHeight",
         "setFixedSize",
         "setFixedWidth",
         "setGraphicsEffect",
         "setHorizontalScrollBarPolicy",
+        "setIcon",
         "setMaximumHeight",
         "setMaximumWidth",
+        "setMinimumHeight",
         "setMinimumWidth",
         "setOffset",
         "setPlaceholderText",
+        "setRange",
         "setSizeConstraint",
         "setSizePolicy",
         "setSpacing",
         "setStyleSheet",
+        "setSuffix",
         "setText",
         "setToolTip",
+        "setValue",
         "setVisible",
         "setWidget",
         "setWidgetResizable",
+        "setWindowTitle",
         "setWordWrap",
         "showEvent",
         "singleShot",
         "sizeHint",
         "spacing",
-        "start",
+        "stato_da_contesto",
         "str",
         "strip",
         "sum",
@@ -1964,12 +2511,22 @@
         "testo_intestazione_tappe_intermedie",
         "testo_riga_tappa_intermedia",
         "testo_segnaposto_punto",
+        "testo_stato_annullato",
+        "testo_stato_anteprima_pronta",
+        "testo_stato_calcolo",
+        "testo_stato_campi_cambiati",
+        "testo_stato_errore_routing",
+        "testo_stato_percorso_lungo",
         "text",
         "top",
         "updateGeometry",
+        "valida_nome_nuovo_blocco",
         "valida_pianificazione",
+        "value",
+        "values",
         "warning",
-        "widget"
+        "widget",
+        "zip"
       ]
     },
     "gui/mappa_worker.py": {
@@ -1990,6 +2547,10 @@
         "request_stop",
         "run",
         "__init__",
+        "_notifica",
+        "_notifica_annullato",
+        "request_stop",
+        "e_annullato",
         "_geocodifica",
         "_profilo_brouter",
         "run"
@@ -2000,6 +2561,8 @@
         "service.geocodifica_offline_service.nome_luogo_da_coordinate",
         "service.geonames_service.cerca_coordinate_luogo",
         "service.gpx_paths.trova_percorso_gpx",
+        "service.routing_timeout_service.stima_distanza_rotta_km",
+        "service.routing_timeout_service.timeout_routing_secondi",
         "service.stats_service.analizza_dati_rotta_brouter",
         "service.superfici_service.analizza_superfici_progetto"
       ],
@@ -2017,6 +2580,8 @@
         "ValueError",
         "__init__",
         "_geocodifica",
+        "_notifica",
+        "_notifica_annullato",
         "_profilo_brouter",
         "analizza_dati_rotta_brouter",
         "analizza_superfici_progetto",
@@ -2041,9 +2606,13 @@
         "parse",
         "print",
         "raise_for_status",
+        "round",
         "set",
+        "setdefault",
+        "stima_distanza_rotta_km",
         "str",
         "super",
+        "timeout_routing_secondi",
         "trova_percorso_gpx"
       ]
     },
@@ -2057,6 +2626,7 @@
         "invalida",
         "_avvia",
         "_ripulisci",
+        "_riavvia_in_coda",
         "_fine"
       ],
       "import_interni": [],
@@ -2068,6 +2638,7 @@
         "_avvia",
         "_crea_worker",
         "_fine",
+        "_riavvia_in_coda",
         "_ripulisci",
         "append",
         "connect",
@@ -2757,6 +3328,48 @@
         "super"
       ]
     },
+    "import_clima_mondiale.py": {
+      "classi": [],
+      "funzioni": [
+        "conteggi",
+        "righe_progetto_1",
+        "main"
+      ],
+      "import_interni": [],
+      "import_esterni": [
+        "contextlib",
+        "pathlib",
+        "sqlite3",
+        "sys"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "Path",
+        "append",
+        "close",
+        "closing",
+        "commit",
+        "connect",
+        "conteggi",
+        "execute",
+        "executemany",
+        "exists",
+        "exit",
+        "fetchall",
+        "fetchone",
+        "index",
+        "join",
+        "len",
+        "main",
+        "print",
+        "replace",
+        "righe_progetto_1",
+        "rollback",
+        "str",
+        "tuple"
+      ]
+    },
     "installa_geonames.py": {
       "classi": [],
       "funzioni": [
@@ -3379,15 +3992,26 @@
         "testo_stato_superfici_offline",
         "testo_distanza_tappe",
         "testi_altimetria",
-        "testo_voce_legenda"
+        "testo_voce_legenda",
+        "testo_stato_calcolo",
+        "testo_stato_annullato",
+        "testo_stato_errore_routing",
+        "testo_stato_anteprima_pronta",
+        "testo_stato_campi_cambiati",
+        "testo_stato_in_modifica",
+        "testo_stato_percorso_lungo"
       ],
-      "import_interni": [],
+      "import_interni": [
+        "service.routing_timeout_service.SOGLIA_PERCORSO_LUNGO_KM"
+      ],
       "import_esterni": [],
       "tabelle_usate": [],
       "anomalie": [],
       "chiamate_funzioni": [
+        "append",
         "get",
         "int",
+        "join",
         "len",
         "next",
         "round",
@@ -4146,6 +4770,41 @@
         "with_name"
       ]
     },
+    "service/planning_context_service.py": {
+      "classi": [],
+      "funzioni": [
+        "stato_da_contesto",
+        "carica_blocchi_progetto",
+        "valida_nome_nuovo_blocco"
+      ],
+      "import_interni": [
+        "service.config.DB_NAME"
+      ],
+      "import_esterni": [
+        "contextlib",
+        "sqlite3"
+      ],
+      "tabelle_usate": [
+        "blocchi_ordine",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ValueError",
+        "any",
+        "casefold",
+        "closing",
+        "connect",
+        "cursor",
+        "execute",
+        "extend",
+        "fetchall",
+        "join",
+        "list",
+        "split",
+        "str"
+      ]
+    },
     "service/precalcolo_batch_service.py": {
       "classi": [],
       "funzioni": [
@@ -4343,33 +5002,70 @@
         "aggiorna_testi_tappe",
         "testo_segnaposto_punto",
         "pulisci_testi",
+        "normalizza_luogo",
         "firma_pianificazione",
         "valida_pianificazione",
         "indice_primo_punto_vuoto",
         "estremi_tappa"
       ],
       "import_interni": [],
-      "import_esterni": [],
+      "import_esterni": [
+        "unicodedata"
+      ],
       "tabelle_usate": [],
       "anomalie": [],
       "chiamate_funzioni": [
         "any",
         "append",
+        "casefold",
         "chr",
+        "combining",
         "divmod",
         "enumerate",
         "get",
+        "join",
+        "normalize",
+        "normalizza_luogo",
         "ord",
         "pulisci_testi",
+        "split",
+        "str",
         "strip",
         "testo_coordinate",
         "tuple"
+      ]
+    },
+    "service/routing_timeout_service.py": {
+      "classi": [],
+      "funzioni": [
+        "timeout_routing_secondi",
+        "stima_distanza_rotta_km"
+      ],
+      "import_interni": [
+        "service.geo_utils.calcola_distanza_haversine"
+      ],
+      "import_esterni": [],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "calcola_distanza_haversine",
+        "float",
+        "int",
+        "len",
+        "min",
+        "range",
+        "sum"
       ]
     },
     "service/salvataggio_tappa_service.py": {
       "classi": [],
       "funzioni": [
         "salva_tappa_pianificata",
+        "salva_percorso_suddiviso",
+        "_completa_ordine_blocchi",
+        "_aggiungi_blocco_ordine",
+        "_valida_blocco",
+        "_riordina_tappe_per_blocco",
         "rimuovi_gpx_se_esiste"
       ],
       "import_interni": [
@@ -4388,6 +5084,7 @@
         "uuid"
       ],
       "tabelle_usate": [
+        "blocchi_ordine",
         "tappe"
       ],
       "anomalie": [],
@@ -4397,17 +5094,25 @@
         "GPXTrackPoint",
         "GPXTrackSegment",
         "ValueError",
+        "_aggiungi_blocco_ordine",
+        "_completa_ordine_blocchi",
+        "_riordina_tappe_per_blocco",
+        "_valida_blocco",
         "append",
         "closing",
         "connect",
         "cursor",
+        "enumerate",
         "execute",
         "exists",
+        "fetchall",
         "fetchone",
         "float",
         "get",
+        "isinstance",
         "join",
         "len",
+        "list",
         "makedirs",
         "open",
         "percorso_gpx_progetto",
@@ -4416,11 +5121,14 @@
         "remove",
         "rimuovi_gpx_se_esiste",
         "round",
+        "set",
+        "setdefault",
         "str",
         "to_xml",
         "trova_percorso_gpx",
         "uuid4",
-        "write"
+        "write",
+        "zip"
       ]
     },
     "service/sprite_bandiere_service.py": {
@@ -4587,6 +5295,48 @@
         "upper",
         "values",
         "warning",
+        "zip"
+      ]
+    },
+    "service/suddivisione_percorso_service.py": {
+      "classi": [],
+      "funzioni": [
+        "calcola_suddivisione_percorso",
+        "calcola_suddivisione_numero_tappe",
+        "_numero_positivo",
+        "_taglia_geometria",
+        "_interpola_punto",
+        "_distanza_geometria"
+      ],
+      "import_interni": [
+        "service.geo_utils.calcola_distanza_haversine"
+      ],
+      "import_esterni": [
+        "math"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ValueError",
+        "_distanza_geometria",
+        "_interpola_punto",
+        "_numero_positivo",
+        "_taglia_geometria",
+        "any",
+        "append",
+        "calcola_distanza_haversine",
+        "ceil",
+        "enumerate",
+        "float",
+        "isfinite",
+        "isinstance",
+        "len",
+        "max",
+        "min",
+        "range",
+        "round",
+        "sum",
+        "tuple",
         "zip"
       ]
     },
@@ -4775,6 +5525,48 @@
         "rollback"
       ]
     },
+    "service/waypoint_service.py": {
+      "classi": [],
+      "funzioni": [
+        "_valida_coordinate",
+        "_normalizza_linee",
+        "_distanza_punto_segmento_km",
+        "proietta",
+        "_distanza_punto_linee_km",
+        "classifica_punto"
+      ],
+      "import_interni": [
+        "service.geo_utils.calcola_distanza_haversine"
+      ],
+      "import_esterni": [
+        "collections.abc",
+        "math"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "ValueError",
+        "_distanza_punto_linee_km",
+        "_distanza_punto_segmento_km",
+        "_normalizza_linee",
+        "_valida_coordinate",
+        "abs",
+        "append",
+        "calcola_distanza_haversine",
+        "cos",
+        "extend",
+        "float",
+        "get",
+        "isfinite",
+        "isinstance",
+        "len",
+        "max",
+        "min",
+        "proietta",
+        "radians",
+        "zip"
+      ]
+    },
     "static/aggiorna_sprite.py": {
       "classi": [],
       "funzioni": [
@@ -4799,6 +5591,419 @@
         "load",
         "open",
         "print"
+      ]
+    },
+    "tests/test_coda_routing.py": {
+      "classi": [
+        "WorkerFalso",
+        "TestCodaRouting"
+      ],
+      "funzioni": [
+        "__init__",
+        "request_stop",
+        "run",
+        "setUpClass",
+        "test_richieste_in_successione_non_si_pierdono",
+        "test_worker_annullato_non_blocca_la_coda",
+        "test_invalida_scarta_il_risultato_in_arrivo",
+        "test_gestore_preserva_i_worker_vivi"
+      ],
+      "import_interni": [
+        "gui.mappa_worker_manager.GestoreWorkerSingolo"
+      ],
+      "import_esterni": [
+        "PySide6.QtCore",
+        "PySide6.QtWidgets",
+        "os",
+        "sys",
+        "time",
+        "unittest"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "GestoreWorkerSingolo",
+        "QApplication",
+        "Signal",
+        "WorkerFalso",
+        "__init__",
+        "abspath",
+        "assertEqual",
+        "assertIsNone",
+        "dirname",
+        "emit",
+        "exit",
+        "insert",
+        "instance",
+        "invalida",
+        "len",
+        "main",
+        "processEvents",
+        "range",
+        "richiedi",
+        "sleep",
+        "super"
+      ]
+    },
+    "tests/test_pianificatore_5_1.py": {
+      "classi": [
+        "TestFirmaNormalizzata",
+        "TestWorkerAnnullabile",
+        "TestTestiStato",
+        "TestTimeoutDifferenziato",
+        "TestStimaDistanza",
+        "TestAvvisoPercorsoLungo"
+      ],
+      "funzioni": [
+        "test_maiuscole_spazi_e_accenti_non_contano",
+        "test_luoghi_diversi_restano_diversi",
+        "test_profilo_e_progetto_contano",
+        "test_normalizza_luogo_rimuove_gli_accenti",
+        "test_normalizza_luogo_tolera_none",
+        "test_annullamento_preventivo_notifica_comunque",
+        "test_timeout_massimo_dichiarato",
+        "test_errore_mostra_il_motivo",
+        "test_anteprima_pronta_mostra_la_distanza",
+        "test_anteprima_pronta_senza_distanza",
+        "test_percorso_breve_usa_il_tetto_base",
+        "test_percorso_medio_cresce_di_10_su_100_km",
+        "test_bologna_napoli_ha_margine_su_il_tempo_misurato",
+        "test_il_tetto_ha_un_massimo",
+        "test_valori_assenti_usano_il_massimo",
+        "test_punti_insufficienti_danno_zero",
+        "test_punti_senza_coordinate_ignored",
+        "test_la_stima_correge_la_distanza_aerea",
+        "test_avviso_sotto_soglia_assente",
+        "test_avviso_oltre_soglia_presente",
+        "test_avviso_tolera_distanza_ignota",
+        "test_soglia_di_200_km"
+      ],
+      "import_interni": [
+        "gui.mappa_worker.PianificazionePercorsoWorker",
+        "gui.mappa_worker.TIMEOUT_ROUTING_MASSIMO_SECONDI",
+        "service.dettagli_rotta_service.testo_stato_anteprima_pronta",
+        "service.dettagli_rotta_service.testo_stato_errore_routing",
+        "service.dettagli_rotta_service.testo_stato_percorso_lungo",
+        "service.punti_service.firma_pianificazione",
+        "service.punti_service.normalizza_luogo",
+        "service.routing_timeout_service.SOGLIA_PERCORSO_LUNGO_KM",
+        "service.routing_timeout_service.stima_distanza_rotta_km",
+        "service.routing_timeout_service.timeout_routing_secondi"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets",
+        "os",
+        "sys",
+        "unittest"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "PianificazionePercorsoWorker",
+        "QApplication",
+        "abspath",
+        "addCleanup",
+        "assertEqual",
+        "assertFalse",
+        "assertGreater",
+        "assertIn",
+        "assertNotEqual",
+        "assertTrue",
+        "connect",
+        "dirname",
+        "e_annullato",
+        "exit",
+        "firma_pianificazione",
+        "insert",
+        "instance",
+        "len",
+        "main",
+        "normalizza_luogo",
+        "request_stop",
+        "run",
+        "stima_distanza_rotta_km",
+        "testo_stato_anteprima_pronta",
+        "testo_stato_errore_routing",
+        "testo_stato_percorso_lungo",
+        "timeout_routing_secondi"
+      ]
+    },
+    "tests/test_pianificatore_5_1_gui.py": {
+      "classi": [
+        "TestPannelloDettagli"
+      ],
+      "funzioni": [
+        "setUpClass",
+        "setUp",
+        "_azioni",
+        "test_azioni_iniziali_assenti",
+        "test_messaggio_con_azione",
+        "test_azioni_sostituite_non_accumulano",
+        "test_reset_pulisce_azioni_e_stato",
+        "test_pulsante_aziona_chiamata"
+      ],
+      "import_interni": [
+        "gui.mappa_dettagli.PannelloDettagliRotta"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets",
+        "os",
+        "sys",
+        "unittest"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "PannelloDettagliRotta",
+        "QApplication",
+        "_azioni",
+        "abspath",
+        "append",
+        "assertEqual",
+        "click",
+        "count",
+        "dirname",
+        "exit",
+        "imposta_stato_con_azioni",
+        "insert",
+        "instance",
+        "itemAt",
+        "main",
+        "range",
+        "reset",
+        "text",
+        "widget"
+      ]
+    },
+    "tests/test_pianificatore_5_2.py": {
+      "classi": [
+        "TestContestoPianificazione",
+        "TestSalvataggioContesto",
+        "TestNomeNuovoBlocco"
+      ],
+      "funzioni": [
+        "test_sono_disponibili_i_quattro_contesti_previsti",
+        "test_il_test_tecnico_diventa_una_bozza",
+        "test_contesto_sconosciuto_viene_rifiutato",
+        "test_la_firma_distingue_contesto_e_blocco",
+        "test_il_ruolo_bozza_e_riconoscibile_dalla_dashboard",
+        "test_il_pannello_chiede_il_contesto_prima_di_salvare",
+        "setUp",
+        "_salva",
+        "test_test_tecnico_non_calcola_le_metriche",
+        "test_tappa_nuova_si_accoda_al_blocco_selezionato",
+        "test_nuovo_blocco_viene_aggiunto_in_coda_all_ordine",
+        "test_tappa_esistente_viene_accodata_al_blocco_scelto",
+        "test_normalizza_spazi_e_accetta_nome_univoco",
+        "test_rifiuta_nome_vuoto_o_duplicato"
+      ],
+      "import_interni": [
+        "gui.mappa_pianificatore.PannelloPianificazioneWidget",
+        "service.planning_context_service.CONTESTI_PIANIFICAZIONE",
+        "service.planning_context_service.carica_blocchi_progetto",
+        "service.planning_context_service.stato_da_contesto",
+        "service.planning_context_service.valida_nome_nuovo_blocco",
+        "service.punti_service.firma_pianificazione",
+        "service.salvataggio_tappa_service.salva_tappa_pianificata",
+        "service.tappe_service.stato_da_ruolo"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets",
+        "contextlib",
+        "os",
+        "sqlite3",
+        "tempfile",
+        "types",
+        "unittest",
+        "unittest.mock"
+      ],
+      "tabelle_usate": [
+        "blocchi_ordine",
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "PannelloPianificazioneWidget",
+        "QApplication",
+        "SimpleNamespace",
+        "TemporaryDirectory",
+        "_dati_contesto_salvataggio",
+        "_salva",
+        "addCleanup",
+        "assertEqual",
+        "assertIsNone",
+        "assertIsNotNone",
+        "assertNotEqual",
+        "assertRaises",
+        "assertTrue",
+        "assert_not_called",
+        "carica_blocchi_progetto",
+        "click",
+        "close",
+        "closing",
+        "connect",
+        "execute",
+        "executescript",
+        "fetchall",
+        "fetchone",
+        "firma_pianificazione",
+        "instance",
+        "join",
+        "main",
+        "patch",
+        "salva_tappa_pianificata",
+        "stato_da_contesto",
+        "stato_da_ruolo",
+        "text",
+        "valida_nome_nuovo_blocco"
+      ]
+    },
+    "tests/test_pianificatore_5_3.py": {
+      "classi": [
+        "TestCalcoloSuddivisione",
+        "TestStatisticheTemporaliRouting",
+        "TestInterfacciaSuddivisione",
+        "TestSalvataggioSuddivisione"
+      ],
+      "funzioni": [
+        "test_divide_per_chilometri_e_conserva_i_punti_di_confine",
+        "test_parametro_superiore_alla_rotta_produce_una_tappa",
+        "test_un_giorno_per_tappa_usa_tempo_e_sei_ore_giornaliere",
+        "test_senza_tempo_routing_i_giorni_non_si_possono_calcolare",
+        "test_suddivisione_per_numero_tappe_preserva_la_struttura_esistente",
+        "test_rifiuta_input_ambiguo_o_non_valido",
+        "test_riporta_tempo_totale_in_ore",
+        "setUpClass",
+        "test_il_pannello_e_visibile_solo_per_il_contesto_percorso",
+        "test_i_cambi_km_o_giorni_aggiornano_testo_e_punti_mappa",
+        "mostra_anteprima",
+        "setUp",
+        "test_salva_tutte_le_tappe_e_le_metriche_nell_ordine",
+        "test_modifica_tappa_inserisce_i_segmenti_successivi_subito_dopo",
+        "test_sostituisce_tutte_le_tappe_attive_preservando_id_ordine_e_blocchi",
+        "test_sostituzione_completa_rifiuta_tappe_attive_cambiate",
+        "test_input_vuoto_non_crea_gpx_o_righe",
+        "test_errore_database_rimuove_i_gpx_temporanei"
+      ],
+      "import_interni": [
+        "gui.mappa_pianificatore.PannelloPianificazioneWidget",
+        "service.geo_utils.calcola_distanza_haversine",
+        "service.salvataggio_tappa_service.salva_percorso_suddiviso",
+        "service.stats_service.analizza_dati_rotta_brouter",
+        "service.suddivisione_percorso_service.ORE_BICI_AL_GIORNO",
+        "service.suddivisione_percorso_service.calcola_suddivisione_numero_tappe",
+        "service.suddivisione_percorso_service.calcola_suddivisione_percorso"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets",
+        "contextlib",
+        "os",
+        "sqlite3",
+        "tempfile",
+        "types",
+        "unittest",
+        "unittest.mock"
+      ],
+      "tabelle_usate": [
+        "tappe"
+      ],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "PannelloPianificazioneWidget",
+        "QApplication",
+        "SimpleNamespace",
+        "TemporaryDirectory",
+        "_imposta_contesto",
+        "addCleanup",
+        "all",
+        "analizza_dati_rotta_brouter",
+        "append",
+        "assertAlmostEqual",
+        "assertEqual",
+        "assertFalse",
+        "assertIn",
+        "assertRaises",
+        "assertRaisesRegex",
+        "assertTrue",
+        "calcola_distanza_haversine",
+        "calcola_suddivisione_numero_tappe",
+        "calcola_suddivisione_percorso",
+        "click",
+        "close",
+        "closing",
+        "connect",
+        "execute",
+        "executemany",
+        "executescript",
+        "exists",
+        "fetchall",
+        "fetchone",
+        "instance",
+        "isHidden",
+        "isfile",
+        "join",
+        "len",
+        "listdir",
+        "main",
+        "makedirs",
+        "open",
+        "patch",
+        "salva_percorso_suddiviso",
+        "setChecked",
+        "setValue",
+        "subTest",
+        "sum",
+        "text",
+        "write",
+        "zip"
+      ]
+    },
+    "tests/test_pianificatore_5_4.py": {
+      "classi": [
+        "TestClassificazioneWaypoint",
+        "TestGestioneWaypointMappa"
+      ],
+      "funzioni": [
+        "test_punto_gia_sulla_rotta_viene_riconosciuto",
+        "test_punto_vicino_sceglie_la_tappa_geometricamente_piu_vicina",
+        "test_punto_lontano_non_collega_linee_disgiunte",
+        "test_rifiuta_geometria_non_valida",
+        "setUpClass",
+        "test_punto_sulla_rotta_non_crea_un_campo_intermedio",
+        "test_devia_tutto_mantiene_tappe_e_inserisce_il_waypoint_nella_posizione"
+      ],
+      "import_interni": [
+        "gui.mappa_pianificatore.PannelloPianificazioneWidget",
+        "service.waypoint_service.classifica_punto"
+      ],
+      "import_esterni": [
+        "PySide6.QtWidgets",
+        "types",
+        "unittest",
+        "unittest.mock"
+      ],
+      "tabelle_usate": [],
+      "anomalie": [],
+      "chiamate_funzioni": [
+        "PannelloPianificazioneWidget",
+        "QApplication",
+        "SimpleNamespace",
+        "_imposta_sostituzione_percorso",
+        "addCleanup",
+        "assertAlmostEqual",
+        "assertEqual",
+        "assertGreater",
+        "assertLess",
+        "assertRaisesRegex",
+        "assertTrue",
+        "assert_called_once",
+        "classifica_punto",
+        "gestisci_waypoint_da_mappa",
+        "instance",
+        "main",
+        "object",
+        "patch",
+        "text"
       ]
     }
   },
@@ -11359,7 +12564,7 @@
       },
       {
         "nome": "clima_paese_mese",
-        "righe": 540,
+        "righe": 3432,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -11920,7 +13125,7 @@
       },
       {
         "nome": "tappa_analisi",
-        "righe": 985,
+        "righe": 986,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -12030,7 +13235,7 @@
       },
       {
         "nome": "tappa_costa_riepilogo",
-        "righe": 985,
+        "righe": 986,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -12164,7 +13369,7 @@
       },
       {
         "nome": "tappa_geometrie",
-        "righe": 984,
+        "righe": 985,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -12265,7 +13470,7 @@
       },
       {
         "nome": "tappa_segmenti",
-        "righe": 986,
+        "righe": 987,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -12351,7 +13556,7 @@
       },
       {
         "nome": "tappe",
-        "righe": 981,
+        "righe": 982,
         "errore_conteggio": null,
         "colonne": [
           {
@@ -12652,7 +13857,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 167,
+        "riga": 211,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/map-interactions"
@@ -12661,7 +13866,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 362,
+        "riga": 431,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -12670,7 +13875,7 @@
       },
       {
         "file": "gui/mappa.py",
-        "riga": 495,
+        "riga": 564,
         "termini": [],
         "url": [
           "http://127.0.0.1:8080/api/set-gpx-data"
@@ -12881,23 +14086,23 @@
   },
   "ai_summary": {
     "nome_progetto": "Bikepacking_Studio",
-    "totale_moduli": 66,
-    "totale_classi": 30,
-    "totale_funzioni": 455,
+    "totale_moduli": 77,
+    "totale_classi": 48,
+    "totale_funzioni": 585,
     "endpoint_flask": 8,
     "tabelle_rilevate": 27,
-    "simboli_orfani": 51,
+    "simboli_orfani": 136,
     "moduli_chiave": [
-      "app_desktop.py",
       "gui/mappa_pianificatore.py",
+      "app_desktop.py",
       "gui/mappa.py",
+      "tests/test_pianificatore_5_1.py",
       "service/catena_stagionale_service.py",
       "gui/pagine/controller_clima.py",
+      "tests/test_pianificatore_5_3.py",
       "gui/dashboard.py",
       "gui/mappa_worker.py",
-      "service/map_server.py",
-      "service/superfici_service.py",
-      "service/stats_service.py"
+      "tests/test_pianificatore_5_2.py"
     ],
     "warning_flags": [
       "simboli_orfani_presenti",
@@ -12909,9 +14114,9 @@
     "hotspots": [
       {
         "file": "gui/mappa_pianificatore.py",
-        "score": 211,
+        "score": 286,
         "classi": 1,
-        "funzioni": 31,
+        "funzioni": 44,
         "anomalie": 0
       },
       {
@@ -12923,16 +14128,16 @@
       },
       {
         "file": "gui/dashboard.py",
-        "score": 165,
+        "score": 166,
         "classi": 2,
         "funzioni": 19,
         "anomalie": 0
       },
       {
         "file": "gui/mappa.py",
-        "score": 142,
+        "score": 147,
         "classi": 2,
-        "funzioni": 25,
+        "funzioni": 26,
         "anomalie": 0
       },
       {
@@ -12957,15 +14162,15 @@
   "aider_context": {
     "titolo": "Brief per agente - Bikepacking_Studio",
     "riepilogo": {
-      "moduli": 66,
-      "classi": 30,
-      "funzioni": 455,
+      "moduli": 77,
+      "classi": 48,
+      "funzioni": 585,
       "rotte": 8,
       "rischio": "alto"
     },
     "osservazioni_chiave": [
       "Rischio architetturale: alto",
-      "Simboli orfani: 51",
+      "Simboli orfani: 136",
       "File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py"
     ],
     "ordine_priorita": [
@@ -12980,7 +14185,7 @@
       "Prioritizzare i file con score più alto per refactor e verifica.",
       "Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA."
     ],
-    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 66 moduli, 30 classi, 455 funzioni, 8 endpoint Flask, 51 simboli orfani. Rischio: alto. File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+    "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 77 moduli, 48 classi, 585 funzioni, 8 endpoint Flask, 136 simboli orfani. Rischio: alto. File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
   },
-  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 66 moduli, 30 classi, 455 funzioni, 8 endpoint Flask, 51 simboli orfani. Rischio: alto. File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
+  "prompt_agente": "Progetto: Bikepacking_Studio. Contesto: 77 moduli, 48 classi, 585 funzioni, 8 endpoint Flask, 136 simboli orfani. Rischio: alto. File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py. Priorità: correggere simboli orfani, verificare file critici e consolidare dipendenze. Usa PROGETTO_INDEX.json come fonte di verità e minimizza i cambiamenti."
 }

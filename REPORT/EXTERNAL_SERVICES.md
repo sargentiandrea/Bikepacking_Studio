@@ -42,15 +42,15 @@
 - Riferimento: `http://127.0.0.1:8080/map`
 - Contesto: `self.web_view.setUrl("http://127.0.0.1:8080/map")`
 
-### `gui/mappa.py`:167
+### `gui/mappa.py`:211
 - Riferimento: `http://127.0.0.1:8080/api/map-interactions`
 - Contesto: `"http://127.0.0.1:8080/api/map-interactions",`
 
-### `gui/mappa.py`:362
+### `gui/mappa.py`:431
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `target=lambda: requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=vuoto, timeout=5),`
 
-### `gui/mappa.py`:495
+### `gui/mappa.py`:564
 - Riferimento: `http://127.0.0.1:8080/api/set-gpx-data`
 - Contesto: `requests.post("http://127.0.0.1:8080/api/set-gpx-data", json=payload, timeout=10)`
 

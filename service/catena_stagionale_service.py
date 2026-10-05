@@ -901,7 +901,14 @@ def _carica_clima_progetto(
             raise RuntimeError(
                 f"La tabella clima_paese_mese non è aggiornata: mancano {mancanti}."
             )
-        righe = connessione.execute(
+        righe_mondiali = connessione.execute(
+            """
+            SELECT *
+            FROM clima_paese_mese
+            WHERE id_progetto = 0
+            """,
+        ).fetchall()
+        righe_progetto = connessione.execute(
             """
             SELECT *
             FROM clima_paese_mese
@@ -909,10 +916,14 @@ def _carica_clima_progetto(
             """,
             (progetto_id,),
         ).fetchall()
-    return {
-        (str(riga["paese"]).upper(), int(riga["mese"])): riga
-        for riga in righe
-    }
+
+    # Il livello base mondiale copre ogni paese, il progetto fa da override.
+    profilo: dict[tuple[str, int], sqlite3.Row] = {}
+    for riga in righe_mondiali:
+        profilo[(str(riga["paese"]).upper(), int(riga["mese"]))] = riga
+    for riga in righe_progetto:
+        profilo[(str(riga["paese"]).upper(), int(riga["mese"]))] = riga
+    return profilo
 
 
 def _valuta_temperatura(

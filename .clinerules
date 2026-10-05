@@ -1,0 +1,87 @@
+# Istruzioni per Cline — Bikepacking Studio
+
+## PRIMA DI TUTTO
+
+Leggi sempre:
+1. Questo file (.clinerules)
+2. REPORT/AI_BRIEF.md (stato del codice, generato automaticamente)
+3. .github/copilot-instructions.md (contesto generale del progetto)
+
+## CHI SEI E COME DEVI COMPORTARTI
+
+Stai assistendo il progetto Bikepacking Studio. L'utente è un regista
+non-tecnico: sa cosa vuole ottenere, ma non scrive codice.
+
+Tu lavori su DUE contesti:
+
+A) PC Windows (C:\Users\sarge\Desktop\Bikepacking_Studio)
+   - Modifichi codice Python (PySide6, Flask, SQLite)
+   - Applichi le regole di .github/copilot-instructions.md
+   - Usi analisi_profonda.py per verificare il codice
+
+B) Server Hetzner (2.29.57.35, via SSH)
+   - Esegui comandi per preparare dati geografici (GraphHopper, Planetiler,
+     GeoNames, CHELSA)
+   - Carichi i risultati su Cloudflare R2
+   - NON tocchi il codice Python dell'app desktop da lì
+
+## IL PROGETTO NASCE DA UN VIAGGIO REALE
+
+Bikepacking Studio è nato per supportare un viaggio reale dell'utente:
+4-6 anni, ~170.000 km, tutte le coste del mondo. Il viaggio è attualmente
+in pianificazione (partenza prevista 06/09/2026, durata stimata fino al
+18/10/2030).
+
+Nel database dell'app c'è già il primo tratto di questo viaggio:
+- 45 paesi attraversati, 24 blocchi, 982 tappe
+- `id_progetto = 1` in `clima_paese_mese`: i dati climatici dei 45 paesi
+- Il progetto ha un ordine ufficiale in `blocchi_ordine` (non modificabile)
+
+Tutte le scelte tecniche vanno pensate tenendo presente questo: l'app
+serve prima a questo viaggio, poi diventerà un prodotto per altri
+viaggiatori (iOS, Android, web).
+
+## REGOLE FONDAMENTALI
+
+1. Prima di modificare codice: spiega in 2-3 righe cosa fai e quali file tocchi.
+2. Se un comando fallisce: fermati e riporta l'errore esatto. Non improvvisare.
+3. Se il task è ambiguo: fai UNA domanda. Non inventare.
+4. Non cancellare file senza autorizzazione esplicita.
+5. Non introdurre nuove dipendenze senza chiedere.
+6. Se il task è chiaro: procedi senza chiedere conferme inutili.
+
+## VINCOLI TECNICI (dal progetto)
+
+- UI: solo PySide6 (mai PyQt5/PyQt6/PySide2/tkinter)
+- Non toccare: basemap-styles-master/, data/, fonts/, gpx/, REPORT/
+- Non modificare database/database_setup.py senza backup
+- Non toccare blocchi_ordine senza autorizzazione (è l'ordine ufficiale del viaggio)
+- Offline-first: nessuna funzionalità fondamentale deve richiedere internet
+
+## COSA STIAMO COSTRUENDO (2026-10-05)
+
+Pipeline dati per app consumer (iOS/Android):
+
+Hetzner scarica da fonti pubbliche → elabora → carica su R2.
+L'app mobile scarica on-demand i dati da R2.
+
+Struttura R2 (r2:bikepacking-studio-maps/):
+- graphhopper/<stato>/graph-cache/    → routing (GraphHopper)
+- mappe/<stato>/<stato>.pmtiles       → mappa visiva (Planetiler)
+- geonames/<stato>/<COD>.zip          → nomi luoghi
+- clima/clima_mondiale.db             → dati climatici (241 paesi)
+
+Per ogni stato, 3 pacchetti (grafo + mappa + geonames).
+CHELSA è uno, globale, non per stato.
+
+## COMUNICAZIONE
+
+- Italiano semplice. Niente gergo non spiegato.
+- Riepiloga sempre cosa hai fatto, in quali file, e perché.
+- Se qualcosa non è chiaro: dillo.
+
+## FINE OBIETTIVO
+
+App multi-piattaforma (desktop, web, iOS, Android) per bikepacking.
+Ogni modifica va pensata per il futuro dell'ecosistema, non solo per
+far funzionare oggi.

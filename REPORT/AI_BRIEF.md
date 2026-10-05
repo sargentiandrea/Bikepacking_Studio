@@ -1,6 +1,6 @@
 # AI Brief - Bikepacking_Studio
 
-*Aggiornato: 2026-10-03 23:32*
+*Aggiornato: 2026-10-06 00:26*
 
 ## Come leggere il progetto
 
@@ -15,20 +15,20 @@
 
 ## Numeri essenziali
 
-- Moduli Python: 66
-- Classi: 30
-- Funzioni: 455
+- Moduli Python: 77
+- Classi: 48
+- Funzioni: 585
 - Rotte Flask: 8
 - Tabelle DB: 27
-- Simboli orfani: 51
+- Simboli orfani: 136
 - **Livello rischio: alto**
 
 ## File critici (score più alto)
 
-- `gui/mappa_pianificatore.py` - score 211 - 1 classi, 31 funzioni, 0 anomalie
+- `gui/mappa_pianificatore.py` - score 286 - 1 classi, 44 funzioni, 0 anomalie
 - `app_desktop.py` - score 201 - 1 classi, 43 funzioni, 0 anomalie
-- `gui/dashboard.py` - score 165 - 2 classi, 19 funzioni, 0 anomalie
-- `gui/mappa.py` - score 142 - 2 classi, 25 funzioni, 0 anomalie
+- `gui/dashboard.py` - score 166 - 2 classi, 19 funzioni, 0 anomalie
+- `gui/mappa.py` - score 147 - 2 classi, 26 funzioni, 0 anomalie
 - `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
 
 ## Endpoint Flask
@@ -50,26 +50,28 @@
 - `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
 - `DropAreaGPX` (classe) in `gui/drop_area_gpx.py`
 - `WorkerCaricamentoMappa` (classe) in `gui/mappa.py`
-- `cancella_anteprima_percorso` (funzione) in `gui/mappa.py`
 - `carica_allarmi_attivi` (funzione) in `gui/pagine/pagina_audit.py`
 - `testo_card` (funzione) in `gui/pagine/pagina_statistiche.py`
 - `carica_trasferimenti` (funzione) in `gui/pagine/pagina_trasporti.py`
 - `recupera_nomi_tappe` (funzione) in `gui/pagine/pagina_trasporti.py`
 - `WizardNuovoPercorso` (classe) in `gui/wizard_percorso.py`
 - `EstrazioneClimaWorker` (classe) in `gui/worker_clima.py`
+- `righe_progetto_1` (funzione) in `import_clima_mondiale.py`
 - `genera_singolo_pdf` (funzione) in `resources/genera_catalogo_sprite.py`
 - `compila_tutti_i_cataloghi` (funzione) in `resources/genera_catalogo_sprite.py`
-- ... e altri 36 (vedi report completo)
+- ... e altri 121 (vedi report completo)
 
 ## Duplicazioni rilevate
 
-*21 funzioni/metodi definiti in più file:*
+*24 funzioni/metodi definiti in più file:*
 
 - `aggiorna` (5 copie) → `gui/pagine/controller_clima.py`, `gui/pagine/pagina_audit.py`, `gui/pagine/pagina_dogane.py`, `gui/pagine/pagina_statistiche.py`, `gui/pagine/pagina_trasporti.py`
 - `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
 - `esegui_migrazione` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
+- `setUpClass` (4 copie) → `tests/test_coda_routing.py`, `tests/test_pianificatore_5_1_gui.py`, `tests/test_pianificatore_5_3.py`, `tests/test_pianificatore_5_4.py`
 - `crea_nuovo_progetto_dialog` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/dialog_nuovo_progetto.py`
 - `init_ui` (3 copie) → `gui/dashboard.py`, `gui/widget_blocchi.py`, `gui/wizard_percorso.py`
+- `setUp` (3 copie) → `tests/test_pianificatore_5_1_gui.py`, `tests/test_pianificatore_5_2.py`, `tests/test_pianificatore_5_3.py`
 - `raccorda_gap_selezionato` (2 copie) → `app_desktop.py`, `gui/pagine/pagina_trasporti.py`
 - `carica_lista_percorsi` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
 - `elabora_files_gpx` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
@@ -82,10 +84,8 @@
 - `imposta_superfici` (2 copie) → `gui/mappa_barra_superfici.py`, `gui/mappa_dettagli.py`
 - `paintEvent` (2 copie) → `gui/mappa_barra_superfici.py`, `gui/widget_timeline_catena.py`
 - `imposta_stato` (2 copie) → `gui/mappa_dettagli.py`, `gui/mappa_pianificatore.py`
-- `conferma_scenario` (2 copie) → `gui/pagine/controller_clima.py`, `service/catena_stagionale_service.py`
-- `calcola_distanza_haversine` (2 copie) → `service/geo_utils.py`, `service/gpx_metrics_service.py`
-- `_crea_backup` (2 copie) → `service/migrazione_catena_stagionale.py`, `service/migrazione_clima.py`
-- ... e altre 1
+- `request_stop` (2 copie) → `gui/mappa_worker.py`, `tests/test_coda_routing.py`
+- ... e altre 4
 
 ## Database
 
@@ -99,7 +99,7 @@
 - `cache_geo_paesi`: 2 righe
 - `cache_nomi_luoghi`: 999 righe
 - `clima_blocco_mese`: 288 righe
-- `clima_paese_mese`: 540 righe
+- `clima_paese_mese`: 3432 righe
 - `confini_box`: 11 righe
 - `dogane_percorso`: 0 righe
 - `dogane_progetto`: 67 righe
@@ -108,11 +108,11 @@
 - `progetto_stagione`: 1 righe
 - `scenari`: 1 righe
 - `superfici_tappa`: 984 righe
-- `tappa_analisi`: 985 righe
-- `tappa_costa_riepilogo`: 985 righe
-- `tappa_geometrie`: 984 righe
-- `tappa_segmenti`: 986 righe
-- `tappe`: 981 righe
+- `tappa_analisi`: 986 righe
+- `tappa_costa_riepilogo`: 986 righe
+- `tappa_geometrie`: 985 righe
+- `tappa_segmenti`: 987 righe
+- `tappe`: 982 righe
 - `trasferimenti`: 28 righe
 
 ## Servizi esterni rilevati
@@ -151,16 +151,16 @@
 
 ## Moduli principali
 
+- `gui/mappa_pianificatore.py`: 1 classi, 44 funzioni
 - `app_desktop.py`: 1 classi, 43 funzioni
-- `gui/mappa_pianificatore.py`: 1 classi, 31 funzioni
-- `gui/mappa.py`: 2 classi, 25 funzioni
+- `gui/mappa.py`: 2 classi, 26 funzioni
+- `tests/test_pianificatore_5_1.py`: 6 classi, 22 funzioni
 - `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
 - `gui/pagine/controller_clima.py`: 1 classi, 23 funzioni
+- `tests/test_pianificatore_5_3.py`: 4 classi, 18 funzioni
 - `gui/dashboard.py`: 2 classi, 19 funzioni
-- `gui/mappa_worker.py`: 4 classi, 13 funzioni
-- `service/map_server.py`: 0 classi, 15 funzioni
-- `service/superfici_service.py`: 0 classi, 15 funzioni
-- `service/stats_service.py`: 0 classi, 14 funzioni
+- `gui/mappa_worker.py`: 4 classi, 17 funzioni
+- `tests/test_pianificatore_5_2.py`: 3 classi, 14 funzioni
 
 ## Azioni consigliate
 
