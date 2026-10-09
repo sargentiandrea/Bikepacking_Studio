@@ -1,15 +1,7 @@
-RIEPILOGO ANALISI
-==================================================
-
-Data: 2026-10-06 00:26:21
-Progetto: Bikepacking_Studio
-
-Moduli Python: 77
-Classi: 48
-Funzioni: 585
-Rotte Flask: 8
-Tabelle: 27
-Simboli orfani: 136
-
-Livello rischio: alto
-File critici: gui/mappa_pianificatore.py, app_desktop.py, gui/dashboard.py
+FOTOGRAFIA DEL PROGETTO
+Run: 558e703d664c0e3f
+Data UTC: 2026-10-09T18:57:49.096857+00:00
+Python: 78/78 file analizzati
+Errori: 0
+Servizi remoti e comportamento dell’app non verificati.
+Punto di ingresso: REPORT/AI_BRIEF.md

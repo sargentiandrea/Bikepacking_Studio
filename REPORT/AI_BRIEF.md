@@ -1,173 +1,84 @@
-# AI Brief - Bikepacking_Studio
+# Fotografia del progetto — Bikepacking_Studio
 
-*Aggiornato: 2026-10-06 00:26*
+Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
 
-## Come leggere il progetto
+Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
-- All'inizio di ogni richiesta: `REPORT/AI_BRIEF.md`.
-- Prima di lavorare sul database: `REPORT/DB_SCHEMA.md`.
-- Prima di lavorare sulla configurazione: `REPORT/CONFIG_FILES.md`.
-- Prima di lavorare sui servizi esterni: `REPORT/EXTERNAL_SERVICES.md`.
-- Per dettagli specifici: `REPORT/analisi.json` oppure il file di codice interessato.
-- Per le persone: `REPORT/report.md` (completo) e `REPORT/riepilogo.txt` (sintesi).
-- `REPORT/ULTIMO_RUN.json` è riservato allo script.
-- Non leggere `aider_context.md` né i file con timestamp: sono specifici o storici.
+## Come orientarsi
 
-## Numeri essenziali
+- Questo brief: fotografia automatica corrente.
+- `STORIA_PROGETTO.md`: origini, motivazioni e storia dalle chat; non viene riscritta.
+- `REPORT/FIRST_PRINCIPLES.md` e `REPORT/REGOLE_GPX.md`: principi e regole.
+- `REPORT/report.md`: struttura, prove, errori e indizi.
+- `REPORT/PERCORSO.md`: cronologia Git locale senza interpretazioni di completamento.
+- `REPORT/DB_SCHEMA.md`, `CONFIG_FILES.md`, `EXTERNAL_SERVICES.md`: dettagli mirati.
+- `REPORT/analisi.json`: dataset completo. `ULTIMO_RUN.json`: manifest per il confronto.
 
-- Moduli Python: 77
-- Classi: 48
-- Funzioni: 585
-- Rotte Flask: 8
-- Tabelle DB: 27
-- Simboli orfani: 136
-- **Livello rischio: alto**
+## Stato della lettura
 
-## File critici (score più alto)
+- Ramo: `main`; commit: `6361027b837f`.
+- Modifiche locali prima dei report: 14.
+- Python: 78 file analizzati su 78.
+- Classi: 50; funzioni di modulo: 250; metodi: 346; funzioni annidate: 8.
+- HTTP: 8 indirizzi, 9 coppie indirizzo/metodo dichiarate.
+- Database: letto_in_sola_lettura; tabelle applicative: 23.
+- Errori di scansione: 0; indizi statici: 11.
 
-- `gui/mappa_pianificatore.py` - score 286 - 1 classi, 44 funzioni, 0 anomalie
-- `app_desktop.py` - score 201 - 1 classi, 43 funzioni, 0 anomalie
-- `gui/dashboard.py` - score 166 - 2 classi, 19 funzioni, 0 anomalie
-- `gui/mappa.py` - score 147 - 2 classi, 26 funzioni, 0 anomalie
-- `service/catena_stagionale_service.py` - score 133 - 0 classi, 27 funzioni, 0 anomalie
+## Struttura osservata
 
-## Endpoint Flask
+| Area | Moduli Python |
+|---|---|
+| database | 1 |
+| interfaccia | 25 |
+| servizio | 39 |
+| strumento_o_avvio | 6 |
+| test | 7 |
 
-- `/sprite<path:filename>` [GET] -> `serve_sprite()` in `service/map_server.py`
-- `/fonts/<path:fontstack>/<range_pbf>` [GET] -> `serve_fonts()` in `service/map_server.py`
-- `/api/set-gpx-data` [POST] -> `set_gpx_data()` in `service/map_server.py`
-- `/api/get-gpx-data` [GET] -> `get_gpx_data()` in `service/map_server.py`
-- `/api/tappe/<int:tappa_id>/geometria-completa` [GET] -> `get_geometria_completa_tappa()` in `service/map_server.py`
-- `/api/map-interactions` [GET] -> `leggi_interazioni_mappa()` in `service/map_server.py`
-- `/api/maps/list` [GET] -> `list_maps()` in `service/map_server.py`
-- `/map` [GET] -> `show_map()` in `service/map_server.py`
+## Componenti presenti nel codice
 
-## Simboli orfani (top 15)
+Questa mappa indica dove leggere il codice; la presenza dei file non certifica il completamento.
 
-- `BikepackingStudioApp` (classe) in `app_desktop.py`
-- `esegui_backup_progetto` (funzione) in `backup.py`
-- `WizardNuovoPercorsoDialog` (classe) in `gui/dashboard.py`
-- `carica_tappe_progetto` (funzione) in `gui/dashboard.py`
-- `DropAreaGPX` (classe) in `gui/drop_area_gpx.py`
-- `WorkerCaricamentoMappa` (classe) in `gui/mappa.py`
-- `carica_allarmi_attivi` (funzione) in `gui/pagine/pagina_audit.py`
-- `testo_card` (funzione) in `gui/pagine/pagina_statistiche.py`
-- `carica_trasferimenti` (funzione) in `gui/pagine/pagina_trasporti.py`
-- `recupera_nomi_tappe` (funzione) in `gui/pagine/pagina_trasporti.py`
-- `WizardNuovoPercorso` (classe) in `gui/wizard_percorso.py`
-- `EstrazioneClimaWorker` (classe) in `gui/worker_clima.py`
-- `righe_progetto_1` (funzione) in `import_clima_mondiale.py`
-- `genera_singolo_pdf` (funzione) in `resources/genera_catalogo_sprite.py`
-- `compila_tutti_i_cataloghi` (funzione) in `resources/genera_catalogo_sprite.py`
-- ... e altri 121 (vedi report completo)
+| Componente | File osservati |
+|---|---|
+| Avvio desktop e dashboard | `app_desktop.py`, `gui/dashboard.py` |
+| Mappa e pianificatore | `gui/mappa.py`, `gui/mappa_pianificatore.py`, `service/map_server.py` |
+| Progetti, tappe e GPX | `service/progetti_service.py`, `service/tappe_service.py`, `service/salvataggio_tappa_service.py`, `service/gpx_metrics_service.py` |
+| Routing e superfici | `service/dettagli_rotta_service.py`, `service/routing_timeout_service.py`, `service/superfici_service.py` |
+| Clima | `service/clima_service.py`, `service/clima_estrattore.py`, `gui/pagine/controller_clima.py` |
+| Catena stagionale e precalcolo | `service/catena_stagionale_service.py`, `service/precalcolo_service.py`, `service/precalcolo_batch_service.py` |
+| Mappe e geocodifica offline | `service/map_manager_service.py`, `service/geocodifica_offline_service.py`, `service/geonames_service.py` |
+| Trasferimenti, dogane e statistiche | `service/trasferimenti_service.py`, `service/dogane_service.py`, `service/stats_service.py` |
+| Persistenza e audit | `database/database_setup.py`, `service/audit_service.py` |
 
-## Duplicazioni rilevate
+## Moduli più estesi
 
-*24 funzioni/metodi definiti in più file:*
+La dimensione orienta la lettura; non misura rischio o qualità.
 
-- `aggiorna` (5 copie) → `gui/pagine/controller_clima.py`, `gui/pagine/pagina_audit.py`, `gui/pagine/pagina_dogane.py`, `gui/pagine/pagina_statistiche.py`, `gui/pagine/pagina_trasporti.py`
-- `crea_backup` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
-- `esegui_migrazione` (4 copie) → `service/migrazione_tappa_analisi.py`, `service/migrazione_tappa_costa.py`, `service/migrazione_tappa_costa_metadati.py`, `service/migrazione_tappa_geometrie.py`
-- `setUpClass` (4 copie) → `tests/test_coda_routing.py`, `tests/test_pianificatore_5_1_gui.py`, `tests/test_pianificatore_5_3.py`, `tests/test_pianificatore_5_4.py`
-- `crea_nuovo_progetto_dialog` (3 copie) → `app_desktop.py`, `gui/dashboard.py`, `gui/dialog_nuovo_progetto.py`
-- `init_ui` (3 copie) → `gui/dashboard.py`, `gui/widget_blocchi.py`, `gui/wizard_percorso.py`
-- `setUp` (3 copie) → `tests/test_pianificatore_5_1_gui.py`, `tests/test_pianificatore_5_2.py`, `tests/test_pianificatore_5_3.py`
-- `raccorda_gap_selezionato` (2 copie) → `app_desktop.py`, `gui/pagine/pagina_trasporti.py`
-- `carica_lista_percorsi` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `elabora_files_gpx` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `aggiorna_tabella_tappe` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `elimina_percorso_corrente` (2 copie) → `app_desktop.py`, `gui/dashboard.py`
-- `conferma_creazione` (2 copie) → `gui/dashboard.py`, `gui/wizard_percorso.py`
-- `salva` (2 copie) → `gui/dialog_nuovo_progetto.py`, `gui/mappa_cache.py`
-- `setup_ui` (2 copie) → `gui/mappa.py`, `gui/mappa_manager.py`
-- `showEvent` (2 copie) → `gui/mappa.py`, `gui/mappa_pianificatore.py`
-- `imposta_superfici` (2 copie) → `gui/mappa_barra_superfici.py`, `gui/mappa_dettagli.py`
-- `paintEvent` (2 copie) → `gui/mappa_barra_superfici.py`, `gui/widget_timeline_catena.py`
-- `imposta_stato` (2 copie) → `gui/mappa_dettagli.py`, `gui/mappa_pianificatore.py`
-- `request_stop` (2 copie) → `gui/mappa_worker.py`, `tests/test_coda_routing.py`
-- ... e altre 4
+| File | Righe | Definizioni |
+|---|---|---|
+| gui/mappa_pianificatore.py | 1652 | 45 |
+| service/catena_stagionale_service.py | 1268 | 27 |
+| service/stats_service.py | 768 | 14 |
+| gui/dashboard.py | 632 | 21 |
+| app_desktop.py | 600 | 44 |
+| service/salvataggio_tappa_service.py | 580 | 7 |
+| gui/mappa.py | 573 | 28 |
+| gui/pagine/controller_clima.py | 552 | 24 |
 
-## Database
+## Cambiamenti dalla precedente scansione
 
-- Percorso: `data/bikepacking_app.db`
-- Numero di tabelle: 23
-- `allarmi_percorso`: 5 righe
-- `anagrafica_paesi`: 198 righe
-- `anagrafica_paesi_mondo`: 12 righe
-- `blocchi_ordine`: 24 righe
-- `blocchi_stagione`: 18 righe
-- `cache_geo_paesi`: 2 righe
-- `cache_nomi_luoghi`: 999 righe
-- `clima_blocco_mese`: 288 righe
-- `clima_paese_mese`: 3432 righe
-- `confini_box`: 11 righe
-- `dogane_percorso`: 0 righe
-- `dogane_progetto`: 67 righe
-- `impostazioni_semaforo`: 0 righe
-- `progetti`: 3 righe
-- `progetto_stagione`: 1 righe
-- `scenari`: 1 righe
-- `superfici_tappa`: 984 righe
-- `tappa_analisi`: 986 righe
-- `tappa_costa_riepilogo`: 986 righe
-- `tappa_geometrie`: 985 righe
-- `tappa_segmenti`: 987 righe
-- `tappe`: 982 righe
-- `trasferimenti`: 28 righe
+- Aggiunti: 0.
+- Rimossi: 0.
+- Modificati: 1.
+- Analizzatore modificato: sì.
 
-## Servizi esterni rilevati
+## Limiti
 
-- `http://127.0.0.1:8080/api/map-interactions`
-- `http://127.0.0.1:8080/api/set-gpx-data`
-- `http://127.0.0.1:8080/map`
-- `http://localhost:3000`
-- `http://s3.amazonaws.com/doc/2006-03-01/`
-- `http://www.topografix.com/GPX/1/1`
-- `http://{BROUTER_HOST}:{BROUTER_PORT}`
-- `http://{BROUTER_HOST}:{BROUTER_PORT}/brouter`
-- `http://{host}:{port}`
-- `https://creativecommons.org/licenses/by/4.0/\n`
-- `https://download.geonames.org/export/dump/allCountries.zip`
-- `https://download.geonames.org/export/dump/alternateNamesV2.zip`
-- `https://os.unil.cloud.switch.ch/chelsa02`
-- `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_center.mbtiles`
-- `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_islands.mbtiles`
-- `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_north.mbtiles`
-- `https://pub-625e91d94b7f446d86e485da84fabd05.r2.dev/maps/italy_south.mbtiles`
-- `https://www.chelsa-climate.org/datasets/chelsa_monthly`
-- `https://www.geonames.org/\n`
-- `martin`
-- `redis`
-
-## File di configurazione
-
-- `paesi_mondo.json`
-- `resources/sprite.json`
-- `resources/sprite@2x.json`
-- `static/Spite OLD/old_sprite.json`
-- `static/Spite OLD/old_sprite@2x.json`
-- `static/sprite.json`
-- `static/sprite@2x.json`
-
-## Moduli principali
-
-- `gui/mappa_pianificatore.py`: 1 classi, 44 funzioni
-- `app_desktop.py`: 1 classi, 43 funzioni
-- `gui/mappa.py`: 2 classi, 26 funzioni
-- `tests/test_pianificatore_5_1.py`: 6 classi, 22 funzioni
-- `service/catena_stagionale_service.py`: 0 classi, 27 funzioni
-- `gui/pagine/controller_clima.py`: 1 classi, 23 funzioni
-- `tests/test_pianificatore_5_3.py`: 4 classi, 18 funzioni
-- `gui/dashboard.py`: 2 classi, 19 funzioni
-- `gui/mappa_worker.py`: 4 classi, 17 funzioni
-- `tests/test_pianificatore_5_2.py`: 3 classi, 14 funzioni
-
-## Azioni consigliate
-
-- Rivedere i simboli orfani e decidere se integrarli, rimuoverli o spostarli.
-- Prioritizzare i file con score più alto per refactor e verifica.
-- Usare PROGETTO_INDEX.json come contesto minimo per ridurre i token richiesti alle IA.
-
----
-
-*Per approfondire: vedi `analisi.json` (dataset completo) o `report.md` (versione umana).*
+- Nessun test dell’app eseguito; comportamento runtime non certificato.
+- Servizi, server e contenuti R2 non contattati.
+- Riferimenti basati su nomi AST: alias, omonimie e uso dinamico limitano la precisione.
+- I riferimenti SQL non stabiliscono a quale database appartenga una tabella.
+- Decorator HTTP rilevati staticamente: registrazione e prefissi Blueprint non verificati.
+- HTML/JS/CSS inventariati, incluse librerie esterne; sintassi e comportamento non verificati.
+- Storia, visioni e piani sono fonti documentali, non prove di implementazione.
+- Cartelle escluse: .agents, .aws, .codex, .git, .idea, .mypy_cache, .pytest_cache, .venv, .vscode, GPX CORSICA, REPORT, __pycache__, basemap-styles-master, build, data, dist, fonts, gpx, node_modules, venv

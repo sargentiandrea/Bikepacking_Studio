@@ -1,227 +1,69 @@
-============================================================
-LEGGIMI - ANALISI PROFONDA DEL PROGETTO
-============================================================
+ANALISI PROFONDA v4 — ISTRUZIONI
 
-Questo file ti spiega come usare lo strumento di analisi.
-Leggilo una volta con calma. Poi non ti servirà più.
+Richiede Python 3.10 o successivo, senza dipendenze aggiuntive.
+Dal terminale nella cartella del progetto:
 
+  python analisi_profonda.py
 
-------------------------------------------------------------
-1. COSA HAI IN MANO
-------------------------------------------------------------
+Aggiorna dieci file correnti nella cartella REPORT, senza creare nuove
+copie datate. Il progetto predefinito è la cartella dello script.
 
-Hai tre file:
+Per una verifica senza scrivere alcun report:
 
-  a) analisi_profonda.py
-     -> Lo script che analizza il progetto.
-     -> Si trova in: C:\Users\sarge\Desktop\Bikepacking_Studio\
+  python analisi_profonda.py --check
 
-  b) analisi_profonda.bat
-     -> Il lanciatore. Doppio click e parte tutto.
-     -> Si trova in: C:\Users\sarge\Desktop\
+Per escludere la lettura SQLite aggiungi --no-db.
+Per analizzare un'altra cartella aggiungi --root "C:\percorso\progetto".
+Se python non è disponibile, usa il percorso di un interprete funzionante.
+Un eventuale lanciatore esterno .bat deve usare un interprete valido;
+lo script non installa Python e non ripara l'ambiente virtuale dell'app.
 
-  c) LEGGIMI_ANALISI.txt
-     -> Questo file. Istruzioni.
+COME LEGGERE I RISULTATI
 
+1. AI_BRIEF.md: punto di ingresso, fotografia sintetica e limiti.
+2. report.md: moduli, dipendenze, rotte, prove, errori e confronto.
+3. DB_SCHEMA.md: schema, indici, chiavi esterne e conteggi SQLite reali.
+4. CONFIG_FILES.md: struttura delle configurazioni, senza copiarne i valori.
+5. EXTERNAL_SERVICES.md: URL osservate nel Python, senza contattare servizi.
+6. STATO_ATTUALE.md: stato ricavato dalla stessa scansione verificabile.
+7. PERCORSO.md: ultimi 80 commit locali raggiungibili da HEAD.
+8. riepilogo.txt: riepilogo minimo.
+9. analisi.json: dataset completo, con file e righe delle prove.
+10. ULTIMO_RUN.json: piccolo manifest con impronte per il prossimo confronto.
 
-------------------------------------------------------------
-2. COME SI USA (il 99% delle volte)
-------------------------------------------------------------
+I report condividono un identificativo di scansione. Il manifest viene
+scritto per ultimo; la scansione successiva segnala report mancanti o
+modificati. Alla prima esecuzione v4 la vecchia baseline è incompatibile:
+il confronto sarà disponibile dalla scansione successiva.
 
-  1. Vai sul Desktop di Windows.
-  2. Doppio click su "analisi_profonda".
-  3. Aspetta. Si apre una finestra nera con dei messaggi.
-  4. Alla fine si apre automaticamente la cartella REPORT.
-  5. Guarda i file dentro.
+INTERPRETARE CORRETTAMENTE LA FOTOGRAFIA
 
-Tutto qui. Non devi fare altro.
+Funzioni di modulo, metodi e funzioni annidate hanno conteggi separati.
+Le rotte distinguono i metodi HTTP anche quando il percorso è uguale.
+Le tabelle SQLite lette sono separate dalle tabelle candidate nelle query.
+Un simbolo senza riferimenti statici è un indizio da verificare, non una
+prova che sia inutile. La dimensione di un modulo non è un voto di rischio.
+Errori di lettura, sintassi o JSON sono riportati; l'uscita vale 1 in caso
+di errori della scansione o della lettura del database.
 
+Il database è aperto in sola lettura immutable, senza file laterali.
+Se esiste un WAL non vuoto, la lettura viene saltata e il limite dichiarato.
+Per una fotografia SQLite affidabile, esegui l'analisi con l'app chiusa.
+Nessun modulo dell'app viene importato o eseguito. Non vengono svolti test
+funzionali né verifiche di server, R2 o servizi remoti.
+HTML, JavaScript e CSS sono inventariati, non collaudati.
+Le cartelle escluse sono elencate nei report e nella costante EXCLUDED.
 
-------------------------------------------------------------
-3. COSA TROVI NELLA CARTELLA REPORT
-------------------------------------------------------------
+MEMORIA DEL PROGETTO
 
-Ogni volta che lanci l'analisi, vengono creati questi file
-(nel nome c'è data e ora, così non si sovrascrivono mai):
+STORIA_PROGETTO.md conserva la memoria ricostruita dalle chat: non viene
+riscritta. Principi, regole, visioni e piani rimangono documenti separati.
+I titoli Git e i piani non dimostrano il completamento delle funzionalità.
+REPORT/ARCHIVIO è escluso. Nessun commit, push o cancellazione automatica.
+Non usare un indizio statico come autorizzazione a cancellare codice.
 
-  2026-09-29_14-30-05_analisi.json
-     -> Tutto il progetto in formato dati. Serve alle IA.
+TEST DELLO STRUMENTO
 
-  2026-09-29_14-30-05_report.md
-     -> Report leggibile per te. Aprilo con VS Code.
+  python -B -m unittest discover -s tests -p test_analisi_profonda.py -v
 
-  2026-09-29_14-30-05_prompt_agente.md
-     -> Un prompt pronto da copiare e dare a un'IA (Copilot, Aider...).
-
-  2026-09-29_14-30-05_aider_context.md
-     -> Contesto specifico per Aider.
-
-  2026-09-29_14-30-05_riepilogo.txt
-     -> Riassunto breve in testo semplice.
-
-E poi, indipendentemente dalla data:
-
-  CHANGELOG.md
-     -> Confronto con l'analisi precedente. Ti dice:
-        - cosa è cambiato nei numeri
-        - quali simboli orfani sono nuovi
-        - quali sono stati risolti
-        - quali file sono stati aggiunti o rimossi
-
-  ULTIMO_RUN.json
-     -> Copia dell'ultima analisi. Non toccarlo:
-        serve per il confronto al prossimo avvio.
-
-
-------------------------------------------------------------
-4. COSA SIGNIFICANO I NUMERI NEL REPORT
-------------------------------------------------------------
-
-  Moduli Python
-     -> Quanti file .py ci sono nel progetto.
-
-  Classi
-     -> Quante classi (i "tipi di oggetto" del codice).
-
-  Funzioni globali
-     -> Quante funzioni definite fuori dalle classi.
-
-  Rotte Flask
-     -> Quanti endpoint HTTP espone il backend.
-
-  Tabelle rilevate
-     -> Quante tabelle del database sono citate nel codice.
-
-  Simboli orfani
-     -> Classi o funzioni definite ma mai usate altrove.
-        Se sono tanti, potrebbe esserci codice vecchio da pulire.
-        Se sono pochi, il progetto è in buona salute.
-
-  Livello di rischio
-     -> basso / medio / alto
-        Calcolato in base a: numero di orfani, anomalie, file
-        troppo grandi, rotte mancanti.
-
-
-------------------------------------------------------------
-5. COSA FARE QUANDO QUALCOSA NON VA
-------------------------------------------------------------
-
-  Caso 1: il doppio click non fa niente o si chiude subito.
-     -> Probabilmente Python non è installato, oppure non è
-        nel PATH di Windows.
-     -> Per verificare: apri il prompt dei comandi (cerca "cmd"
-        nel menu Start), scrivi "python --version" e premi Invio.
-     -> Se vedi un numero di versione (es. Python 3.11.5), va bene.
-     -> Se vedi un errore, Python non è installato o è installato
-        male. In quel caso scrivi all'IA che ti sta aiutando.
-
-  Caso 2: la finestra nera dice "ERRORE: la cartella del progetto
-          non esiste".
-     -> Il percorso nel file .bat non è corretto.
-     -> Apri analisi_profonda.bat con VS Code (click destro ->
-        Apri con -> VS Code) e controlla questa riga:
-           set PROGETTO=C:\Users\sarge\Desktop\Bikepacking_Studio
-     -> Deve puntare alla cartella dove sta davvero il progetto.
-
-  Caso 3: la finestra nera dice "ERRORE: lo script non esiste".
-     -> analisi_profonda.py non è nella cartella giusta.
-     -> Deve stare in C:\Users\sarge\Desktop\Bikepacking_Studio\
-
-  Caso 4: durante l'analisi appaiono errori del tipo
-          "errore di sintassi in ...".
-     -> Alcuni file del progetto hanno errori di sintassi Python.
-        Non è grave: lo script li salta e continua.
-     -> Se sono tanti e ti preoccupano, segnalalo all'IA.
-
-  Caso 5: tutto funziona ma i numeri sembrano sbagliati.
-     -> Verifica la lista CARTELLE_ESCLUSE dentro analisi_profonda.py
-        (riga 30 circa). Se qualche cartella non deve essere
-        analizzata, aggiungila lì.
-
-
-------------------------------------------------------------
-6. COME MODIFICARE LA CONFIGURAZIONE
-------------------------------------------------------------
-
-Apri analisi_profonda.py con VS Code. In alto trovi una sezione
-chiamata "COSTANTI DI CONFIGURAZIONE". Le voci più utili:
-
-  CARTELLE_ESCLUSE
-     -> Cartelle da ignorare durante l'analisi.
-     -> Aggiungi qui il nome di una cartella (senza percorso)
-        per escluderla. Es: "miei_dati", "temp", "backup".
-
-  FRAMEWORK_UI_RICHIESTO
-     -> Il framework grafico che vuoi usare. Ora è "PySide6".
-     -> Se trovi import di PyQt5, PyQt6, PySide2, tkinter,
-        lo script te lo segnala come anomalia.
-
-  NOMI_SEMPRE_USATI
-     -> Nomi che non devono MAI essere considerati orfani.
-     -> Se hai un metodo strano che viene chiamato solo da
-        un framework e ti risulta orfano, aggiungilo qui.
-
-Dopo aver modificato il file, salva con Ctrl+S. La prossima
-analisi userà la nuova configurazione.
-
-
-------------------------------------------------------------
-7. UNA REGOLA D'ORO
-------------------------------------------------------------
-
-Quando l'analisi ti dice che c'è un problema, NON chiedere
-all'IA di risolverlo subito. Prima fai così:
-
-  1. Apri il report .md della data più recente
-  2. Cerca il problema (Ctrl+F nel file)
-  3. Leggi cosa dice
-  4. Chiedi all'IA di spiegartelo in italiano semplice
-  5. SOLO QUANDO HAI CAPITO, autorizza la modifica
-
-Questo ti evita di accumulare modifiche che non capisci.
-Ed è la vera differenza tra "farsi scrivere un'app" e
-"guidare la costruzione di un'app".
-
-
-------------------------------------------------------------
-8. FLUSSO DI LAVORO CONSIGLIATO
-------------------------------------------------------------
-
-  Tu (regista)
-     |
-     v
-  Lanci analisi_profonda.bat
-     |
-     v
-  Ottieni in REPORT/:
-     - report.md (leggibile)
-     - analisi.json (dati per IA)
-     - prompt_agente.md (pronto per Copilot/Aider)
-     - changelog.md (cosa è cambiato)
-     |
-     v
-  Incolli prompt_agente.md a un'IA (DeepSeek, Copilot, ecc.)
-     |
-     v
-  L'IA ti dice cosa fare / l'agente applica le modifiche
-     |
-     v
-  Rilancia analisi_profonda.bat
-     |
-     v
-  Confronti il changelog con l'analisi precedente
-     |
-     v
-  Vedi cosa è cambiato. Se è migliorato, hai fatto progressi.
-  Se è peggiorato, torni indietro (GitHub è tuo amico).
-
-
-------------------------------------------------------------
-FINE
-------------------------------------------------------------
-
-Se hai dubbi, apri una chat con l'IA e incolla il report.
-L'IA leggerà tutto e ti risponderà.
-
-Buon lavoro.
+Questi test verificano l'analizzatore, non l'applicazione Bikepacking.
