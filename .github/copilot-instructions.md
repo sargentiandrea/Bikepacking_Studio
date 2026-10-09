@@ -1,180 +1,101 @@
-# Istruzioni per GitHub Copilot — Progetto Bikepacking Studio
+# GitHub Copilot — Bikepacking Studio
 
-## CHI SEI E COME DEVI COMPORTARTI
+## Ruolo e direzione
 
-Stai assistendo un progetto Python desktop + backend Flask chiamato **Bikepacking Studio**.
-L'utente che ti guida è un **regista non-tecnico**: sa cosa vuole ottenere, ma non scrive codice e non conosce i dettagli di sintassi. Il tuo compito è tradurre le sue intenzioni in modifiche concrete, **spiegando sempre cosa fai e perché**, in italiano semplice.
+Lavora sul codice dell'app e sulla sua integrazione con i dati. Bikepacking
+Studio nasce per preparare e accompagnare viaggi reali in bicicletta;
+la direzione futura è un ecosistema consumer desktop, web, iOS e Android.
+L'app presente nel repository è desktop Python/PySide6 con mappa Flask,
+MapLibre e persistenza SQLite. Non presentare la visione futura come già realizzata.
 
-**Regola numero uno**: prima di modificare qualunque cosa, spiega in 2-3 righe cosa stai per fare e quali file toccherai. Poi procedi. Mai silenziosamente.
+L'utente guida il progetto e comunica obiettivi funzionali. Parla in italiano
+semplice. Prima di intervenire spiega brevemente obiettivo e file coinvolti;
+poi procedi nel perimetro richiesto, senza conferme ripetute per lavoro già
+autorizzato. Chiedi chiarimenti solo quando manca una decisione necessaria.
 
----
+Cline ha un ruolo distinto: produzione di mappe, grafi e dati geografici su
+Hetzner e distribuzione Cloudflare R2. La sua preparazione di un pacchetto
+non dimostra che l'app lo supporti. Non avviare operazioni infrastrutturali
+come conseguenza implicita di una modifica al codice.
 
-## PRINCIPI FONDATIVI DEL PROGETTO
+## Orientamento a inizio attività
 
-Il documento `REPORT/FIRST_PRINCIPLES.md` contiene i 13 principi fondativi di Bikepacking Studio. Ogni decisione tecnica deve essere coerente con questi principi.
+1. Leggi `REPORT/AI_BRIEF.md`: fotografia generata da `analisi_profonda.py`,
+   con data, commit e limiti. Non modificarla manualmente.
+2. Controlla `git status --short` e il commit corrente. Se il brief precede
+   modifiche rilevanti, verifica i sorgenti coinvolti; non considerarlo attuale
+   solo perché è il report più recente disponibile.
+3. Leggi `REPORT/FIRST_PRINCIPLES.md`. Consulta `STORIA_PROGETTO.md` per
+   motivazioni, decisioni e storia, soprattutto quando inizi un nuovo filone.
+4. Leggi codice e documenti specifici del compito prima di cambiarli.
 
-In particolare, ricorda sempre:
-- Il viaggio non è il percorso (il GPX è una guida, non un vincolo)
-- La realtà ha priorità sul piano (l'app deve adattarsi ai cambiamenti)
-- L'IA è un assistente (suggerisce, non decide)
-- La connessione è utile ma non obbligatoria (offline-first)
-- Ogni viaggio genera conoscenza (da preservare)
+Codice, Git e prove di esecuzione descrivono aspetti diversi. Un titolo di
+commit, una chat o un piano non certificano il funzionamento di una funzione.
+Gli indizi dell'analizzatore non provano codice inutilizzato. Evita di
+ricopiare nelle istruzioni conteggi, liste di bug o priorità destinati a scadere.
 
-Prima di ogni intervento significativo, chiediti: "Questa modifica è coerente con i principi fondativi?"
+## Mappa del codice
 
----
+- `app_desktop.py`: avvio e coordinamento desktop.
+- `gui/`: dashboard, mappa, pianificatore, pagine e worker PySide6.
+- `service/`: dominio, GPX, routing, clima, catena stagionale, precalcolo,
+  statistiche, server mappa e gestione dati offline.
+- `database/database_setup.py`: schema e inizializzazione SQLite.
+- `templates/`, `static/`, `resources/`: mappa web, stile, icone e risorse.
+- `tests/`: verifiche disponibili; scegli quelle pertinenti al cambiamento.
 
-## CONTESTO DEL PROGETTO
+Rispettare i moduli esistenti e fare modifiche circoscritte. Non ricominciare
+refactor già affrontati sulla base di vecchie descrizioni: controlla lo stato
+dei file. Il motore di routing effettivo va verificato in `service/config.py`
+e nei chiamanti; un piano GraphHopper non autorizza a sostituire BRouter.
 
-- **Nome**: Bikepacking Studio
-- **Tipo**: applicazione desktop con backend mappa Flask
-- **Framework UI**: **PySide6** (obbligatorio)
-- **Backend mappe**: Flask + MapLibre GL 5.6.2 (con proiezione globo)
-- **Database**: SQLite (`data/bikepacking_app.db`)
+## Principi e vincoli
 
-### Architettura (rispettala sempre)
+- Il viaggio è centrale, il GPX è una guida, la realtà prevale sul piano;
+  le scelte appartengono al viaggiatore e la conoscenza va preservata.
+- Funzionalità fondamentali disponibili offline. Un servizio remoto può
+  arricchirle, non diventare una dipendenza obbligatoria senza una decisione.
+- UI solo PySide6; non introdurre PyQt5, PyQt6, PySide2 o tkinter.
+- `basemap-styles-master/` è codice esterno: non modificarlo.
+- Preservare dati dell'utente in `data/`, `fonts/`, `gpx/` e le altre
+  raccolte GPX. La lettura necessaria al compito è consentita; modifiche,
+  migrazioni o cancellazioni richiedono un incarico esplicito.
+- `blocchi_ordine` rappresenta l'ordine ufficiale del viaggio: non modificarlo
+  senza autorizzazione. Prima di intervenire su `database/database_setup.py`
+  prepara il backup pertinente e chiarisci gli effetti sui dati.
+- Nuove dipendenze e cancellazioni di file richiedono autorizzazione.
+- Non esporre credenziali, chiavi o configurazioni private nei report o in Git.
 
-- `gui/` → interfaccia desktop (PySide6): dashboard, mappa, wizard
-- `service/` → logica di dominio: audit, clima, dogane, mappa, statistiche, config, precalcolo, catena stagionale
-- `database/` → setup e accesso al database
-- `app_desktop.py` → entry point dell'app desktop
-- `templates/` → template HTML per la mappa
-- `static/` → risorse statiche (JS, CSS, sprite)
-- `resources/` → risorse generate (catalogo sprite)
+## Documenti da consultare per argomento
 
-### File critici (da trattare con particolare cautela)
+| Argomento | Fonti |
+|---|---|
+| Database | `REPORT/DB_SCHEMA.md`, schema e query effettive |
+| Configurazioni e URL | `REPORT/CONFIG_FILES.md`, `REPORT/EXTERNAL_SERVICES.md`, sorgenti |
+| GPX e precalcolo | `REPORT/REGOLE_GPX.md`, `REPORT/PIANO_PRECALCOLO.md` |
+| Clima e stagionalità | `REPORT/VISIONE_CATENA_STAGIONALE.md`, `REPORT/PIANO_CATENA_STAGIONALE.md`, `REPORT/ANALISI_CLIMA.md` |
+| Pianificatore | `REPORT/VISIONE_PIANIFICATORE.md`, `REPORT/PROGETTO_PIANIFICATORE.md`, `REPORT/ANALISI_PIANIFICATORE.md` |
+| Mappe e routing futuro | `REPORT/PROGETTO_MAPPE_OFFLINE.md`, `REPORT/PIANO_MIGRAZIONE_GRAPHHOPPER.md` |
+| Prove statiche e Git | `REPORT/report.md`, `REPORT/PERCORSO.md`; `REPORT/analisi.json` solo per dettagli necessari |
 
-- `gui/mappa.py` (~9 classi, 87 funzioni — **God Object attuale, priorità di refactor**)
-- `app_desktop.py` (~5 classi, 52 funzioni — God Object storico)
-- `gui/dashboard.py` (2 classi, 20 funzioni)
+Visioni, piani e analisi storiche possono essere superati. Confrontali con
+codice e prove; non usarli come una lista automatica di lavori da eseguire.
+`REPORT/ARCHIVIO` e contesti datati servono solo a ricerche storiche richieste.
 
-Questi tre file contengono la maggior parte della logica dell'app. **Non riscriverli mai da capo in un colpo solo.** Intervieni con modifiche piccole e verificabili.
+## Verifica e continuità
 
-### Servizi principali (creati durante il precalcolo)
+Esegui verifiche pertinenti al cambiamento e riferisci cosa è passato, cosa
+non è stato eseguito e perché. Non installare dipendenze per aggirare un
+ambiente non funzionante senza autorizzazione.
 
-- `service/gpx_metrics_service.py` → calcolo metriche GPX (distanza, dislivello, pendenza)
-- `service/precalcolo_service.py` → salvataggio metriche in `tappa_analisi`
-- `service/precalcolo_batch_service.py` → precalcolo di massa (992+ tappe)
-- `service/geometria_service.py` → geometria semplificata (Ramer-Douglas-Peucker)
-- `service/costa_service.py` → calcolo distanza dalla costa
-- `service/catena_stagionale_service.py` → catena temporale e scenari
-- `service/clima_estrattore.py` → estrazione dati CHELSA
-- `service/stats_service.py` → statistiche progetto (legge da `tappa_analisi`)
+Dopo modifiche significative al codice, se Python è disponibile, rigenera
+la fotografia con `python -B analisi_profonda.py`. `--check` analizza senza
+scrivere; `--no-db` esclude SQLite. L'analizzatore non sostituisce i test
+dell'app. Non mantenere a mano i suoi dieci output: sono elencati in
+`(ananlisi_profonda)-LEGGIMI.txt`. Gli altri file in REPORT sono documenti
+di progetto, non tutti output automatici.
 
----
-
-## VINCOLI TECNICI (mai violare)
-
-1. **UI**: solo **PySide6**. Mai `PyQt5`, `PyQt6`, `PySide2` o `tkinter`. Se li trovi, segnalali come anomalia.
-2. **Non modificare** la cartella `basemap-styles-master/` (è codice esterno).
-3. **Non toccare** `data/`, `fonts/`, `gpx/` (sono dati dell'utente, non codice).
-4. **Non toccare** `REPORT/` (sono output generati automaticamente).
-5. **Non introdurre nuove dipendenze** senza chiedere esplicitamente il permesso all'utente.
-6. **Non cancellare file** senza autorizzazione esplicita.
-7. **Non modificare** `database/database_setup.py` senza backup preventivo.
-8. **Non toccare `blocchi_ordine`** in lettura/scrittura senza autorizzazione (è l'ordine ufficiale del viaggio).
-9. **Offline-first**: nessuna funzionalità fondamentale deve richiedere internet per funzionare.
-
----
-
-## REGOLE OPERATIVE
-
-1. **Prima di ogni intervento strutturale**, leggi il file `REPORT/AI_BRIEF.md` (se esiste) per capire lo stato attuale del progetto.
-2. **Interventi piccoli e verificabili**: una modifica = un obiettivo chiaro. Non mescolare più cose nella stessa richiesta.
-3. **Dopo ogni modifica significativa**, ricorda all'utente di lanciare `analisi_profonda.py` per verificare il changelog.
-4. **Se un task è ambiguo**, fai **una domanda** all'utente prima di procedere. Non inventare.
-5. **Se il task è complesso**, proponi un **piano in 2-3 passi** e attendi approvazione prima di eseguire.
-6. **Non toccare file fuori dal perimetro** che ti viene indicato esplicitamente nell'ordine.
-7. **Se il task è chiaro**, procedi direttamente senza chiedere ulteriori conferme.
-
----
-
-## COME COMUNICARE
-
-- Parla **italiano semplice**. Niente gergo tecnico non spiegato.
-- Quando usi un termine tecnico, spiegalo in una riga.
-- Dopo ogni modifica, mostra un **riepilogo**: cosa hai cambiato, in quali file, e perché.
-- Se qualcosa non ti è chiaro, **dillo**. Meglio una domanda in più che un disastro silenzioso.
-
----
-
-## OBIETTIVO A LUNGO TERMINE
-
-Il progetto deve diventare un'app multi-piattaforma (desktop, web, iOS, Android) per bikepacking, con funzionalità avanzate di pianificazione percorso, analisi clima, dogane internazionali, e certificazione di viaggi intercontinentali.
-
-Lavoriamo per passi. Preferiamo **una modifica piccola e sicura al giorno** a un refactor gigantesco che rompe tutto.
-
----
-
-## PROBLEMI ARCHITETTURALI NOTI (aggiornato 2026-10-02)
-
-### Refactor prioritario: `gui/mappa.py`
-È diventato il file più grande del progetto (9 classi, 87 funzioni). Contiene:
-- Rendering MapLibre
-- Worker di caricamento
-- Cache per progetto
-- Proiezione globo
-- Pianificatore percorso
-- Gestione waypoint
-- Superfici, nomi luoghi, altimetria
-
-**Va spezzato in moduli più piccoli** (es. `mappa_worker.py`, `mappa_cache.py`, `mappa_pianificatore.py`). Da pianificare con calma.
-
-### Duplicazioni tra `app_desktop.py` e `gui/dashboard.py`
-10 funzioni sono duplicate. Casi critici:
-- `elimina_percorso_corrente`: la versione in `app_desktop.py` cancella da più tabelle (tappe, allarmi, trasferimenti, ordine blocchi), quella in `gui/dashboard.py` solo progetto e tappe. **BUG LATENTE da risolvere.**
-- `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`: versioni in `app_desktop.py` contengono logica aggiuntiva (audit, mappa, allarmi) non presente in `gui/dashboard.py`. Da allineare.
-- `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`: copie non usate, rimovibili.
-
-### `calcola_distanza_haversine` in 3 file
-Definita in `app_desktop.py`, `gui/dashboard.py`, `service/audit_service.py`. Da centralizzare in `service/geo_utils.py`.
-
-### Residui del database (da pulire)
-- Tappa "variante" (ID 43 o 1123) con stato anomalo
-- Gap ricomparso nella pagina Audit
-- Blocco Italia con nome incoerente tra `blocchi_ordine` e `tappe`
-- Cartella con nome generale nell'elenco percorsi
-- 21 violazioni di chiavi esterne in `allarmi_percorso` (20) e `trasferimenti` (1)
-- Tabelle vuote o inutilizzate (`dogane_percorso`, `anagrafica_paesi_mondo`)
-
-### Priorità di intervento
-1. Refactor `gui/mappa.py` (God Object attuale)
-2. Risolvere bug `elimina_percorso_corrente` (pulizia DB incompleta)
-3. Pulire i residui del database
-4. Allineare `toggle_pausa_tappa`, `cambia_ruolo_tappa`, `elimina_singola_tappa`
-5. Rimuovere copie morte: `apri_percorso_selezionato`, `crea_nuovo_progetto_dialog`, `aggiorna_blocco_tappa`
-6. Centralizzare `calcola_distanza_haversine` in `service/geo_utils.py`
-
----
-
-## COSA LEGGERE E QUANDO
-
-All'inizio di OGNI richiesta:
-- Leggi `REPORT/AI_BRIEF.md` per lo stato generale del progetto.
-
-Prima di lavorare su DATABASE:
-- Leggi `REPORT/DB_SCHEMA.md` per lo schema completo del database.
-
-Prima di lavorare su CONFIGURAZIONE:
-- Leggi `REPORT/CONFIG_FILES.md` per i file di configurazione.
-
-Prima di lavorare su SERVIZI ESTERNI (Martin, tile server, ecc.):
-- Leggi `REPORT/EXTERNAL_SERVICES.md` per l'elenco dei servizi esterni.
-
-Prima di lavorare su CATENA STAGIONALE O CLIMA:
-- Leggi `REPORT/VISIONE_CATENA_STAGIONALE.md` (la visione)
-- Leggi `REPORT/PIANO_CATENA_STAGIONALE.md` (il piano)
-- Leggi `REPORT/ANALISI_CLIMA.md` (cosa fa oggi)
-
-Prima di lavorare su PRECALCOLO:
-- Leggi `REPORT/PIANO_PRECALCOLO.md` (il piano)
-- Leggi `REPORT/REGOLE_GPX.md` (le regole)
-
-Se ti serve un DETTAGLIO su un modulo specifico:
-- Leggi `REPORT/analisi.json` (dataset completo) oppure
-- Leggi direttamente il file di codice interessato.
-
-NON leggere:
-- `aider_context.md` (specifico per Aider)
-- File con timestamp nel nome (sono storico)
-- `ULTIMO_RUN.json` (serve solo allo script)
+Preserva `STORIA_PROGETTO.md`: eventuali nuove decisioni vanno aggiunte con
+data e fonte nell'ambito del lavoro richiesto, senza riscrivere il passato.
+Concludi con cambiamenti, verifiche e limiti. Non fare commit o push automatici
+senza un incarico dell'utente che comprenda quelle operazioni.

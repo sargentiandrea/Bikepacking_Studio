@@ -1,6 +1,6 @@
 # Cronologia Git del ramo corrente
 
-Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
+Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -9,6 +9,7 @@ Ultimi 80 commit raggiungibili da HEAD. La storia dalle chat è in `STORIA_PROGE
 
 | Data | Commit | Titolo |
 |---|---|---|
+| 2026-10-09T21:00:22+02:00 | 0c4a46595729 | Rinnova analisi verificabile e memoria del progetto |
 | 2026-10-06T23:02:35+02:00 | 6361027b837f | Aggiorna memoria progetto (osservatore automatico) |
 | 2026-10-06T00:54:12+02:00 | ad2a0d19561c | Lettura grafo mondo, report. |
 | 2026-10-04T19:51:28+02:00 | 1b1e2addc44a | feat: devia le tracce con waypoint (5.4) |

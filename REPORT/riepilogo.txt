@@ -1,6 +1,6 @@
 FOTOGRAFIA DEL PROGETTO
-Run: 558e703d664c0e3f
-Data UTC: 2026-10-09T18:57:49.096857+00:00
+Run: c68e5bf3741dde1f
+Data UTC: 2026-10-09T20:29:39.639501+00:00
 Python: 78/78 file analizzati
 Errori: 0
 Servizi remoti e comportamento dell’app non verificati.

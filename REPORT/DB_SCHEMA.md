@@ -1,6 +1,6 @@
 # Schema SQLite applicativo
 
-Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
+Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -776,8 +776,8 @@ Possono riguardare altri database; non sono il conteggio delle tabelle applicati
 | service/trasferimenti_service.py:120 |  | False |
 | service/trasferimenti_service.py:121 | trasferimenti | False |
 | service/trasferimenti_service.py:143 | trasferimenti | False |
-| tests/test_analisi_profonda.py:172 |  | False |
-| tests/test_analisi_profonda.py:173 | tappe | False |
+| tests/test_analisi_profonda.py:192 |  | False |
+| tests/test_analisi_profonda.py:193 | tappe | False |
 | tests/test_pianificatore_5_2.py:98 | blocchi_ordine, tappe | False |
 | tests/test_pianificatore_5_2.py:148 | tappe | False |
 | tests/test_pianificatore_5_2.py:162 | tappe | False |

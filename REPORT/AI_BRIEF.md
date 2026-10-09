@@ -1,8 +1,21 @@
 # Fotografia del progetto — Bikepacking_Studio
 
-Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
+Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
+
+## Contesto per una nuova chat
+
+Bikepacking Studio nasce per preparare e accompagnare viaggi reali in bicicletta, conservando la conoscenza raccolta prima, durante e dopo il viaggio.
+Il repository contiene l’app desktop Python/PySide6, una mappa web servita da Flask/MapLibre e SQLite. La direzione futura comprende un’app consumer desktop, web, iOS e Android; questa scansione non ne certifica la realizzazione.
+Principi: il viaggio è centrale; il GPX guida senza vincolare; la realtà prevale sul piano; l’IA assiste e il viaggiatore decide; le funzioni essenziali devono funzionare offline.
+
+Ruoli: Codex segue analisi, modifiche, verifiche e continuità del repository (`AGENTS.md`); Copilot segue il codice e l’integrazione dell’app (`.github/copilot-instructions.md`); Cline segue soprattutto la produzione di mappe, routing e dati su Hetzner e la distribuzione Cloudflare R2 (`.clinerules`). Gli accessi remoti configurati per Cline non sono verificati da questo report.
+
+**Uso con DeepSeek, Gemini, ChatGPT o altre chat:** allega questo file e indica l’obiettivo della sessione. Il brief fornisce il contesto iniziale; allega poi i sorgenti o i documenti necessari al compito. Una chat senza accesso ai file non può considerarli letti né verificare lo stato corrente.
+Puoi accompagnarlo con: «Parliamo in italiano semplice. Usa la fotografia e i suoi limiti, distingui fatti, storia e proposte; chiedimi le fonti mancanti prima di formulare diagnosi o modifiche. Obiettivo di questa sessione: …».
+
+Questo file si aggiorna eseguendo `python -B analisi_profonda.py`, non modificandolo a mano. La data e il commit sotto descrivono il momento della scansione. Prima di una nuova chat rigeneralo se il progetto è cambiato; se non puoi, dichiara che la fotografia può essere superata.
 
 ## Come orientarsi
 
@@ -16,10 +29,10 @@ Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecu
 
 ## Stato della lettura
 
-- Ramo: `main`; commit: `6361027b837f`.
-- Modifiche locali prima dei report: 14.
+- Ramo: `main`; commit: `0c4a46595729`.
+- Modifiche locali prima dei report: 15.
 - Python: 78 file analizzati su 78.
-- Classi: 50; funzioni di modulo: 250; metodi: 346; funzioni annidate: 8.
+- Classi: 50; funzioni di modulo: 250; metodi: 348; funzioni annidate: 8.
 - HTTP: 8 indirizzi, 9 coppie indirizzo/metodo dichiarate.
 - Database: letto_in_sola_lettura; tabelle applicative: 23.
 - Errori di scansione: 0; indizi statici: 11.
@@ -67,10 +80,11 @@ La dimensione orienta la lettura; non misura rischio o qualità.
 
 ## Cambiamenti dalla precedente scansione
 
-- Aggiunti: 0.
+- Aggiunti: 1.
 - Rimossi: 0.
-- Modificati: 1.
+- Modificati: 0.
 - Analizzatore modificato: sì.
+- Commit Git cambiato: no; i cambiamenti alle fonti sono conteggiati separatamente.
 
 ## Limiti
 

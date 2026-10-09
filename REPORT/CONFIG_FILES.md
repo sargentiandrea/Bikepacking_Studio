@@ -1,6 +1,6 @@
 # Configurazioni e dati strutturati
 
-Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
+Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 

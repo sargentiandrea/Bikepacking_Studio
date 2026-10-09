@@ -159,6 +159,26 @@ class SnapshotTests(unittest.TestCase):
         self.assertFalse(comparison['disponibile'])
         self.assertIn('Manifest non valido', comparison['motivo'])
 
+    def test_instruction_changes_are_part_of_the_snapshot(self):
+        (self.root / '.github').mkdir()
+        copilot = self.root / '.github/copilot-instructions.md'
+        copilot.write_text('app rules', encoding='utf-8')
+        (self.root / '.clinerules').write_text('pipeline rules', encoding='utf-8')
+        first = self.scan()
+        self.assertIn('.clinerules', first['file_sha256'])
+        self.assertIn('.github/copilot-instructions.md', first['file_sha256'])
+        analysis.write_reports(first, self.root)
+        copilot.write_text('updated app rules', encoding='utf-8')
+        comparison = self.scan()['confronto']
+        self.assertEqual(comparison['modificati'], ['.github/copilot-instructions.md'])
+
+    def test_shared_brief_is_regenerated_with_new_chat_context(self):
+        brief = analysis.render(self.scan())['AI_BRIEF.md']
+        self.assertIn('Contesto per una nuova chat', brief)
+        self.assertIn('DeepSeek, Gemini, ChatGPT', brief)
+        self.assertIn('non modificandolo a mano', brief)
+        self.assertIn('non sono verificati da questo report', brief)
+
     def test_check_writes_nothing(self):
         before = sorted(p.relative_to(self.root).as_posix() for p in self.root.rglob('*'))
         with contextlib.redirect_stdout(io.StringIO()):

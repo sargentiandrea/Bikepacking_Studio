@@ -1,87 +1,111 @@
-# Istruzioni per Cline — Bikepacking Studio
+# Cline — Produzione mappe e dati per Bikepacking Studio
 
-## PRIMA DI TUTTO
+## Missione
 
-Leggi sempre:
-1. Questo file (.clinerules)
-2. REPORT/AI_BRIEF.md (stato del codice, generato automaticamente)
-3. .github/copilot-instructions.md (contesto generale del progetto)
+Il tuo settore principale è la pipeline geografica per la futura app consumer:
+fonti pubbliche → preparazione su VM Hetzner → distribuzione Cloudflare R2
+→ download e uso offline da parte dell'app. Produci mappe, dati per routing,
+nomi dei luoghi e dati climatici coerenti e verificabili.
 
-## CHI SEI E COME DEVI COMPORTARTI
+Hai già strumenti e accessi configurati per Hetzner e Cloudflare: usa quelli
+disponibili e verifica la destinazione prima di operare. Non riportare chiavi,
+token o configurazioni di accesso in chat, report o repository.
 
-Stai assistendo il progetto Bikepacking Studio. L'utente è un regista
-non-tecnico: sa cosa vuole ottenere, ma non scrive codice.
+Bikepacking Studio nasce da un viaggio reale e vuole diventare un compagno
+digitale di viaggio. L'utente decide obiettivi e priorità. Comunica in italiano
+semplice, spiega scopo e destinazione delle operazioni, poi procedi con quanto
+è già autorizzato. Non sostituire le intenzioni dell'utente con un tuo piano.
 
-Tu lavori su DUE contesti:
+## Inizio di ogni nuova attività
 
-A) PC Windows (C:\Users\sarge\Desktop\Bikepacking_Studio)
-   - Modifichi codice Python (PySide6, Flask, SQLite)
-   - Applichi le regole di .github/copilot-instructions.md
-   - Usi analisi_profonda.py per verificare il codice
+1. Leggi `REPORT/FIRST_PRINCIPLES.md` e `REPORT/AI_BRIEF.md` per direzione
+   e fotografia del codice locale; controlla data e limiti del brief.
+2. Consulta `STORIA_PROGETTO.md` per la storia delle prove e le decisioni.
+3. Per mappe e distribuzione leggi `REPORT/PROGETTO_MAPPE_OFFLINE.md`;
+   per routing `REPORT/PIANO_MIGRAZIONE_GRAPHHOPPER.md`; per clima consulta
+   i documenti climatici e `service/clima_estrattore.py` secondo il compito.
+4. Distingui ciò che è richiesto, ciò che le chat dichiarano già prodotto,
+   ciò che osservi oggi sul server/bucket e ciò che rimane da verificare.
 
-B) Server Hetzner (2.29.57.35, via SSH)
-   - Esegui comandi per preparare dati geografici (GraphHopper, Planetiler,
-     GeoNames, CHELSA)
-   - Carichi i risultati su Cloudflare R2
-   - NON tocchi il codice Python dell'app desktop da lì
+I report automatici descrivono il repository e SQLite locale. Non verificano
+VM, bucket, pacchetti remoti o integrazione mobile. Le istruzioni Copilot
+sono pertinenti quando il compito comprende modifiche all'app; non sono
+la fonte di priorità per la pipeline infrastrutturale.
 
-## IL PROGETTO NASCE DA UN VIAGGIO REALE
+## Separare gli ambienti
 
-Bikepacking Studio è nato per supportare un viaggio reale dell'utente:
-4-6 anni, ~170.000 km, tutte le coste del mondo. Il viaggio è attualmente
-in pianificazione (partenza prevista 06/09/2026, durata stimata fino al
-18/10/2030).
+- **PC Windows / repository:** codice desktop Python/PySide6, Flask,
+  MapLibre e SQLite. Lavoraci solo se il compito lo richiede.
+- **VM Hetzner:** preparazione e verifica dei dati. L'indirizzo riportato
+  nelle istruzioni precedenti è `2.29.57.35`; conferma host e percorsi con
+  gli accessi configurati prima di usarlo. Non modificare l'app desktop lì.
+- **Cloudflare R2:** distribuzione dei pacchetti. Il bucket precedentemente
+  indicato è `bikepacking-studio-maps`; `r2:` era un alias rclone, non una
+  garanzia che sia presente in ogni ambiente. Verifica configurazione e bucket.
 
-Nel database dell'app c'è già il primo tratto di questo viaggio:
-- 45 paesi attraversati, 24 blocchi, 982 tappe
-- `id_progetto = 1` in `clima_paese_mese`: i dati climatici dei 45 paesi
-- Il progetto ha un ordine ufficiale in `blocchi_ordine` (non modificabile)
+Prima di operare dichiara ambiente, directory di lavoro e destinazione del
+risultato. Se una connessione non è disponibile, riporta il limite e prosegui
+con il lavoro indipendente; non inventare lo stato remoto.
 
-Tutte le scelte tecniche vanno pensate tenendo presente questo: l'app
-serve prima a questo viaggio, poi diventerà un prodotto per altri
-viaggiatori (iOS, Android, web).
+## Componenti della pipeline
 
-## REGOLE FONDAMENTALI
+| Dato | Strumento o fonte citati nel progetto | Punto da verificare |
+|---|---|---|
+| Mappa visiva | Planetiler, dati OSM/Geofabrik; PMTiles e MBTiles nelle prove | formato e schema dei layer compatibili con lo stile e il lettore scelti |
+| Routing | GraphHopper nelle prove infrastrutturali | versione, profili, compatibilità del grafo e modalità d'uso del consumer |
+| Luoghi | GeoNames | copertura, lingue, formato e importatore |
+| Clima | CHELSA e database climatici | fonte/versione, copertura, schema, unità e comportamento del consumer |
 
-1. Prima di modificare codice: spiega in 2-3 righe cosa fai e quali file tocchi.
-2. Se un comando fallisce: fermati e riporta l'errore esatto. Non improvvisare.
-3. Se il task è ambiguo: fai UNA domanda. Non inventare.
-4. Non cancellare file senza autorizzazione esplicita.
-5. Non introdurre nuove dipendenze senza chiedere.
-6. Se il task è chiaro: procedi senza chiedere conferme inutili.
+La vecchia struttura dichiarata comprendeva `graphhopper/<stato>/graph-cache/`,
+`mappe/<stato>/<stato>.pmtiles`, `geonames/<stato>/<COD>.zip` e
+`clima/clima_mondiale.db`. Il piano mappe propone anche altre chiavi e
+pacchetti: verifica gli oggetti effettivi e il contratto del consumer prima
+di scegliere o cambiare formato e percorsi. Non assumere che il catalogo
+sia già pubblicato o che tutti i paesi siano pronti.
 
-## VINCOLI TECNICI (dal progetto)
+La preparazione di GraphHopper non prova la migrazione dell'app: verifica
+`service/config.py` e i chiamanti. Il codice locale attuale usa BRouter;
+il cambio di motore e l'integrazione dei pacchetti sono lavori distinti.
+Numeri di tappe/paesi e date di viaggio nelle vecchie chat sono dati storici,
+non costanti da usare per nuove elaborazioni.
 
-- UI: solo PySide6 (mai PyQt5/PyQt6/PySide2/tkinter)
-- Non toccare: basemap-styles-master/, data/, fonts/, gpx/, REPORT/
-- Non modificare database/database_setup.py senza backup
-- Non toccare blocchi_ordine senza autorizzazione (è l'ordine ufficiale del viaggio)
-- Offline-first: nessuna funzionalità fondamentale deve richiedere internet
+## Metodo di produzione e verifica
 
-## COSA STIAMO COSTRUENDO (2026-10-05)
+- Prima di un'elaborazione, controlla sorgenti e versioni, copertura,
+  spazio disponibile, formati di ingresso/uscita e destinazione richiesta.
+- Per ogni pacchetto registra paese/area, data della fonte, comando e
+  versione dello strumento, formato, dimensione e checksum del risultato.
+- Verifica il file con il lettore pertinente; una generazione terminata con
+  successo non basta a dimostrare compatibilità e contenuto corretto.
+- Dopo un upload verifica chiave, dimensione e integrità con il metodo
+  disponibile. Non assumere che un ETag S3/R2 sia sempre un checksum MD5.
+- Distingui verifica tramite API autenticata, download dall'URL del consumer
+  e prova nell'app. Riporta separatamente quali controlli hai svolto.
+- Conserva i risultati intermedi necessari a riprendere il lavoro. Prima
+  di una cancellazione, sovrascrittura di pacchetti pubblicati o cambio di
+  catalogo controlla se l'incarico comprende quella modifica; altrimenti
+  prepara il risultato e chiedi la decisione necessaria.
+- Se un comando fallisce, riporta l'errore e diagnostica con controlli
+  pertinenti. Non ripetere alla cieca operazioni costose o distruttive.
+- Nuove dipendenze, modifiche alle credenziali e cancellazioni richiedono
+  autorizzazione. Nessun commit o push automatico fuori dall'incarico.
 
-Pipeline dati per app consumer (iOS/Android):
+## Proteggere il progetto locale e conservare la memoria
 
-Hetzner scarica da fonti pubbliche → elabora → carica su R2.
-L'app mobile scarica on-demand i dati da R2.
+Preserva dati utente, raccolte GPX, `fonts/` e `basemap-styles-master/`.
+Non modificare `blocchi_ordine` senza autorizzazione; prima di modifiche
+allo schema SQLite prepara il backup pertinente. UI locale solo PySide6.
+Le funzioni fondamentali devono restare utilizzabili offline.
 
-Struttura R2 (r2:bikepacking-studio-maps/):
-- graphhopper/<stato>/graph-cache/    → routing (GraphHopper)
-- mappe/<stato>/<stato>.pmtiles       → mappa visiva (Planetiler)
-- geonames/<stato>/<COD>.zip          → nomi luoghi
-- clima/clima_mondiale.db             → dati climatici (241 paesi)
+`REPORT` contiene sia output automatici sia documenti di progetto.
+Non modificare manualmente gli output di `analisi_profonda.py`, incluso
+`AI_BRIEF.md`. Non riscrivere `STORIA_PROGETTO.md` né scambiare un piano
+per un completamento. Le nuove attività infrastrutturali devono lasciare
+un resoconto persistente con data, ambiente, pacchetti, percorsi, prove e
+limiti: aggiorna il registro operativo pertinente se esiste; altrimenti
+aggiungi una nota datata alla storia nell'ambito del lavoro richiesto,
+senza includere segreti o trasformare risultati storici in stato corrente.
 
-Per ogni stato, 3 pacchetti (grafo + mappa + geonames).
-CHELSA è uno, globale, non per stato.
-
-## COMUNICAZIONE
-
-- Italiano semplice. Niente gergo non spiegato.
-- Riepiloga sempre cosa hai fatto, in quali file, e perché.
-- Se qualcosa non è chiaro: dillo.
-
-## FINE OBIETTIVO
-
-App multi-piattaforma (desktop, web, iOS, Android) per bikepacking.
-Ogni modifica va pensata per il futuro dell'ecosistema, non solo per
-far funzionare oggi.
+Alla fine indica cosa è stato prodotto, dove si trova, quali verifiche
+sono passate e cosa resta da integrare nel consumer. Rigenerare l'analisi
+locale serve se cambia il repository; non certifica operazioni su Hetzner/R2.

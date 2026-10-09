@@ -1,11 +1,11 @@
 {
   "meta": {
     "schema_version": 4,
-    "versione_script": "4.0",
-    "run_id": "558e703d664c0e3f",
-    "data_utc": "2026-10-09T18:57:49.096857+00:00",
+    "versione_script": "4.1",
+    "run_id": "c68e5bf3741dde1f",
+    "data_utc": "2026-10-09T20:29:39.639501+00:00",
     "progetto": "Bikepacking_Studio",
-    "script_sha256": "2ac5263d44efed6381e3464e766b2ab4603f88d94fa268a1a3cdbaca9a8dbcf5",
+    "script_sha256": "d0141f7ecb00f8326cb4dba534f5c8abfac1505241051d72466009a977d075e2",
     "metodo": "Analisi statica; nessun modulo applicativo importato o eseguito."
   },
   "sintesi": {
@@ -13,7 +13,7 @@
     "file_python_trovati": 78,
     "classi": 50,
     "funzioni_modulo": 250,
-    "metodi": 346,
+    "metodi": 348,
     "funzioni_annidate": 8,
     "funzioni_async": 0,
     "percorsi_http": 8,
@@ -24,12 +24,16 @@
   },
   "git": {
     "disponibile": true,
-    "head": "6361027b837fa6ee6ae24f64bb856cb72c793ef0",
+    "head": "0c4a46595729f4cf9195136c8f0ef61752bb44f1",
     "ramo": "main",
     "modifiche_locali": [
       {
         "stato": " M",
-        "file": "(ananlisi_profonda)-LEGGIMI.txt"
+        "file": ".clinerules"
+      },
+      {
+        "stato": " M",
+        "file": ".github/copilot-instructions.md"
       },
       {
         "stato": " M",
@@ -76,15 +80,20 @@
         "file": "analisi_profonda.py"
       },
       {
-        "stato": "??",
-        "file": "STORIA_PROGETTO.md"
+        "stato": " M",
+        "file": "tests/test_analisi_profonda.py"
       },
       {
         "stato": "??",
-        "file": "tests/test_analisi_profonda.py"
+        "file": "AGENTS.md"
       }
     ],
     "commit_recenti": [
+      {
+        "commit": "0c4a46595729f4cf9195136c8f0ef61752bb44f1",
+        "data": "2026-10-09T21:00:22+02:00",
+        "titolo": "Rinnova analisi verificabile e memoria del progetto"
+      },
       {
         "commit": "6361027b837fa6ee6ae24f64bb856cb72c793ef0",
         "data": "2026-10-06T23:02:35+02:00",
@@ -131419,8 +131428,8 @@
       ]
     },
     "tests/test_analisi_profonda.py": {
-      "sha256": "70847088e0d603a36b8641d50d68259cc3a69f5465df5d6fa5adb0139ee2708c",
-      "righe": 203,
+      "sha256": "1decc1f980af381da19f80032f63fec56cb7ded911c5bc4a5da62371fef7a28e",
+      "righe": 223,
       "categoria": "test",
       "simboli": [
         {
@@ -131560,7 +131569,7 @@
           "nome": "SnapshotTests",
           "qualificato": "SnapshotTests",
           "tipo": "classe",
-          "fine_riga": 199,
+          "fine_riga": 219,
           "asincrona": false,
           "decoratori": [],
           "id": "tests/test_analisi_profonda.py:SnapshotTests:115"
@@ -131628,49 +131637,73 @@
         {
           "file": "tests/test_analisi_profonda.py",
           "riga": 162,
+          "nome": "test_instruction_changes_are_part_of_the_snapshot",
+          "qualificato": "SnapshotTests.test_instruction_changes_are_part_of_the_snapshot",
+          "tipo": "metodo",
+          "fine_riga": 173,
+          "asincrona": false,
+          "decoratori": [],
+          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_instruction_changes_are_part_of_the_snapshot:162",
+          "corpo_sha256": "1272f5442c2afefd2251321ebf382a4ab4733047afca4e30a180f59149c5cfb6"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 175,
+          "nome": "test_shared_brief_is_regenerated_with_new_chat_context",
+          "qualificato": "SnapshotTests.test_shared_brief_is_regenerated_with_new_chat_context",
+          "tipo": "metodo",
+          "fine_riga": 180,
+          "asincrona": false,
+          "decoratori": [],
+          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_shared_brief_is_regenerated_with_new_chat_context:175",
+          "corpo_sha256": "eed7bd108bc925b15686e8c13913a3fb6f7d58f94f37629d5e19f55c326a1cf0"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 182,
           "nome": "test_check_writes_nothing",
           "qualificato": "SnapshotTests.test_check_writes_nothing",
           "tipo": "metodo",
-          "fine_riga": 166,
+          "fine_riga": 186,
           "asincrona": false,
           "decoratori": [],
-          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_check_writes_nothing:162",
+          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_check_writes_nothing:182",
           "corpo_sha256": "86ea901d47ea088c1869fefcb42c94d27f0f0b831126a47b174a20e1630cf4f3"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 168,
+          "riga": 188,
           "nome": "test_database_is_read_without_sidecars_or_content_changes",
           "qualificato": "SnapshotTests.test_database_is_read_without_sidecars_or_content_changes",
           "tipo": "metodo",
-          "fine_riga": 181,
+          "fine_riga": 201,
           "asincrona": false,
           "decoratori": [],
-          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_database_is_read_without_sidecars_or_content_changes:168",
+          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_database_is_read_without_sidecars_or_content_changes:188",
           "corpo_sha256": "09e75e54303e3299f32411ee6c2722736ba45ec1451e9e7d016bbe185aec588f"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 183,
+          "riga": 203,
           "nome": "test_wal_is_not_silently_ignored",
           "qualificato": "SnapshotTests.test_wal_is_not_silently_ignored",
           "tipo": "metodo",
-          "fine_riga": 190,
+          "fine_riga": 210,
           "asincrona": false,
           "decoratori": [],
-          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_wal_is_not_silently_ignored:183",
+          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_wal_is_not_silently_ignored:203",
           "corpo_sha256": "695d151eb075fe648b45d951d86e6f28fe90f2ef1bcad7f33b8cc7ea49e38d25"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 192,
+          "riga": 212,
           "nome": "test_excluded_sources_and_archives_are_never_parsed",
           "qualificato": "SnapshotTests.test_excluded_sources_and_archives_are_never_parsed",
           "tipo": "metodo",
-          "fine_riga": 199,
+          "fine_riga": 219,
           "asincrona": false,
           "decoratori": [],
-          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_excluded_sources_and_archives_are_never_parsed:192",
+          "id": "tests/test_analisi_profonda.py:SnapshotTests.test_excluded_sources_and_archives_are_never_parsed:212",
           "corpo_sha256": "3c1baa1cdbc72b3108fb582de4dafb36657c566d751f6b7e402b39572faa1c66"
         }
       ],
@@ -133402,682 +133435,658 @@
         {
           "file": "tests/test_analisi_profonda.py",
           "riga": 163,
-          "nome": "sorted",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "as_posix",
-          "tipo": "attributo",
-          "espressione": "as_posix"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "relative_to",
-          "tipo": "attributo",
-          "espressione": "p.relative_to"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "p",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "rglob",
-          "tipo": "attributo",
-          "espressione": "self.root.rglob"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 163,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 164,
-          "nome": "redirect_stdout",
-          "tipo": "attributo",
-          "espressione": "contextlib.redirect_stdout"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 164,
-          "nome": "contextlib",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 164,
-          "nome": "StringIO",
-          "tipo": "attributo",
-          "espressione": "io.StringIO"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 164,
-          "nome": "io",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "assertEqual",
-          "tipo": "attributo",
-          "espressione": "self.assertEqual"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "main",
-          "tipo": "attributo",
-          "espressione": "analysis.main"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "analysis",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "str",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 165,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "assertEqual",
-          "tipo": "attributo",
-          "espressione": "self.assertEqual"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "sorted",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "as_posix",
-          "tipo": "attributo",
-          "espressione": "as_posix"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "relative_to",
-          "tipo": "attributo",
-          "espressione": "p.relative_to"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "p",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "rglob",
-          "tipo": "attributo",
-          "espressione": "self.root.rglob"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 166,
-          "nome": "before",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 169,
           "nome": "mkdir",
           "tipo": "attributo",
           "espressione": "mkdir"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 169,
+          "riga": 163,
           "nome": "root",
           "tipo": "attributo",
           "espressione": "self.root"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 169,
+          "riga": 163,
           "nome": "self",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 170,
+          "riga": 164,
           "nome": "root",
           "tipo": "attributo",
           "espressione": "self.root"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 170,
+          "riga": 164,
           "nome": "self",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 171,
-          "nome": "connect",
+          "riga": 165,
+          "nome": "write_text",
           "tipo": "attributo",
-          "espressione": "sqlite3.connect"
+          "espressione": "copilot.write_text"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 171,
-          "nome": "sqlite3",
+          "riga": 165,
+          "nome": "copilot",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 171,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 172,
-          "nome": "execute",
-          "tipo": "attributo",
-          "espressione": "conn.execute"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 172,
-          "nome": "conn",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 173,
-          "nome": "execute",
-          "tipo": "attributo",
-          "espressione": "conn.execute"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 173,
-          "nome": "conn",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 174,
-          "nome": "close",
-          "tipo": "attributo",
-          "espressione": "conn.close"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 174,
-          "nome": "conn",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 175,
-          "nome": "read_bytes",
-          "tipo": "attributo",
-          "espressione": "db.read_bytes"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 175,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 176,
-          "nome": "database_snapshot",
-          "tipo": "attributo",
-          "espressione": "analysis.database_snapshot"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 176,
-          "nome": "analysis",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 176,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 176,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 177,
-          "nome": "assertEqual",
-          "tipo": "attributo",
-          "espressione": "self.assertEqual"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 177,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 177,
-          "nome": "result",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 178,
-          "nome": "assertEqual",
-          "tipo": "attributo",
-          "espressione": "self.assertEqual"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 178,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 178,
-          "nome": "result",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 179,
-          "nome": "assertEqual",
-          "tipo": "attributo",
-          "espressione": "self.assertEqual"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 179,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 179,
-          "nome": "read_bytes",
-          "tipo": "attributo",
-          "espressione": "db.read_bytes"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 179,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 179,
-          "nome": "before",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 180,
-          "nome": "assertFalse",
-          "tipo": "attributo",
-          "espressione": "self.assertFalse"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 180,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 180,
-          "nome": "exists",
-          "tipo": "attributo",
-          "espressione": "exists"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 180,
-          "nome": "Path",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 180,
-          "nome": "str",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 180,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 181,
-          "nome": "assertFalse",
-          "tipo": "attributo",
-          "espressione": "self.assertFalse"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 181,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 181,
-          "nome": "exists",
-          "tipo": "attributo",
-          "espressione": "exists"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 181,
-          "nome": "Path",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 181,
-          "nome": "str",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 181,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 184,
-          "nome": "mkdir",
-          "tipo": "attributo",
-          "espressione": "mkdir"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 184,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 184,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 185,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 185,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 186,
-          "nome": "write_bytes",
-          "tipo": "attributo",
-          "espressione": "db.write_bytes"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 186,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 187,
-          "nome": "write_bytes",
-          "tipo": "attributo",
-          "espressione": "write_bytes"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 187,
-          "nome": "Path",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 187,
-          "nome": "str",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 187,
-          "nome": "db",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 188,
-          "nome": "database_snapshot",
-          "tipo": "attributo",
-          "espressione": "analysis.database_snapshot"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 188,
-          "nome": "analysis",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 188,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 188,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 189,
-          "nome": "assertEqual",
-          "tipo": "attributo",
-          "espressione": "self.assertEqual"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 189,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 189,
-          "nome": "result",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 190,
-          "nome": "assertIn",
-          "tipo": "attributo",
-          "espressione": "self.assertIn"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 190,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 190,
-          "nome": "result",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 194,
-          "nome": "root",
-          "tipo": "attributo",
-          "espressione": "self.root"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 194,
-          "nome": "self",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 194,
-          "nome": "directory",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 195,
-          "nome": "mkdir",
-          "tipo": "attributo",
-          "espressione": "path.mkdir"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 195,
-          "nome": "path",
-          "tipo": "nome"
-        },
-        {
-          "file": "tests/test_analisi_profonda.py",
-          "riga": 196,
+          "riga": 166,
           "nome": "write_text",
           "tipo": "attributo",
           "espressione": "write_text"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 196,
-          "nome": "path",
+          "riga": 166,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 166,
+          "nome": "self",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 197,
+          "riga": 167,
           "nome": "scan",
           "tipo": "attributo",
           "espressione": "self.scan"
         },
         {
           "file": "tests/test_analisi_profonda.py",
+          "riga": 167,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 168,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 168,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 168,
+          "nome": "first",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 169,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 169,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 169,
+          "nome": "first",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 170,
+          "nome": "write_reports",
+          "tipo": "attributo",
+          "espressione": "analysis.write_reports"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 170,
+          "nome": "analysis",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 170,
+          "nome": "first",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 170,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 170,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 171,
+          "nome": "write_text",
+          "tipo": "attributo",
+          "espressione": "copilot.write_text"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 171,
+          "nome": "copilot",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 172,
+          "nome": "scan",
+          "tipo": "attributo",
+          "espressione": "self.scan"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 172,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 173,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 173,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 173,
+          "nome": "comparison",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 176,
+          "nome": "render",
+          "tipo": "attributo",
+          "espressione": "analysis.render"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 176,
+          "nome": "analysis",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 176,
+          "nome": "scan",
+          "tipo": "attributo",
+          "espressione": "self.scan"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 176,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 177,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 177,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 177,
+          "nome": "brief",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 178,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 178,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 178,
+          "nome": "brief",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 179,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 179,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 179,
+          "nome": "brief",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 180,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 180,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 180,
+          "nome": "brief",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "sorted",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "as_posix",
+          "tipo": "attributo",
+          "espressione": "as_posix"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "relative_to",
+          "tipo": "attributo",
+          "espressione": "p.relative_to"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "p",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "rglob",
+          "tipo": "attributo",
+          "espressione": "self.root.rglob"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 183,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 184,
+          "nome": "redirect_stdout",
+          "tipo": "attributo",
+          "espressione": "contextlib.redirect_stdout"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 184,
+          "nome": "contextlib",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 184,
+          "nome": "StringIO",
+          "tipo": "attributo",
+          "espressione": "io.StringIO"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 184,
+          "nome": "io",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "main",
+          "tipo": "attributo",
+          "espressione": "analysis.main"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "analysis",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "str",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 185,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "sorted",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "as_posix",
+          "tipo": "attributo",
+          "espressione": "as_posix"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "relative_to",
+          "tipo": "attributo",
+          "espressione": "p.relative_to"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "p",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "rglob",
+          "tipo": "attributo",
+          "espressione": "self.root.rglob"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 186,
+          "nome": "before",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 189,
+          "nome": "mkdir",
+          "tipo": "attributo",
+          "espressione": "mkdir"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 189,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 189,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 190,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 190,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 191,
+          "nome": "connect",
+          "tipo": "attributo",
+          "espressione": "sqlite3.connect"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 191,
+          "nome": "sqlite3",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 191,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 192,
+          "nome": "execute",
+          "tipo": "attributo",
+          "espressione": "conn.execute"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 192,
+          "nome": "conn",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 193,
+          "nome": "execute",
+          "tipo": "attributo",
+          "espressione": "conn.execute"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 193,
+          "nome": "conn",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 194,
+          "nome": "close",
+          "tipo": "attributo",
+          "espressione": "conn.close"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 194,
+          "nome": "conn",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 195,
+          "nome": "read_bytes",
+          "tipo": "attributo",
+          "espressione": "db.read_bytes"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 195,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 196,
+          "nome": "database_snapshot",
+          "tipo": "attributo",
+          "espressione": "analysis.database_snapshot"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 196,
+          "nome": "analysis",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 196,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 196,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 197,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
           "riga": 197,
           "nome": "self",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
+          "riga": 197,
+          "nome": "result",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
           "riga": 198,
           "nome": "assertEqual",
           "tipo": "attributo",
@@ -134092,7 +134101,7 @@
         {
           "file": "tests/test_analisi_profonda.py",
           "riga": 198,
-          "nome": "data",
+          "nome": "result",
           "tipo": "nome"
         },
         {
@@ -134111,25 +134120,345 @@
         {
           "file": "tests/test_analisi_profonda.py",
           "riga": 199,
+          "nome": "read_bytes",
+          "tipo": "attributo",
+          "espressione": "db.read_bytes"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 199,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 199,
+          "nome": "before",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 200,
+          "nome": "assertFalse",
+          "tipo": "attributo",
+          "espressione": "self.assertFalse"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 200,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 200,
+          "nome": "exists",
+          "tipo": "attributo",
+          "espressione": "exists"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 200,
+          "nome": "Path",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 200,
+          "nome": "str",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 200,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 201,
+          "nome": "assertFalse",
+          "tipo": "attributo",
+          "espressione": "self.assertFalse"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 201,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 201,
+          "nome": "exists",
+          "tipo": "attributo",
+          "espressione": "exists"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 201,
+          "nome": "Path",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 201,
+          "nome": "str",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 201,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 204,
+          "nome": "mkdir",
+          "tipo": "attributo",
+          "espressione": "mkdir"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 204,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 204,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 205,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 205,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 206,
+          "nome": "write_bytes",
+          "tipo": "attributo",
+          "espressione": "db.write_bytes"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 206,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 207,
+          "nome": "write_bytes",
+          "tipo": "attributo",
+          "espressione": "write_bytes"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 207,
+          "nome": "Path",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 207,
+          "nome": "str",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 207,
+          "nome": "db",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 208,
+          "nome": "database_snapshot",
+          "tipo": "attributo",
+          "espressione": "analysis.database_snapshot"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 208,
+          "nome": "analysis",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 208,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 208,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 209,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 209,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 209,
+          "nome": "result",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 210,
+          "nome": "assertIn",
+          "tipo": "attributo",
+          "espressione": "self.assertIn"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 210,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 210,
+          "nome": "result",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 214,
+          "nome": "root",
+          "tipo": "attributo",
+          "espressione": "self.root"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 214,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 214,
+          "nome": "directory",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 215,
+          "nome": "mkdir",
+          "tipo": "attributo",
+          "espressione": "path.mkdir"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 215,
+          "nome": "path",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 216,
+          "nome": "write_text",
+          "tipo": "attributo",
+          "espressione": "write_text"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 216,
+          "nome": "path",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 217,
+          "nome": "scan",
+          "tipo": "attributo",
+          "espressione": "self.scan"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 217,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 218,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 218,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 218,
           "nome": "data",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 202,
+          "riga": 219,
+          "nome": "assertEqual",
+          "tipo": "attributo",
+          "espressione": "self.assertEqual"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 219,
+          "nome": "self",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 219,
+          "nome": "data",
+          "tipo": "nome"
+        },
+        {
+          "file": "tests/test_analisi_profonda.py",
+          "riga": 222,
           "nome": "__name__",
           "tipo": "nome"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 203,
+          "riga": 223,
           "nome": "main",
           "tipo": "attributo",
           "espressione": "unittest.main"
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 203,
+          "riga": 223,
           "nome": "unittest",
           "tipo": "nome"
         }
@@ -134138,13 +134467,13 @@
       "sql": [
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 172,
+          "riga": 192,
           "tabelle_candidate": [],
           "dinamica": false
         },
         {
           "file": "tests/test_analisi_profonda.py",
-          "riga": 173,
+          "riga": 193,
           "tabelle_candidate": [
             "tappe"
           ],
@@ -149022,6 +149351,24 @@
   ],
   "documenti": [
     {
+      "file": ".clinerules",
+      "ruolo": "istruzioni_settore_da_leggere_nello_strumento",
+      "sha256": "47b0de705eba0af700c5379532f3ca6663e254b42d316cb661bc3d518ac8707d",
+      "stato_implementazione": "non_dedotto_dal_documento"
+    },
+    {
+      "file": ".github/copilot-instructions.md",
+      "ruolo": "istruzioni_settore_da_leggere_nello_strumento",
+      "sha256": "d2a4390c7abfcd3316b7bebdb4b2ccee9b64a83caf18391e6ac33187b87bc962",
+      "stato_implementazione": "non_dedotto_dal_documento"
+    },
+    {
+      "file": "AGENTS.md",
+      "ruolo": "istruzioni_settore_da_leggere_nello_strumento",
+      "sha256": "8e44be4f38ef25eca38a5696c6b0ed0ec4fd9fc52a414e09d379576d8af0602a",
+      "stato_implementazione": "non_dedotto_dal_documento"
+    },
+    {
       "file": "REPORT/2026-10-06_00-26-21_aider_context.md",
       "ruolo": "contesto_generato_legacy",
       "sha256": "ed95cd2e54a0d50b9885c7d9ca5ad64a6631b1f1b39ab3679b2baf588e6a447a",
@@ -149390,13 +149737,14 @@
   "errori": [],
   "confronto": {
     "disponibile": true,
-    "run_precedente": "d05823fc1551ecc4",
-    "aggiunti": [],
-    "rimossi": [],
-    "modificati": [
-      "tests/test_analisi_profonda.py"
+    "run_precedente": "6dfdd697d454dfb0",
+    "aggiunti": [
+      "AGENTS.md"
     ],
+    "rimossi": [],
+    "modificati": [],
     "script_modificato": true,
+    "git_head_modificato": false,
     "report_precedenti_modificati_o_mancanti": []
   },
   "file_sha256": {
@@ -149481,13 +149829,16 @@
     "static/Spite OLD/old_sprite.json": "571a463e47795b34f0aab91e3810a19f04646f9addc3a6f9713fa8bd4ef126e9",
     "static/Spite OLD/old_sprite@2x.json": "3c8ca9597b4fc091a3b9e66e5f5742bd02798f2acc98ba4a2dea717255223c54",
     "templates/map_view.html": "27c52b00ac0da056cf9816b91ec6996b41152a80f61da02060507f2da7f4c936",
-    "tests/test_analisi_profonda.py": "70847088e0d603a36b8641d50d68259cc3a69f5465df5d6fa5adb0139ee2708c",
+    "tests/test_analisi_profonda.py": "1decc1f980af381da19f80032f63fec56cb7ded911c5bc4a5da62371fef7a28e",
     "tests/test_coda_routing.py": "83b24b3aa1cc422692ca143619b061c6ea8a06ff1cffa0501d286b6ecaba832c",
     "tests/test_pianificatore_5_1.py": "1f1a4542557b3f2f18ad91705020e4b0566f1ed3fa190f4da606b4259230bfae",
     "tests/test_pianificatore_5_1_gui.py": "36e43e34aa387ca3582c9bd1c955aba6c13077ca3ae53902c24df17a3ce4a477",
     "tests/test_pianificatore_5_2.py": "a64d078050ad0e04540f3dc60d12663295d9cea5e8b054831bf84cf3fbead566",
     "tests/test_pianificatore_5_3.py": "4cc4e1e7b893fd6250f5d2e30cd8370b5e6eedfeabaa914ac12830b133327930",
     "tests/test_pianificatore_5_4.py": "6f3cf8c206cf23c934ef77b586212daa36e3a98f1872a9929dfdd735f0dc33f1",
+    ".clinerules": "47b0de705eba0af700c5379532f3ca6663e254b42d316cb661bc3d518ac8707d",
+    ".github/copilot-instructions.md": "d2a4390c7abfcd3316b7bebdb4b2ccee9b64a83caf18391e6ac33187b87bc962",
+    "AGENTS.md": "8e44be4f38ef25eca38a5696c6b0ed0ec4fd9fc52a414e09d379576d8af0602a",
     "REPORT/2026-10-06_00-26-21_aider_context.md": "ed95cd2e54a0d50b9885c7d9ca5ad64a6631b1f1b39ab3679b2baf588e6a447a",
     "REPORT/ANALISI_CLIMA.md": "39393642542b09bbaceee574c0e7235904a1588f8dd41f24d0899ee94e9c32f3",
     "REPORT/ANALISI_PIANIFICATORE.md": "c0c8d3f6bcb74efaa3c02ac2ba1cd1d649bcad2fbc0273631e5e43fe90cb9361",

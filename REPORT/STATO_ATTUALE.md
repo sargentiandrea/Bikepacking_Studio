@@ -1,6 +1,6 @@
 # Stato corrente osservato
 
-Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
+Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -8,10 +8,10 @@ La storia e le decisioni restano in `STORIA_PROGETTO.md` e nei documenti di prog
 
 ## Stato della lettura
 
-- Ramo: `main`; commit: `6361027b837f`.
-- Modifiche locali prima dei report: 14.
+- Ramo: `main`; commit: `0c4a46595729`.
+- Modifiche locali prima dei report: 15.
 - Python: 78 file analizzati su 78.
-- Classi: 50; funzioni di modulo: 250; metodi: 346; funzioni annidate: 8.
+- Classi: 50; funzioni di modulo: 250; metodi: 348; funzioni annidate: 8.
 - HTTP: 8 indirizzi, 9 coppie indirizzo/metodo dichiarate.
 - Database: letto_in_sola_lettura; tabelle applicative: 23.
 - Errori di scansione: 0; indizi statici: 11.
@@ -59,10 +59,11 @@ La dimensione orienta la lettura; non misura rischio o qualità.
 
 ## Cambiamenti dalla precedente scansione
 
-- Aggiunti: 0.
+- Aggiunti: 1.
 - Rimossi: 0.
-- Modificati: 1.
+- Modificati: 0.
 - Analizzatore modificato: sì.
+- Commit Git cambiato: no; i cambiamenti alle fonti sono conteggiati separatamente.
 
 ## Limiti
 

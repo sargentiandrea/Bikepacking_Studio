@@ -1,8 +1,8 @@
 {
   "schema_version": 4,
-  "run_id": "558e703d664c0e3f",
-  "data_utc": "2026-10-09T18:57:49.096857+00:00",
-  "git_head": "6361027b837fa6ee6ae24f64bb856cb72c793ef0",
+  "run_id": "c68e5bf3741dde1f",
+  "data_utc": "2026-10-09T20:29:39.639501+00:00",
+  "git_head": "0c4a46595729f4cf9195136c8f0ef61752bb44f1",
   "file_sha256": {
     "app_desktop.py": "54c6ed44a12a997bf22781b7e0fcd5bea9e3097eeabdda62f4c05bd25f0d21cc",
     "backup.py": "20425ce5f24fdcd01f9df759d351cb3e5bbba73fed8a500dff33d155c69c770e",
@@ -85,13 +85,16 @@
     "static/Spite OLD/old_sprite.json": "571a463e47795b34f0aab91e3810a19f04646f9addc3a6f9713fa8bd4ef126e9",
     "static/Spite OLD/old_sprite@2x.json": "3c8ca9597b4fc091a3b9e66e5f5742bd02798f2acc98ba4a2dea717255223c54",
     "templates/map_view.html": "27c52b00ac0da056cf9816b91ec6996b41152a80f61da02060507f2da7f4c936",
-    "tests/test_analisi_profonda.py": "70847088e0d603a36b8641d50d68259cc3a69f5465df5d6fa5adb0139ee2708c",
+    "tests/test_analisi_profonda.py": "1decc1f980af381da19f80032f63fec56cb7ded911c5bc4a5da62371fef7a28e",
     "tests/test_coda_routing.py": "83b24b3aa1cc422692ca143619b061c6ea8a06ff1cffa0501d286b6ecaba832c",
     "tests/test_pianificatore_5_1.py": "1f1a4542557b3f2f18ad91705020e4b0566f1ed3fa190f4da606b4259230bfae",
     "tests/test_pianificatore_5_1_gui.py": "36e43e34aa387ca3582c9bd1c955aba6c13077ca3ae53902c24df17a3ce4a477",
     "tests/test_pianificatore_5_2.py": "a64d078050ad0e04540f3dc60d12663295d9cea5e8b054831bf84cf3fbead566",
     "tests/test_pianificatore_5_3.py": "4cc4e1e7b893fd6250f5d2e30cd8370b5e6eedfeabaa914ac12830b133327930",
     "tests/test_pianificatore_5_4.py": "6f3cf8c206cf23c934ef77b586212daa36e3a98f1872a9929dfdd735f0dc33f1",
+    ".clinerules": "47b0de705eba0af700c5379532f3ca6663e254b42d316cb661bc3d518ac8707d",
+    ".github/copilot-instructions.md": "d2a4390c7abfcd3316b7bebdb4b2ccee9b64a83caf18391e6ac33187b87bc962",
+    "AGENTS.md": "8e44be4f38ef25eca38a5696c6b0ed0ec4fd9fc52a414e09d379576d8af0602a",
     "REPORT/2026-10-06_00-26-21_aider_context.md": "ed95cd2e54a0d50b9885c7d9ca5ad64a6631b1f1b39ab3679b2baf588e6a447a",
     "REPORT/ANALISI_CLIMA.md": "39393642542b09bbaceee574c0e7235904a1588f8dd41f24d0899ee94e9c32f3",
     "REPORT/ANALISI_PIANIFICATORE.md": "c0c8d3f6bcb74efaa3c02ac2ba1cd1d649bcad2fbc0273631e5e43fe90cb9361",
@@ -108,16 +111,16 @@
     "REPORT/VISIONE_PIANIFICATORE.md": "6d6463450b025edfb3f3f240613cc8b2ae98e151adea66df0b16590c284fb8db",
     "STORIA_PROGETTO.md": "4ce757c14f0f57d4b020a186b7e82259ed6db4a376b23290a74100b863db3ebd"
   },
-  "script_sha256": "2ac5263d44efed6381e3464e766b2ab4603f88d94fa268a1a3cdbaca9a8dbcf5",
+  "script_sha256": "d0141f7ecb00f8326cb4dba534f5c8abfac1505241051d72466009a977d075e2",
   "report_sha256": {
-    "AI_BRIEF.md": "057fa6f27fe20cbc793dddf571acc1de68306e0c23e6daef29b96f1eadf6f7ff",
-    "report.md": "d26816947ef8a9863c84f79289a8e5c4e907dddcba499f2545660b60b54688ce",
-    "DB_SCHEMA.md": "88d076f822cb88830032bc5b8e7426c13878d8f8f348e17180bf92301b6e7a07",
-    "CONFIG_FILES.md": "d338b611673502b8424beecccb74e749f9b83220f1428e89d5b5e1d021eaa537",
-    "EXTERNAL_SERVICES.md": "a5f0bb2b9f207d747fca75a0a204f93cee22bbbe969db89513220d994fbd7d79",
-    "STATO_ATTUALE.md": "4828e4b5fa0ded63112e17bcdbc034a68aff8ec008202768c9922795e90efdc5",
-    "PERCORSO.md": "6a8766130bd6d8197ec1879cb26db47f891f46eae4a502295f4df16d0598c8dc",
-    "riepilogo.txt": "f4fb2a2364983546c6200a43c711b15a0ef8e58ea00644cc1ded40c692343b7e",
-    "analisi.json": "702191016d905befbec6a5d8db07d86f28bc49adc726937b31b4e32b320b625b"
+    "AI_BRIEF.md": "99f0f772cc68ce2dc74b7475e707f5cd169f3f9e9bd8c7a50a3f143d48baa876",
+    "report.md": "b8f592cc56ba1f0f6d3ab0b3d2e26c4140f998b8f02acc7a3b2f7051e3b9e3f7",
+    "DB_SCHEMA.md": "f6e280cf3840e6cb42ea193cb6d406a3978fe134204adde7e23c30fc059714db",
+    "CONFIG_FILES.md": "e76d463c2e52a85205b82f59aa05b8df15a7c905d37fbafe8c48088dcb4fcc35",
+    "EXTERNAL_SERVICES.md": "a8eb8e538a81db27c7d8344e9d95e3a5a69e451266f09e7658f882c0a63cf430",
+    "STATO_ATTUALE.md": "a5a6886c264a67c61ca41fddefd51891935825f447949f8dc06199c0e4bc4947",
+    "PERCORSO.md": "2f9df9333ba76d35c5d917109725a84a0b5e2501bd504dac727ba11d41d3b908",
+    "riepilogo.txt": "b8f3a5f2ab99c4b08450b9d94ee9bc84059ade4e9cc754c16144ddd8f2390888",
+    "analisi.json": "0f094a54fd43a3ebc6cd8cfae403afeb753228e862bb0bd62cbbfa466c9f7755"
   }
 }

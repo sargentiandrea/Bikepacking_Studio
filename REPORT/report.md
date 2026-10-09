@@ -1,6 +1,6 @@
 # Analisi tecnica verificabile
 
-Scansione `558e703d664c0e3f` · 2026-10-09T18:57:49.096857+00:00 · script 4.0
+Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -83,7 +83,7 @@ Nessun errore di lettura o sintassi Python rilevato nelle fonti incluse.
 | service/trasferimenti_service.py | servizio | 167 | 0 | 4 | 0 |
 | service/waypoint_service.py | servizio | 186 | 0 | 5 | 0 |
 | static/aggiorna_sprite.py | strumento_o_avvio | 137 | 0 | 1 | 0 |
-| tests/test_analisi_profonda.py | test | 203 | 2 | 1 | 18 |
+| tests/test_analisi_profonda.py | test | 223 | 2 | 1 | 20 |
 | tests/test_coda_routing.py | test | 141 | 2 | 0 | 8 |
 | tests/test_pianificatore_5_1.py | test | 196 | 6 | 0 | 22 |
 | tests/test_pianificatore_5_1_gui.py | test | 70 | 1 | 0 | 8 |
@@ -389,6 +389,9 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 
 | Documento | Ruolo |
 |---|---|
+| .clinerules | istruzioni_settore_da_leggere_nello_strumento |
+| .github/copilot-instructions.md | istruzioni_settore_da_leggere_nello_strumento |
+| AGENTS.md | istruzioni_settore_da_leggere_nello_strumento |
 | REPORT/2026-10-06_00-26-21_aider_context.md | contesto_generato_legacy |
 | REPORT/ANALISI_CLIMA.md | analisi_storica_da_confrontare_col_codice |
 | REPORT/ANALISI_PIANIFICATORE.md | analisi_storica_da_confrontare_col_codice |
@@ -409,7 +412,8 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 
 | Stato | File |
 |---|---|
-|  M | (ananlisi_profonda)-LEGGIMI.txt |
+|  M | .clinerules |
+|  M | .github/copilot-instructions.md |
 |  M | REPORT/AI_BRIEF.md |
 |  M | REPORT/CONFIG_FILES.md |
 |  M | REPORT/DB_SCHEMA.md |
@@ -421,21 +425,22 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 |  M | REPORT/report.md |
 |  M | REPORT/riepilogo.txt |
 |  M | analisi_profonda.py |
-| ?? | STORIA_PROGETTO.md |
-| ?? | tests/test_analisi_profonda.py |
+|  M | tests/test_analisi_profonda.py |
+| ?? | AGENTS.md |
 
 ## Confronto
 
 ```json
 {
   "disponibile": true,
-  "run_precedente": "d05823fc1551ecc4",
-  "aggiunti": [],
-  "rimossi": [],
-  "modificati": [
-    "tests/test_analisi_profonda.py"
+  "run_precedente": "6dfdd697d454dfb0",
+  "aggiunti": [
+    "AGENTS.md"
   ],
+  "rimossi": [],
+  "modificati": [],
   "script_modificato": true,
+  "git_head_modificato": false,
   "report_precedenti_modificati_o_mancanti": []
 }
 ```

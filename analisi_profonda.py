@@ -22,7 +22,7 @@ import sys
 import tempfile
 from urllib.parse import urlsplit, urlunsplit
 
-VERSION = '4.0'
+VERSION = '4.1'
 SCHEMA = 4
 ROOT = Path(__file__).resolve().parent
 EXCLUDED = {'.git', '__pycache__', 'venv', '.venv', '.idea', '.agents', '.codex',
@@ -354,12 +354,16 @@ def configuration(path, root, raw):
 
 def documents(root, errors=None):
     result = []
-    for path in sorted(list(root.glob('*.md')) + list((root / 'REPORT').glob('*.md'))):
+    paths = list(root.glob('*.md')) + list((root / 'REPORT').glob('*.md'))
+    paths += [p for p in (root / '.github/copilot-instructions.md', root / '.clinerules') if p.is_file()]
+    for path in sorted(paths):
         name = path.name
         if path.is_symlink() or name in GENERATED or name.startswith('.aider'):
             continue
         role = 'documento_progetto'
-        if name == 'STORIA_PROGETTO.md':
+        if name in {'AGENTS.md', 'copilot-instructions.md', '.clinerules'}:
+            role = 'istruzioni_settore_da_leggere_nello_strumento'
+        elif name == 'STORIA_PROGETTO.md':
             role = 'memoria_storica_da_chat_e_fonti'
         elif name in {'FIRST_PRINCIPLES.md', 'REGOLE_GPX.md'}:
             role = 'principi_o_regole'
@@ -436,6 +440,7 @@ def scan(root, read_db=True):
                                   aggiunti=sorted(hashes.keys() - previous.keys()), rimossi=sorted(previous.keys() - hashes.keys()),
                                   modificati=sorted(f for f in hashes.keys() & previous.keys() if hashes[f] != previous[f]),
                                   script_modificato=old.get('script_sha256') != sha(Path(__file__).read_bytes()),
+                                  git_head_modificato=old.get('git_head') != git.get('head'),
                                   report_precedenti_modificati_o_mancanti=mismatch)
         except (OSError, ValueError, UnicodeError, AttributeError) as exc:
             comparison['motivo'] = 'Baseline illeggibile: ' + str(exc)
@@ -479,6 +484,14 @@ def table(lines, columns, rows):
 def render(data):
     s, g, db = data['sintesi'], data['git'], data['database']
     brief = header(data, 'Fotografia del progetto — ' + data['meta']['progetto'])
+    brief += ['## Contesto per una nuova chat', '',
+              'Bikepacking Studio nasce per preparare e accompagnare viaggi reali in bicicletta, conservando la conoscenza raccolta prima, durante e dopo il viaggio.',
+              'Il repository contiene l’app desktop Python/PySide6, una mappa web servita da Flask/MapLibre e SQLite. La direzione futura comprende un’app consumer desktop, web, iOS e Android; questa scansione non ne certifica la realizzazione.',
+              'Principi: il viaggio è centrale; il GPX guida senza vincolare; la realtà prevale sul piano; l’IA assiste e il viaggiatore decide; le funzioni essenziali devono funzionare offline.', '',
+              'Ruoli: Codex segue analisi, modifiche, verifiche e continuità del repository (`AGENTS.md`); Copilot segue il codice e l’integrazione dell’app (`.github/copilot-instructions.md`); Cline segue soprattutto la produzione di mappe, routing e dati su Hetzner e la distribuzione Cloudflare R2 (`.clinerules`). Gli accessi remoti configurati per Cline non sono verificati da questo report.', '',
+              '**Uso con DeepSeek, Gemini, ChatGPT o altre chat:** allega questo file e indica l’obiettivo della sessione. Il brief fornisce il contesto iniziale; allega poi i sorgenti o i documenti necessari al compito. Una chat senza accesso ai file non può considerarli letti né verificare lo stato corrente.',
+              'Puoi accompagnarlo con: «Parliamo in italiano semplice. Usa la fotografia e i suoi limiti, distingui fatti, storia e proposte; chiedimi le fonti mancanti prima di formulare diagnosi o modifiche. Obiettivo di questa sessione: …».', '',
+              'Questo file si aggiorna eseguendo `python -B analisi_profonda.py`, non modificandolo a mano. La data e il commit sotto descrivono il momento della scansione. Prima di una nuova chat rigeneralo se il progetto è cambiato; se non puoi, dichiara che la fotografia può essere superata.', '']
     brief += ['## Come orientarsi', '', '- Questo brief: fotografia automatica corrente.',
               '- `STORIA_PROGETTO.md`: origini, motivazioni e storia dalle chat; non viene riscritta.',
               '- `REPORT/FIRST_PRINCIPLES.md` e `REPORT/REGOLE_GPX.md`: principi e regole.',
@@ -522,6 +535,7 @@ def render(data):
     if c['disponibile']:
         brief += [f'- {k.capitalize()}: {len(c[k])}.' for k in ('aggiunti', 'rimossi', 'modificati')]
         brief += [f"- Analizzatore modificato: {'sì' if c['script_modificato'] else 'no'}."]
+        brief += [f"- Commit Git cambiato: {'sì' if c['git_head_modificato'] else 'no'}; i cambiamenti alle fonti sono conteggiati separatamente."]
         if c['report_precedenti_modificati_o_mancanti']:
             brief += ['- Report precedenti modificati/mancanti: ' + ', '.join(c['report_precedenti_modificati_o_mancanti'])]
     else:
@@ -635,7 +649,7 @@ def main(argv=None):
     if not root.is_dir():
         parser.error('La cartella del progetto non esiste.')
     data = scan(root, read_db=not args.no_db)
-    print(json.dumps(dict(meta=data['meta'], sintesi=data['sintesi'], database=data['database']['stato'], errori=data['errori']),
+    print(json.dumps(dict(meta=data['meta'], sintesi=data['sintesi'], database=data['database']['stato'], errori=data['errori'], confronto=data['confronto']),
                      indent=2, ensure_ascii=False))
     if not args.check:
         print('Report aggiornati: ' + ', '.join(write_reports(data, root)))
