@@ -18,6 +18,15 @@ semplice, spiega scopo e destinazione delle operazioni, poi procedi con quanto
 
 ## Inizio di ogni nuova attività
 
+I hook in `.clinerules/hooks/` avviano il motore comune di continuità;
+devono essere abilitati nelle impostazioni di Cline. Controlla il messaggio
+ricevuto e `REPORT/CONTINUITA.md`. Se non vengono eseguiti, usa
+`node scripts/continuita-hook.cjs sync` prima e dopo il compito e dichiara
+il fallback. Formati, comandi e resoconti sono descritti in `CONTINUITA.md`.
+Completa `continuita.config.json` con alias SSH, directory dei risultati
+e alias rclone effettivamente usati: senza questi dati lo stato resta
+non verificato. Usa accessi già configurati, senza pubblicare credenziali.
+
 1. Leggi `REPORT/FIRST_PRINCIPLES.md` e `REPORT/AI_BRIEF.md` per direzione
    e fotografia del codice locale; controlla data e limiti del brief.
 2. Consulta `STORIA_PROGETTO.md` per la storia delle prove e le decisioni.
@@ -99,12 +108,15 @@ Le funzioni fondamentali devono restare utilizzabili offline.
 
 `REPORT` contiene sia output automatici sia documenti di progetto.
 Non modificare manualmente gli output di `analisi_profonda.py`, incluso
-`AI_BRIEF.md`. Non riscrivere `STORIA_PROGETTO.md` né scambiare un piano
-per un completamento. Le nuove attività infrastrutturali devono lasciare
-un resoconto persistente con data, ambiente, pacchetti, percorsi, prove e
-limiti: aggiorna il registro operativo pertinente se esiste; altrimenti
-aggiungi una nota datata alla storia nell'ambito del lavoro richiesto,
-senza includere segreti o trasformare risultati storici in stato corrente.
+`AI_BRIEF.md`. Non riscrivere la storia iniziale né scambiare un piano
+per un completamento. Prima di chiudere prepara il resoconto strutturato
+nel percorso comunicato dal hook, secondo `CONTINUITA.md`: risultati,
+pacchetti, percorsi, verifiche e limiti. Le decisioni richiedono citazione
+esatta e ricevuta della richiesta; i risultati dichiarati restano distinti
+dagli inventari automatici e dalle prove nel consumer. Il motore registra
+gli eventi e aggiorna la sezione automatica di `STORIA_PROGETTO.md`.
+Non aggiungere manualmente altre copie della memoria. Se il compito
+non produce nuovi risultati o decisioni, prepara un resoconto `[]`.
 
 Alla fine indica cosa è stato prodotto, dove si trova, quali verifiche
 sono passate e cosa resta da integrare nel consumer. Rigenerare l'analisi

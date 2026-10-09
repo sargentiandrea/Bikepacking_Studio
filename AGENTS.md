@@ -26,6 +26,12 @@ Una modifica al codice non implica operazioni sulla VM o sul bucket.
 
 ## Inizio di una sessione sul progetto
 
+Gli hook in `.codex/hooks.json` aggiornano la continuità prima del lavoro
+e alla chiusura. Controlla il messaggio del hook e `REPORT/CONTINUITA.md`.
+Se il client non li esegue, usa `node scripts/continuita-hook.cjs sync`
+all'inizio e alla fine del compito e dichiara il fallback; non assumere
+che una configurazione installata sia attiva. Non aggirare la fiducia dei hook.
+
 1. Controlla cartella di lavoro, `git status --short` e commit corrente.
    Preserva le modifiche già presenti e identifica il perimetro richiesto.
 2. Leggi `REPORT/AI_BRIEF.md` e `REPORT/FIRST_PRINCIPLES.md`; consulta
@@ -41,8 +47,10 @@ devono restare utilizzabili offline.
 
 ## Fonti e memoria
 
-- `STORIA_PROGETTO.md`: storia e decisioni con fonti. Preservala; eventuali
-  aggiunte devono essere datate e motivate dal lavoro richiesto.
+- `STORIA_PROGETTO.md`: storia originale preservata e sezione automatica
+  alimentata dal registro. Non modificare a mano la sezione generata.
+- `MEMORIA/eventi/`: registro immutabile; `CONTINUITA.md` spiega come
+  registrare attività, proposte, decisioni e tentativi abbandonati.
 - `REPORT/AI_BRIEF.md`: contesto condivisibile e fotografia automatica.
 - `REPORT/report.md`, `DB_SCHEMA.md`, `CONFIG_FILES.md`,
   `EXTERNAL_SERVICES.md`: prove statiche e dettagli mirati.
@@ -75,6 +83,14 @@ senza controlli effettivi nell'ambito dell'incarico.
   automatici senza un incarico che comprenda tali operazioni.
 
 ## Verifiche e conclusione
+
+Prima di concludere prepara il resoconto JSON nel percorso comunicato dal
+hook, secondo `CONTINUITA.md`. Registra risultati e limiti; per decisioni
+usa la ricevuta e una citazione esatta dell'utente. Se manca la ricevuta,
+non trasformare la proposta in una decisione verificata. Se il compito
+non produce nuovi risultati o decisioni, il resoconto può essere `[]`.
+Il motore importa il resoconto, aggiorna storia e report; non farlo a mano.
+Se non ci sono hook, importa il resoconto con il comando `record` del motore.
 
 Esegui i controlli pertinenti al cambiamento. Per l'analizzatore:
 `python -B -m unittest discover -s tests -p test_analisi_profonda.py -v`.

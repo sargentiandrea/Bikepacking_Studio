@@ -1,5 +1,11 @@
 ANALISI PROFONDA v4 — ISTRUZIONI
 
+La continuità automatica dei tre settori è descritta in CONTINUITA.md.
+Gli hook usano: node scripts/continuita-hook.cjs sync
+Il motore aggiorna anche registro attività, storia e inventari remoti.
+I comandi Python sotto restano validi per la sola fotografia locale.
+I tre report di continuità sono generati dal motore comune, non mantenuti a mano.
+
 Richiede Python 3.10 o successivo, senza dipendenze aggiuntive.
 Dal terminale nella cartella del progetto:
 

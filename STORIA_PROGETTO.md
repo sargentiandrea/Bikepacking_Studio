@@ -147,3 +147,47 @@ Le seguenti voci sono **direzioni o attività da verificare**, non promesse di c
 - Cronologia e prospettiva d'uso: commit Git locali e commit pubblicati su GitHub; sessioni Copilot e Cline del workspace accessibili; chat DeepSeek condivisa [“Verso l'Ignoto”](https://chat.deepseek.com/share/j6dmq0ygptlyxysmap), chat ChatGPT [“Analisi progetto cicloturismo”](https://chatgpt.com/share/6ac66f1d-1d60-83ed-962d-c611bb251277) e chat ChatGPT [“Ricerca carrelli monoruota”](https://chatgpt.com/share/6ac67558-648c-83ed-8f45-285586c5b51e), consultate il 7 ottobre 2026.
 
 Per aggiungere le chat esterne o aggiornare questa storia in futuro, conviene indicare sempre data e fonte e distinguere un risultato verificato nel codice da un risultato riportato in una conversazione.
+<!-- CONTINUITA:INIZIO -->
+
+## Continuità automatica dal registro delle attività
+
+Sezione generata da `MEMORIA/eventi/`; la ricostruzione precedente è preservata.
+Le dichiarazioni degli agenti non certificano risultati; le decisioni riportano la fonte indicata.
+
+### 2026-10-09T20:58:35.724947+00:00 — risultato_dichiarato — evento 4
+
+Realizzato il motore comune di continuit?
+
+Hook per Codex, Copilot e Cline; registro con impronte concatenate; storia iniziale preservata; inventari reali Hetzner/R2 eseguiti in sola lettura. 17 test continuit? e 18 test analizzatore passati. Attivazione nei client ancora da osservare. Nessuna verifica funzionale del consumer svolta.
+
+Fonte: `aa4560631a700ad525276b395c611cd068ae428915643e24f599029d0a012165` nel registro; autore: codex.
+
+Fonte dichiarata: {"riferimento": "Implementazione Codex del 2026-10-09 richiesta nella conversazione corrente", "tipo": "attivita_agente"}
+
+### 2026-10-09T20:58:35.803973+00:00 — variazione_repository — evento 5
+
+Fonti locali cambiate
+
+{"aggiunti": [], "modificati": ["analisi_profonda.py", "continuita_progetto.py"], "rimossi": []}
+
+Fonte: `602525eec90f795d98af2fb90cd119f11afbea2c4db4e9fc75d5ed51e8090550` nel registro; autore: scansione.
+
+### 2026-10-09T21:01:02.671077+00:00 — variazione_repository — evento 6
+
+Fonti locali cambiate
+
+{"aggiunti": [], "modificati": ["analisi_profonda.py", "continuita_progetto.py", "tests/test_analisi_profonda.py", "tests/test_continuita_progetto.py"], "rimossi": []}
+
+Fonte: `b84186b91d09802a05915f87858c6dbcbf75fc1c55fb05471b0882cdc54afc61` nel registro; autore: scansione.
+
+### 2026-10-09T21:02:27.860997+00:00 — risultato_dichiarato — evento 7
+
+Verifica finale della continuit?
+
+36 test passati (18 continuit?, 18 analizzatore). Inventario in sola lettura: 2900 file nelle radici Hetzner configurate e 30 oggetti R2 entro la profondit? impostata. Impronta della storia originale e del database locale invariata; configurazioni hook e report verificati. Gli hook non sono ancora stati osservati nelle sessioni reali dei client: attivazione e fiducia da confermare nelle rispettive interfacce. Compatibilit? dei pacchetti con il consumer non collaudata.
+
+Fonte: `56e12ec68dbe8c35568e78d4c4a64b52f022be3a15faa5b5f0060a7ae270c353` nel registro; autore: codex.
+
+Fonte dichiarata: {"riferimento": "Controlli Codex 2026-10-09, output dei test e sonde SSH/rclone", "tipo": "attivita_agente"}
+
+<!-- CONTINUITA:FINE -->

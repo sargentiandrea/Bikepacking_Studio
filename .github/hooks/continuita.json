@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [{"type": "command", "bash": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" copilot sessionStart", "powershell": "& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') copilot sessionStart", "timeoutSec": 30}],
+    "userPromptSubmitted": [{"type": "command", "bash": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" copilot userPromptSubmitted", "powershell": "& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') copilot userPromptSubmitted", "timeoutSec": 30}],
+    "postToolUse": [{"type": "command", "bash": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" copilot postToolUse", "powershell": "& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') copilot postToolUse", "timeoutSec": 30}],
+    "agentStop": [{"type": "command", "bash": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" copilot agentStop", "powershell": "& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') copilot agentStop", "timeoutSec": 30}]
+  }
+}

@@ -1,6 +1,6 @@
 # Cronologia Git del ramo corrente
 
-Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
+Scansione `86301f0b241d616c` · 2026-10-09T21:02:27.962995+00:00 · script 4.2
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -9,6 +9,7 @@ Ultimi 80 commit raggiungibili da HEAD. La storia dalle chat è in `STORIA_PROGE
 
 | Data | Commit | Titolo |
 |---|---|---|
+| 2026-10-09T22:30:58+02:00 | 56557fdc4347 | Allinea istruzioni Codex Copilot e Cline e contesto condiviso |
 | 2026-10-09T21:00:22+02:00 | 0c4a46595729 | Rinnova analisi verificabile e memoria del progetto |
 | 2026-10-06T23:02:35+02:00 | 6361027b837f | Aggiorna memoria progetto (osservatore automatico) |
 | 2026-10-06T00:54:12+02:00 | ad2a0d19561c | Lettura grafo mondo, report. |

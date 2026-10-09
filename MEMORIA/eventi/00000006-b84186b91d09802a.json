@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "numero": 6,
+  "data_utc": "2026-10-09T21:01:02.671077+00:00",
+  "tipo": "variazione_repository",
+  "autore": "scansione",
+  "dati": {
+    "cambiamenti": {
+      "aggiunti": [],
+      "modificati": [
+        "analisi_profonda.py",
+        "continuita_progetto.py",
+        "tests/test_analisi_profonda.py",
+        "tests/test_continuita_progetto.py"
+      ],
+      "rimossi": []
+    },
+    "limite": "Le impronte non spiegano intenzioni o correttezza funzionale.",
+    "titolo": "Fonti locali cambiate"
+  },
+  "chiave": "3b01f1befe78c6d689687205a43a0ef69e65ea527020abad064809a4a33d0aa1",
+  "precedente_sha256": "602525eec90f795d98af2fb90cd119f11afbea2c4db4e9fc75d5ed51e8090550",
+  "sha256": "b84186b91d09802a05915f87858c6dbcbf75fc1c55fb05471b0882cdc54afc61"
+}

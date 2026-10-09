@@ -1,6 +1,6 @@
 # Analisi tecnica verificabile
 
-Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
+Scansione `86301f0b241d616c` · 2026-10-09T21:02:27.962995+00:00 · script 4.2
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -14,6 +14,7 @@ Nessun errore di lettura o sintassi Python rilevato nelle fonti incluse.
 |---|---|---|---|---|---|
 | app_desktop.py | strumento_o_avvio | 600 | 1 | 0 | 42 |
 | backup.py | strumento_o_avvio | 68 | 0 | 1 | 0 |
+| continuita_progetto.py | strumento_o_avvio | 580 | 0 | 26 | 0 |
 | import_clima_mondiale.py | strumento_o_avvio | 147 | 0 | 3 | 0 |
 | installa_geonames.py | strumento_o_avvio | 348 | 0 | 8 | 0 |
 | database/database_setup.py | database | 172 | 0 | 1 | 0 |
@@ -85,6 +86,7 @@ Nessun errore di lettura o sintassi Python rilevato nelle fonti incluse.
 | static/aggiorna_sprite.py | strumento_o_avvio | 137 | 0 | 1 | 0 |
 | tests/test_analisi_profonda.py | test | 223 | 2 | 1 | 20 |
 | tests/test_coda_routing.py | test | 141 | 2 | 0 | 8 |
+| tests/test_continuita_progetto.py | test | 235 | 1 | 0 | 19 |
 | tests/test_pianificatore_5_1.py | test | 196 | 6 | 0 | 22 |
 | tests/test_pianificatore_5_1_gui.py | test | 70 | 1 | 0 | 8 |
 | tests/test_pianificatore_5_2.py | test | 217 | 3 | 0 | 14 |
@@ -130,6 +132,7 @@ Gli indizi non autorizzano cancellazioni automatiche.
 Confronto AST senza docstring o posizioni; nomi uguali da soli non sono duplicazioni.
 
 - tests/test_coda_routing.py:54 `TestCodaRouting.setUpClass`; tests/test_pianificatore_5_1_gui.py:23 `TestPannelloDettagli.setUpClass`; tests/test_pianificatore_5_3.py:145 `TestInterfacciaSuddivisione.setUpClass`; tests/test_pianificatore_5_4.py:79 `TestGestioneWaypointMappa.setUpClass`
+- continuita_progetto.py:31 `now`; service/precalcolo_service.py:45 `_ora_utc`
 - gui/dashboard.py:427 `DashboardPage.crea_nuovo_progetto_dialog.WizardNuovoPercorsoDialog.__init__`; gui/wizard_percorso.py:8 `WizardNuovoPercorso.__init__`
 
 ## Dipendenze interne risolte
@@ -389,9 +392,19 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 
 | Documento | Ruolo |
 |---|---|
-| .clinerules | istruzioni_settore_da_leggere_nello_strumento |
+| .clinerules/01-progetto.md | istruzioni_settore_da_leggere_nello_strumento |
+| .clinerules/hooks/PostToolUse.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .clinerules/hooks/PreCompact.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .clinerules/hooks/TaskCancel.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .clinerules/hooks/TaskComplete.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .clinerules/hooks/TaskResume.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .clinerules/hooks/TaskStart.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .clinerules/hooks/UserPromptSubmit.ps1 | avvio_automatico_da_verificare_nello_strumento |
+| .codex/hooks.json | avvio_automatico_da_verificare_nello_strumento |
 | .github/copilot-instructions.md | istruzioni_settore_da_leggere_nello_strumento |
+| .github/hooks/continuita.json | avvio_automatico_da_verificare_nello_strumento |
 | AGENTS.md | istruzioni_settore_da_leggere_nello_strumento |
+| MEMORIA/indice.json | indice_continuita_generato |
 | REPORT/2026-10-06_00-26-21_aider_context.md | contesto_generato_legacy |
 | REPORT/ANALISI_CLIMA.md | analisi_storica_da_confrontare_col_codice |
 | REPORT/ANALISI_PIANIFICATORE.md | analisi_storica_da_confrontare_col_codice |
@@ -412,8 +425,11 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 
 | Stato | File |
 |---|---|
-|  M | .clinerules |
+|  M | (ananlisi_profonda)-LEGGIMI.txt |
+|  D | .clinerules |
 |  M | .github/copilot-instructions.md |
+|  M | .gitignore |
+|  M | AGENTS.md |
 |  M | REPORT/AI_BRIEF.md |
 |  M | REPORT/CONFIG_FILES.md |
 |  M | REPORT/DB_SCHEMA.md |
@@ -424,22 +440,34 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 |  M | REPORT/analisi.json |
 |  M | REPORT/report.md |
 |  M | REPORT/riepilogo.txt |
+|  M | STORIA_PROGETTO.md |
 |  M | analisi_profonda.py |
 |  M | tests/test_analisi_profonda.py |
-| ?? | AGENTS.md |
+| ?? | .codex/ |
+| ?? | .github/hooks/ |
+| ?? | CONTINUITA.md |
+| ?? | MEMORIA/ |
+| ?? | REPORT/CONTINUITA.md |
+| ?? | REPORT/REGISTRO_ATTIVITA.md |
+| ?? | REPORT/STATO_INFRASTRUTTURA.md |
+| ?? | continuita.config.json |
+| ?? | continuita_progetto.py |
+| ?? | scripts/ |
+| ?? | tests/test_continuita_progetto.py |
 
 ## Confronto
 
 ```json
 {
   "disponibile": true,
-  "run_precedente": "6dfdd697d454dfb0",
-  "aggiunti": [
-    "AGENTS.md"
-  ],
+  "run_precedente": "5049852f7abafb24",
+  "aggiunti": [],
   "rimossi": [],
-  "modificati": [],
-  "script_modificato": true,
+  "modificati": [
+    "MEMORIA/indice.json",
+    "STORIA_PROGETTO.md"
+  ],
+  "script_modificato": false,
   "git_head_modificato": false,
   "report_precedenti_modificati_o_mancanti": []
 }
@@ -448,10 +476,10 @@ Inventario, non valutazione del completamento dei piani. ARCHIVIO escluso.
 ## Limiti
 
 - Nessun test dell’app eseguito; comportamento runtime non certificato.
-- Servizi, server e contenuti R2 non contattati.
+- La scansione Python non contatta server o R2; gli inventari separati della continuità non certificano download pubblico o compatibilità con il consumer.
 - Riferimenti basati su nomi AST: alias, omonimie e uso dinamico limitano la precisione.
 - I riferimenti SQL non stabiliscono a quale database appartenga una tabella.
 - Decorator HTTP rilevati staticamente: registrazione e prefissi Blueprint non verificati.
 - HTML/JS/CSS inventariati, incluse librerie esterne; sintassi e comportamento non verificati.
 - Storia, visioni e piani sono fonti documentali, non prove di implementazione.
-- Cartelle escluse: .agents, .aws, .codex, .git, .idea, .mypy_cache, .pytest_cache, .venv, .vscode, GPX CORSICA, REPORT, __pycache__, basemap-styles-master, build, data, dist, fonts, gpx, node_modules, venv
+- Cartelle escluse: .agents, .aws, .codex, .continuita, .git, .idea, .mypy_cache, .pytest_cache, .venv, .vscode, GPX CORSICA, MEMORIA, REPORT, __pycache__, basemap-styles-master, build, data, dist, fonts, gpx, node_modules, venv

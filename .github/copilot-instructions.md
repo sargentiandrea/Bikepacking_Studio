@@ -20,6 +20,12 @@ come conseguenza implicita di una modifica al codice.
 
 ## Orientamento a inizio attività
 
+Gli hook di `.github/hooks/continuita.json` richiamano il motore comune
+di continuità. Controlla il suo messaggio e `REPORT/CONTINUITA.md`; se il
+client non li esegue, usa `node scripts/continuita-hook.cjs sync` prima
+e dopo il compito, dichiarando il fallback. Vedi `CONTINUITA.md` per
+attivazione e limiti: un file di hook presente non prova che sia abilitato.
+
 1. Leggi `REPORT/AI_BRIEF.md`: fotografia generata da `analisi_profonda.py`,
    con data, commit e limiti. Non modificarla manualmente.
 2. Controlla `git status --short` e il commit corrente. Se il brief precede
@@ -95,7 +101,11 @@ dell'app. Non mantenere a mano i suoi dieci output: sono elencati in
 `(ananlisi_profonda)-LEGGIMI.txt`. Gli altri file in REPORT sono documenti
 di progetto, non tutti output automatici.
 
-Preserva `STORIA_PROGETTO.md`: eventuali nuove decisioni vanno aggiunte con
-data e fonte nell'ambito del lavoro richiesto, senza riscrivere il passato.
+Prima della chiusura prepara il resoconto JSON nel percorso comunicato
+dal hook, secondo `CONTINUITA.md`, anche `[]` se non ci sono nuovi risultati.
+Le decisioni richiedono una citazione esatta e la ricevuta della richiesta;
+risultati, proposte e tentativi abbandonati restano distinti. Il motore
+importa il resoconto e aggiorna la sezione automatica di `STORIA_PROGETTO.md`.
+Preserva la ricostruzione originale e non modificare a mano le parti generate.
 Concludi con cambiamenti, verifiche e limiti. Non fare commit o push automatici
 senza un incarico dell'utente che comprenda quelle operazioni.

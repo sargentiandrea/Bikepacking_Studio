@@ -1,7 +1,7 @@
 FOTOGRAFIA DEL PROGETTO
-Run: c68e5bf3741dde1f
-Data UTC: 2026-10-09T20:29:39.639501+00:00
-Python: 78/78 file analizzati
+Run: 86301f0b241d616c
+Data UTC: 2026-10-09T21:02:27.962995+00:00
+Python: 80/80 file analizzati
 Errori: 0
-Servizi remoti e comportamento dell’app non verificati.
+Funzionamento dell’app non verificato. Inventari remoti e limiti: REPORT/STATO_INFRASTRUTTURA.md.
 Punto di ingresso: REPORT/AI_BRIEF.md

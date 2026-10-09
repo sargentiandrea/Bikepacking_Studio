@@ -1,0 +1,9 @@
+{
+  "description": "Continuità Bikepacking: fotografia, memoria e inventari in sola lettura",
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" codex SessionStart", "commandWindows": "powershell -NoProfile -Command \"& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') codex SessionStart\"", "timeout": 30}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" codex UserPromptSubmit", "commandWindows": "powershell -NoProfile -Command \"& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') codex UserPromptSubmit\"", "timeout": 30}]}],
+    "PostToolUse": [{"hooks": [{"type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" codex PostToolUse", "commandWindows": "powershell -NoProfile -Command \"& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') codex PostToolUse\"", "timeout": 30}]}],
+    "Stop": [{"hooks": [{"type": "command", "command": "node \"$(git rev-parse --show-toplevel)/scripts/continuita-hook.cjs\" codex Stop", "commandWindows": "powershell -NoProfile -Command \"& node (Join-Path (git rev-parse --show-toplevel) 'scripts/continuita-hook.cjs') codex Stop\"", "timeout": 30}]}]
+  }
+}

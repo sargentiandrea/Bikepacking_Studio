@@ -32,3 +32,6 @@ venv/
 temp_map.html
 .aider*
 .env
+
+# Stato macchina e interprete isolato per gli automatismi (mai credenziali in Git)
+.continuita/

@@ -11,6 +11,7 @@ import ast
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 import hashlib
+import importlib.util
 import ipaddress
 import json
 import os
@@ -22,14 +23,15 @@ import sys
 import tempfile
 from urllib.parse import urlsplit, urlunsplit
 
-VERSION = '4.1'
+VERSION = '4.2'
 SCHEMA = 4
 ROOT = Path(__file__).resolve().parent
 EXCLUDED = {'.git', '__pycache__', 'venv', '.venv', '.idea', '.agents', '.codex',
             '.aws', '.mypy_cache', '.pytest_cache', 'build', 'dist', 'node_modules',
-            '.vscode', 'REPORT', 'basemap-styles-master', 'data', 'fonts', 'gpx', 'GPX CORSICA'}
+            '.vscode', '.continuita', 'MEMORIA', 'REPORT', 'basemap-styles-master', 'data', 'fonts', 'gpx', 'GPX CORSICA'}
 GENERATED = {'analisi.json', 'AI_BRIEF.md', 'report.md', 'DB_SCHEMA.md', 'CONFIG_FILES.md',
-             'EXTERNAL_SERVICES.md', 'riepilogo.txt', 'STATO_ATTUALE.md', 'PERCORSO.md', 'ULTIMO_RUN.json'}
+             'EXTERNAL_SERVICES.md', 'riepilogo.txt', 'STATO_ATTUALE.md', 'PERCORSO.md', 'ULTIMO_RUN.json',
+             'CONTINUITA.md', 'STATO_INFRASTRUTTURA.md', 'REGISTRO_ATTIVITA.md'}
 CONFIG_EXT = {'.json', '.yaml', '.yml', '.ini', '.cfg', '.toml'}
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 FORBIDDEN_UI = {'PyQt5', 'PyQt6', 'PySide2', 'tkinter'}
@@ -356,13 +358,21 @@ def documents(root, errors=None):
     result = []
     paths = list(root.glob('*.md')) + list((root / 'REPORT').glob('*.md'))
     paths += [p for p in (root / '.github/copilot-instructions.md', root / '.clinerules') if p.is_file()]
+    paths += list((root / '.clinerules').glob('*.md'))
+    paths += list((root / '.clinerules/hooks').glob('*'))
+    paths += list((root / '.github/hooks').glob('*.json'))
+    paths += [p for p in (root / '.codex/hooks.json', root / 'MEMORIA/indice.json') if p.is_file()]
     for path in sorted(paths):
         name = path.name
-        if path.is_symlink() or name in GENERATED or name.startswith('.aider'):
+        if not path.is_file() or path.is_symlink() or name in GENERATED or name.startswith('.aider'):
             continue
         role = 'documento_progetto'
-        if name in {'AGENTS.md', 'copilot-instructions.md', '.clinerules'}:
+        if name in {'AGENTS.md', 'copilot-instructions.md', '.clinerules'} or path.parent == root / '.clinerules':
             role = 'istruzioni_settore_da_leggere_nello_strumento'
+        elif '/hooks/' in path.as_posix() or path == root / '.codex/hooks.json':
+            role = 'avvio_automatico_da_verificare_nello_strumento'
+        elif path == root / 'MEMORIA/indice.json':
+            role = 'indice_continuita_generato'
         elif name == 'STORIA_PROGETTO.md':
             role = 'memoria_storica_da_chat_e_fonti'
         elif name in {'FIRST_PRINCIPLES.md', 'REGOLE_GPX.md'}:
@@ -383,6 +393,23 @@ def documents(root, errors=None):
                 raise
             errors.append(proof(path.relative_to(root).as_posix(), None, tipo=type(exc).__name__, messaggio=str(exc)))
     return result
+
+
+def continuity_snapshot(root):
+    index = root / 'MEMORIA/indice.json'
+    if not index.is_file():
+        return dict(integrita='non_disponibile', motivo='Registro continuità non inizializzato.')
+    try:
+        spec = importlib.util.spec_from_file_location('bikepacking_continuita', ROOT / 'continuita_progetto.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        rows = module.journal(root)
+        data = json.loads(text(index))
+        if data['registro_eventi'] != len(rows) or data['ultimo_evento_sha256'] != (rows[-1]['sha256'] if rows else None):
+            raise ValueError('Indice memoria diverso dal registro.')
+        return data
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return dict(integrita='errore', motivo=str(exc))
 
 
 def scan(root, read_db=True):
@@ -456,9 +483,9 @@ def scan(root, read_db=True):
                              errori_scansione=len(errors), indizi_da_verificare=sum(i['certezza'] == 'indizio' for i in issues)),
                 git=git, moduli=modules, dipendenze=edges, rotte=routes, endpoint=endpoints, database=db,
                 configurazioni=configs, risorse_web=assets, documenti=docs, segnalazioni=issues, corpi_identici=duplicates,
-                errori=errors, confronto=comparison, file_sha256=hashes,
+                errori=errors, confronto=comparison, file_sha256=hashes, continuita=continuity_snapshot(root),
                 limiti=['Nessun test dell’app eseguito; comportamento runtime non certificato.',
-                        'Servizi, server e contenuti R2 non contattati.',
+                        'La scansione Python non contatta server o R2; gli inventari separati della continuità non certificano download pubblico o compatibilità con il consumer.',
                         'Riferimenti basati su nomi AST: alias, omonimie e uso dinamico limitano la precisione.',
                         'I riferimenti SQL non stabiliscono a quale database appartenga una tabella.',
                         'Decorator HTTP rilevati staticamente: registrazione e prefissi Blueprint non verificati.',
@@ -488,17 +515,29 @@ def render(data):
               'Bikepacking Studio nasce per preparare e accompagnare viaggi reali in bicicletta, conservando la conoscenza raccolta prima, durante e dopo il viaggio.',
               'Il repository contiene l’app desktop Python/PySide6, una mappa web servita da Flask/MapLibre e SQLite. La direzione futura comprende un’app consumer desktop, web, iOS e Android; questa scansione non ne certifica la realizzazione.',
               'Principi: il viaggio è centrale; il GPX guida senza vincolare; la realtà prevale sul piano; l’IA assiste e il viaggiatore decide; le funzioni essenziali devono funzionare offline.', '',
-              'Ruoli: Codex segue analisi, modifiche, verifiche e continuità del repository (`AGENTS.md`); Copilot segue il codice e l’integrazione dell’app (`.github/copilot-instructions.md`); Cline segue soprattutto la produzione di mappe, routing e dati su Hetzner e la distribuzione Cloudflare R2 (`.clinerules`). Gli accessi remoti configurati per Cline non sono verificati da questo report.', '',
+              'Ruoli: Codex segue analisi, modifiche, verifiche e continuità del repository (`AGENTS.md`); Copilot segue il codice e l’integrazione dell’app (`.github/copilot-instructions.md`); Cline segue soprattutto la produzione di mappe, routing e dati su Hetzner e la distribuzione Cloudflare R2 (`.clinerules/01-progetto.md`). La scansione Python non verifica le connessioni remote; gli inventari del motore di continuità sono riportati separatamente con data e limiti.', '',
               '**Uso con DeepSeek, Gemini, ChatGPT o altre chat:** allega questo file e indica l’obiettivo della sessione. Il brief fornisce il contesto iniziale; allega poi i sorgenti o i documenti necessari al compito. Una chat senza accesso ai file non può considerarli letti né verificare lo stato corrente.',
               'Puoi accompagnarlo con: «Parliamo in italiano semplice. Usa la fotografia e i suoi limiti, distingui fatti, storia e proposte; chiedimi le fonti mancanti prima di formulare diagnosi o modifiche. Obiettivo di questa sessione: …».', '',
-              'Questo file si aggiorna eseguendo `python -B analisi_profonda.py`, non modificandolo a mano. La data e il commit sotto descrivono il momento della scansione. Prima di una nuova chat rigeneralo se il progetto è cambiato; se non puoi, dichiara che la fotografia può essere superata.', '']
+              'Questo file si aggiorna eseguendo `node scripts/continuita-hook.cjs sync` (oppure `python -B analisi_profonda.py` per la sola fotografia locale), non modificandolo a mano. La data e il commit sotto descrivono il momento della scansione. Prima di una nuova chat rigeneralo se il progetto è cambiato; se non puoi, dichiara che la fotografia può essere superata.', '']
     brief += ['## Come orientarsi', '', '- Questo brief: fotografia automatica corrente.',
-              '- `STORIA_PROGETTO.md`: origini, motivazioni e storia dalle chat; non viene riscritta.',
+              '- `STORIA_PROGETTO.md`: ricostruzione originale preservata e sezione automatica alimentata dal registro.',
               '- `REPORT/FIRST_PRINCIPLES.md` e `REPORT/REGOLE_GPX.md`: principi e regole.',
               '- `REPORT/report.md`: struttura, prove, errori e indizi.',
               '- `REPORT/PERCORSO.md`: cronologia Git locale senza interpretazioni di completamento.',
               '- `REPORT/DB_SCHEMA.md`, `CONFIG_FILES.md`, `EXTERNAL_SERVICES.md`: dettagli mirati.',
-              '- `REPORT/analisi.json`: dataset completo. `ULTIMO_RUN.json`: manifest per il confronto.', '', '## Stato della lettura', '']
+              '- `REPORT/analisi.json`: dataset completo. `ULTIMO_RUN.json`: manifest per il confronto.', '']
+    continuity = data.get('continuita', {})
+    brief += ['## Continuità: repository, infrastruttura e decisioni', '',
+              '- `CONTINUITA.md` nella radice: funzionamento, configurazione e attivazione degli automatismi.',
+              '- `REPORT/CONTINUITA.md`: salute della memoria e hook effettivamente osservati.',
+              '- `REPORT/STATO_INFRASTRUTTURA.md`: ultimi inventari Hetzner/R2 e limiti.',
+              '- `REPORT/REGISTRO_ATTIVITA.md`: attività registrate; `MEMORIA/eventi/` contiene le fonti immutabili.',
+              f"- Integrità del registro: **{continuity.get('integrita', 'non_disponibile')}**; eventi: {continuity.get('registro_eventi', 'non verificati')}."]
+    for sector, row in continuity.get('infrastruttura', {}).items():
+        brief += [f"- {sector}: {row['stato']}; ultimo controllo {row['data_utc']}" + ('; superato.' if row.get('superato') else '.')]
+    if continuity.get('motivo'):
+        brief += ['- ' + continuity['motivo']]
+    brief += ['', '## Stato della lettura', '']
     if g['disponibile']:
         brief += [f"- Ramo: `{g['ramo']}`; commit: `{g['head'][:12]}`.",
                   f"- Modifiche locali prima dei report: {len(g['modifiche_locali'])}."]
@@ -594,7 +633,7 @@ def render(data):
     table(services, ['Endpoint', 'Ambito', 'Origine', 'Prova'], [(e['url'], e['ambito'], e['origine'], f"{e['file']}:{e['riga']}") for e in data['endpoint']])
     state = header(data, 'Stato corrente osservato') + ['La storia e le decisioni restano in `STORIA_PROGETTO.md` e nei documenti di progetto.', '']
     state += brief[brief.index('## Stato della lettura'):]
-    state += ['', '## Funzionalità e infrastruttura', '', 'Il completamento funzionale richiede prove di esecuzione. R2, server e download remoti non verificati.',
+    state += ['', '## Funzionalità e infrastruttura', '', 'Il completamento funzionale richiede prove di esecuzione. Gli inventari infrastrutturali non certificano download pubblico o compatibilità con il consumer.',
               'Questo strumento non sceglie automaticamente il prossimo lavoro del progetto.']
     history = header(data, 'Cronologia Git del ramo corrente') + ['Titoli dei commit riportati come dichiarazioni degli autori, non verifiche funzionali.',
                 'Ultimi 80 commit raggiungibili da HEAD. La storia dalle chat è in `STORIA_PROGETTO.md`.', '']
@@ -603,7 +642,7 @@ def render(data):
         history += ['Git non verificato: ' + g['errore']]
     summary = ['FOTOGRAFIA DEL PROGETTO', f"Run: {data['meta']['run_id']}", f"Data UTC: {data['meta']['data_utc']}",
                f"Python: {s['moduli_python']}/{s['file_python_trovati']} file analizzati", f"Errori: {len(data['errori'])}",
-               'Servizi remoti e comportamento dell’app non verificati.', 'Punto di ingresso: REPORT/AI_BRIEF.md']
+               'Funzionamento dell’app non verificato. Inventari remoti e limiti: REPORT/STATO_INFRASTRUTTURA.md.', 'Punto di ingresso: REPORT/AI_BRIEF.md']
     return {f: '\n'.join(lines).rstrip() + '\n' for f, lines in {'AI_BRIEF.md': brief, 'report.md': report,
             'DB_SCHEMA.md': schema, 'CONFIG_FILES.md': config, 'EXTERNAL_SERVICES.md': services,
             'STATO_ATTUALE.md': state, 'PERCORSO.md': history, 'riepilogo.txt': summary}.items()}

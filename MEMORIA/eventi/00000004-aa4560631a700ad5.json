@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "numero": 4,
+  "data_utc": "2026-10-09T20:58:35.724947+00:00",
+  "tipo": "risultato_dichiarato",
+  "autore": "codex",
+  "dati": {
+    "certezza": "dichiarazione_agente",
+    "fonte": {
+      "riferimento": "Implementazione Codex del 2026-10-09 richiesta nella conversazione corrente",
+      "tipo": "attivita_agente"
+    },
+    "prove": [
+      {
+        "file": "continuita_progetto.py",
+        "sha256": "0eb8559e44bededd7bfba80416bb4b47f2f58a1f4fa8b0845db263469a5f325b"
+      },
+      {
+        "file": "continuita.config.json",
+        "sha256": "9183228e7a3067e2a86f4957aa2bd3b9fbe9d6059aa1a446fc7a739f172cfc34"
+      },
+      {
+        "file": "tests/test_continuita_progetto.py",
+        "sha256": "6d9e848bd61138f71d461f51bd095ea177a36480597cbcad1dd44a70bd84d41c"
+      },
+      {
+        "file": "CONTINUITA.md",
+        "sha256": "c6793ffd1a7026c160800f9c8a0375a95014b1dcb6fee5c1ff4d28351af7141e"
+      }
+    ],
+    "riepilogo": "Hook per Codex, Copilot e Cline; registro con impronte concatenate; storia iniziale preservata; inventari reali Hetzner/R2 eseguiti in sola lettura. 17 test continuit? e 18 test analizzatore passati. Attivazione nei client ancora da osservare. Nessuna verifica funzionale del consumer svolta.",
+    "titolo": "Realizzato il motore comune di continuit?"
+  },
+  "chiave": "65b3f9305f8b137e027cafbb74db2cbe5690e849bb923bff247a1e5e324427d3",
+  "precedente_sha256": "286802f7e15180206d52f3418a725671e2873f92dba193a39fe0b996c98df187",
+  "sha256": "aa4560631a700ad525276b395c611cd068ae428915643e24f599029d0a012165"
+}

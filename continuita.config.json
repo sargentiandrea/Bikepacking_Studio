@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "infrastruttura": {
+    "intervallo_verifica_secondi": 1800,
+    "validita_verifica_ore": 24,
+    "timeout_secondi": 8,
+    "ssh_target": "root@2.29.57.35",
+    "radici_hetzner": ["/work/maps", "/work/graph", "/work/geonames", "/work/clima"],
+    "fonte_destinazioni": "Sessioni Cline locali: riferimenti storici recuperati il 2026-10-09; presenza attuale da verificare",
+    "rclone_remote": "r2:bikepacking-studio-maps",
+    "rclone_su_ssh": true,
+    "profondita_r2": 4,
+    "max_elementi": 5000
+  }
+}

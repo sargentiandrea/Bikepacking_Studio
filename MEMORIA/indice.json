@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "registro_eventi": 7,
+  "ultimo_evento_sha256": "56e12ec68dbe8c35568e78d4c4a64b52f022be3a15faa5b5f0060a7ae270c353",
+  "integrita": "verificata",
+  "infrastruttura": {
+    "hetzner": {
+      "stato": "inventario_verificato",
+      "data_utc": "2026-10-09T20:56:59.983617+00:00",
+      "superato": false
+    },
+    "r2": {
+      "stato": "inventario_verificato",
+      "data_utc": "2026-10-09T20:57:02.404462+00:00",
+      "superato": false
+    }
+  },
+  "chiusure_senza_resoconto": 0,
+  "hook_osservati": {}
+}

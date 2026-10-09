@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "numero": 1,
+  "data_utc": "2026-10-09T20:56:59.977687+00:00",
+  "tipo": "continuita_inizializzata",
+  "autore": "manuale",
+  "dati": {
+    "file_osservati": 122,
+    "titolo": "Prima fotografia della continuità"
+  },
+  "chiave": "d277c3dd8c641d8e83547d5acc06f8b119bff41843beb81ba880cfeee2e39008",
+  "precedente_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "sha256": "aee1370a919dafffe3e467e18356a41ed15520ab4016619ccd53223290fdd204"
+}

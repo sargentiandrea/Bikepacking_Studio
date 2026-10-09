@@ -177,7 +177,7 @@ class SnapshotTests(unittest.TestCase):
         self.assertIn('Contesto per una nuova chat', brief)
         self.assertIn('DeepSeek, Gemini, ChatGPT', brief)
         self.assertIn('non modificandolo a mano', brief)
-        self.assertIn('non sono verificati da questo report', brief)
+        self.assertIn('La scansione Python non verifica le connessioni remote', brief)
 
     def test_check_writes_nothing(self):
         before = sorted(p.relative_to(self.root).as_posix() for p in self.root.rglob('*'))

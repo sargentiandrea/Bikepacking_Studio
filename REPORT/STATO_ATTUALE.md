@@ -1,6 +1,6 @@
 # Stato corrente osservato
 
-Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
+Scansione `86301f0b241d616c` · 2026-10-09T21:02:27.962995+00:00 · script 4.2
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -8,10 +8,10 @@ La storia e le decisioni restano in `STORIA_PROGETTO.md` e nei documenti di prog
 
 ## Stato della lettura
 
-- Ramo: `main`; commit: `0c4a46595729`.
-- Modifiche locali prima dei report: 15.
-- Python: 78 file analizzati su 78.
-- Classi: 50; funzioni di modulo: 250; metodi: 348; funzioni annidate: 8.
+- Ramo: `main`; commit: `56557fdc4347`.
+- Modifiche locali prima dei report: 29.
+- Python: 80 file analizzati su 80.
+- Classi: 51; funzioni di modulo: 276; metodi: 367; funzioni annidate: 8.
 - HTTP: 8 indirizzi, 9 coppie indirizzo/metodo dichiarate.
 - Database: letto_in_sola_lettura; tabelle applicative: 23.
 - Errori di scansione: 0; indizi statici: 11.
@@ -23,8 +23,8 @@ La storia e le decisioni restano in `STORIA_PROGETTO.md` e nei documenti di prog
 | database | 1 |
 | interfaccia | 25 |
 | servizio | 39 |
-| strumento_o_avvio | 6 |
-| test | 7 |
+| strumento_o_avvio | 7 |
+| test | 8 |
 
 ## Componenti presenti nel codice
 
@@ -53,30 +53,30 @@ La dimensione orienta la lettura; non misura rischio o qualità.
 | service/stats_service.py | 768 | 14 |
 | gui/dashboard.py | 632 | 21 |
 | app_desktop.py | 600 | 44 |
+| continuita_progetto.py | 580 | 26 |
 | service/salvataggio_tappa_service.py | 580 | 7 |
 | gui/mappa.py | 573 | 28 |
-| gui/pagine/controller_clima.py | 552 | 24 |
 
 ## Cambiamenti dalla precedente scansione
 
-- Aggiunti: 1.
+- Aggiunti: 0.
 - Rimossi: 0.
-- Modificati: 0.
-- Analizzatore modificato: sì.
+- Modificati: 2.
+- Analizzatore modificato: no.
 - Commit Git cambiato: no; i cambiamenti alle fonti sono conteggiati separatamente.
 
 ## Limiti
 
 - Nessun test dell’app eseguito; comportamento runtime non certificato.
-- Servizi, server e contenuti R2 non contattati.
+- La scansione Python non contatta server o R2; gli inventari separati della continuità non certificano download pubblico o compatibilità con il consumer.
 - Riferimenti basati su nomi AST: alias, omonimie e uso dinamico limitano la precisione.
 - I riferimenti SQL non stabiliscono a quale database appartenga una tabella.
 - Decorator HTTP rilevati staticamente: registrazione e prefissi Blueprint non verificati.
 - HTML/JS/CSS inventariati, incluse librerie esterne; sintassi e comportamento non verificati.
 - Storia, visioni e piani sono fonti documentali, non prove di implementazione.
-- Cartelle escluse: .agents, .aws, .codex, .git, .idea, .mypy_cache, .pytest_cache, .venv, .vscode, GPX CORSICA, REPORT, __pycache__, basemap-styles-master, build, data, dist, fonts, gpx, node_modules, venv
+- Cartelle escluse: .agents, .aws, .codex, .continuita, .git, .idea, .mypy_cache, .pytest_cache, .venv, .vscode, GPX CORSICA, MEMORIA, REPORT, __pycache__, basemap-styles-master, build, data, dist, fonts, gpx, node_modules, venv
 
 ## Funzionalità e infrastruttura
 
-Il completamento funzionale richiede prove di esecuzione. R2, server e download remoti non verificati.
+Il completamento funzionale richiede prove di esecuzione. Gli inventari infrastrutturali non certificano download pubblico o compatibilità con il consumer.
 Questo strumento non sceglie automaticamente il prossimo lavoro del progetto.

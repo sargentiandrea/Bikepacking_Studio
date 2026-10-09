@@ -1,6 +1,6 @@
 # Schema SQLite applicativo
 
-Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
+Scansione `86301f0b241d616c` · 2026-10-09T21:02:27.962995+00:00 · script 4.2
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 

@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "numero": 3,
+  "data_utc": "2026-10-09T20:57:06.733611+00:00",
+  "tipo": "verifica_infrastruttura",
+  "autore": "sonda",
+  "dati": {
+    "data_utc": "2026-10-09T20:57:02.404462+00:00",
+    "elementi": [
+      {
+        "byte": 2685,
+        "data_modifica": "2026-10-05T21:26:29.849111736Z",
+        "hash_disponibili": {
+          "md5": "eff0fe49f1d63f9cf298653382b187c3"
+        },
+        "percorso": "clima/NOTE_DATI.md"
+      },
+      {
+        "byte": 1449984,
+        "data_modifica": "2026-10-05T21:25:53.484078448Z",
+        "hash_disponibili": {
+          "md5": "0639d722fdeb225515830f3277af4d81"
+        },
+        "percorso": "clima/clima_mondiale.db"
+      },
+      {
+        "byte": 4360033,
+        "data_modifica": "2026-10-04T08:59:05.367240700Z",
+        "hash_disponibili": {
+          "md5": "6cc8ad4f42cc1d2292a4110d298cddb7"
+        },
+        "percorso": "geonames/italia/IT.zip"
+      },
+      {
+        "byte": 7302837,
+        "data_modifica": "2026-10-04T10:10:04.975000000Z",
+        "hash_disponibili": {
+          "md5": "a544880525660ad7c415ab215add8dbc"
+        },
+        "percorso": "geonames/francia/FR.zip"
+      },
+      {
+        "byte": 385405,
+        "data_modifica": "2026-10-05T03:03:10.000000000Z",
+        "hash_disponibili": {
+          "md5": "c5f32a9d96b569bf6886deb69f858a92"
+        },
+        "percorso": "geonames/albania/AL.zip"
+      },
+      {
+        "byte": 60347812,
+        "data_modifica": "2026-10-05T12:55:06.496162381Z",
+        "hash_disponibili": {
+          "md5": "a356bcc3263c9e2987cc5552ba57c797"
+        },
+        "percorso": "mappe/albania/albania.pmtiles"
+      },
+      {
+        "byte": 8292,
+        "data_modifica": "2026-10-04T12:18:32.594336700Z",
+        "hash_disponibili": {
+          "md5": "ec653ed8faef48e27f154daa1a534538"
+        },
+        "percorso": "graphhopper/italia/graph-cache/edgekv_keys"
+      },
+      {
+        "byte": 39845988,
+        "data_modifica": "2026-10-04T12:18:32.655332900Z",
+        "hash_disponibili": {
+          "md5": "2a2c35b6d30d37c01e1b855bb74457c8"
+        },
+        "percorso": "graphhopper/italia/graph-cache/edgekv_vals"
+      },
+      {
+        "byte": 544211044,
+        "data_modifica": "2026-10-04T16:04:17.276391000Z",
+        "hash_disponibili": {
+          "md5": "6bd92e3a5ad4d17be40ec625b6032091"
+        },
+        "percorso": "graphhopper/italia/graph-cache/edges"
+      },
+      {
+        "byte": 491782244,
+        "data_modifica": "2026-10-04T16:04:09.213021700Z",
+        "hash_disponibili": {
+          "md5": "199a12334ebe1a9f072d6af9a0040eba"
+        },
+        "percorso": "graphhopper/italia/graph-cache/geometry"
+      },
+      {
+        "byte": 123732068,
+        "data_modifica": "2026-10-04T12:14:09.721656000Z",
+        "hash_disponibili": {
+          "md5": "e7760403864d5429a1e60684717b967b"
+        },
+        "percorso": "graphhopper/italia/graph-cache/location_index"
+      },
+      {
+        "byte": 173015140,
+        "data_modifica": "2026-10-04T16:04:18.346382100Z",
+        "hash_disponibili": {
+          "md5": "cbebbb6f9888c2ca6e33b9690f0609c3"
+        },
+        "percorso": "graphhopper/italia/graph-cache/nodes"
+      },
+      {
+        "byte": 87031908,
+        "data_modifica": "2026-10-04T16:04:01.835733100Z",
+        "hash_disponibili": {
+          "md5": "8fcfed37fabbb88419f907759a584acb"
+        },
+        "percorso": "graphhopper/italia/graph-cache/nodes_ch_bike"
+      },
+      {
+        "byte": 87031908,
+        "data_modifica": "2026-10-04T16:00:17.570254900Z",
+        "hash_disponibili": {
+          "md5": "94570b0119f3f63edeb464d19b3c347b"
+        },
+        "percorso": "graphhopper/italia/graph-cache/nodes_ch_racingbike"
+      },
+      {
+        "byte": 32868,
+        "data_modifica": "2026-10-04T16:04:18.349566300Z",
+        "hash_disponibili": {
+          "md5": "6441c16e818fb04e4707a5429ca56ce6"
+        },
+        "percorso": "graphhopper/italia/graph-cache/properties"
+      },
+      {
+        "byte": 10849,
+        "data_modifica": "2026-10-04T16:04:18.359044900Z",
+        "hash_disponibili": {
+          "md5": "aeca240078052230971e29ad2bb1dd3e"
+        },
+        "percorso": "graphhopper/italia/graph-cache/properties.txt"
+      },
+      {
+        "byte": 170917988,
+        "data_modifica": "2026-10-04T16:04:03.201469600Z",
+        "hash_disponibili": {
+          "md5": "e829770bb60abaf8b915e1aaba2fd1a8"
+        },
+        "percorso": "graphhopper/italia/graph-cache/shortcuts_bike"
+      },
+      {
+        "byte": 154140772,
+        "data_modifica": "2026-10-04T16:00:17.780138300Z",
+        "hash_disponibili": {
+          "md5": "34cb62ae54ddccf9efd930cebb69b17a"
+        },
+        "percorso": "graphhopper/italia/graph-cache/shortcuts_racingbike"
+      },
+      {
+        "byte": 8292,
+        "data_modifica": "2026-10-05T12:22:06.067968199Z",
+        "hash_disponibili": {
+          "md5": "76fa3835cc5761182194e1ca52f05e87"
+        },
+        "percorso": "graphhopper/albania/graph-cache/edgekv_keys"
+      },
+      {
+        "byte": 1048676,
+        "data_modifica": "2026-10-05T12:22:06.068094306Z",
+        "hash_disponibili": {
+          "md5": "1fa7279bc9f0e615e368c3c875fb7c24"
+        },
+        "percorso": "graphhopper/albania/graph-cache/edgekv_vals"
+      },
+      {
+        "byte": 14680164,
+        "data_modifica": "2026-10-05T12:22:06.076993178Z",
+        "hash_disponibili": {
+          "md5": "b1ede2ea0828870cfeca7288fa6502e1"
+        },
+        "percorso": "graphhopper/albania/graph-cache/edges"
+      },
+      {
+        "byte": 25165924,
+        "data_modifica": "2026-10-05T12:22:06.065993171Z",
+        "hash_disponibili": {
+          "md5": "d6ddaff1e5f99743168f4937335af7b9"
+        },
+        "percorso": "graphhopper/albania/graph-cache/geometry"
+      },
+      {
+        "byte": 4194404,
+        "data_modifica": "2026-10-05T12:21:58.930989056Z",
+        "hash_disponibili": {
+          "md5": "1c534b224b9c3ea6689d5cae54d047cf"
+        },
+        "percorso": "graphhopper/albania/graph-cache/location_index"
+      },
+      {
+        "byte": 5242980,
+        "data_modifica": "2026-10-05T12:22:06.081993181Z",
+        "hash_disponibili": {
+          "md5": "f0380dcfa7d70b744bc6b5fdf69ea4f0"
+        },
+        "percorso": "graphhopper/albania/graph-cache/nodes"
+      },
+      {
+        "byte": 3145828,
+        "data_modifica": "2026-10-05T12:22:06.020993145Z",
+        "hash_disponibili": {
+          "md5": "c40dc49c9c4877c41538b5f1c2057314"
+        },
+        "percorso": "graphhopper/albania/graph-cache/nodes_ch_bike"
+      },
+      {
+        "byte": 3145828,
+        "data_modifica": "2026-10-05T12:22:02.771991272Z",
+        "hash_disponibili": {
+          "md5": "0ff64b5d54241624e6f929142bc2e9de"
+        },
+        "percorso": "graphhopper/albania/graph-cache/nodes_ch_racingbike"
+      },
+      {
+        "byte": 32868,
+        "data_modifica": "2026-10-05T12:22:06.082993181Z",
+        "hash_disponibili": {
+          "md5": "07fd31c48110660f18551a22fae0f489"
+        },
+        "percorso": "graphhopper/albania/graph-cache/properties"
+      },
+      {
+        "byte": 10849,
+        "data_modifica": "2026-10-05T12:22:06.083796419Z",
+        "hash_disponibili": {
+          "md5": "e89feeb5972571e0abd46baa4e97ab1e"
+        },
+        "percorso": "graphhopper/albania/graph-cache/properties.txt"
+      },
+      {
+        "byte": 4194404,
+        "data_modifica": "2026-10-05T12:22:06.026993149Z",
+        "hash_disponibili": {
+          "md5": "edaaa2ad909716738e6a2c0c94e3f198"
+        },
+        "percorso": "graphhopper/albania/graph-cache/shortcuts_bike"
+      },
+      {
+        "byte": 4194404,
+        "data_modifica": "2026-10-05T12:22:02.775991274Z",
+        "hash_disponibili": {
+          "md5": "81f962731203cc7b27877a99c6b86fa9"
+        },
+        "percorso": "graphhopper/albania/graph-cache/shortcuts_racingbike"
+      }
+    ],
+    "limite": "Inventario; non prova compatibilità con il consumer o disponibilità pubblica. ETag e hash non disponibili non sono checksum verificati.",
+    "profondita_massima": 4,
+    "settore": "r2",
+    "stato": "inventario_verificato",
+    "troncato": false
+  },
+  "chiave": "90af84826b8262a78bad7148e4d96f52705aea64de99353067c3110d917f44fb",
+  "precedente_sha256": "e8b00b5cac003f2359c2737753982694e929ce42238e17725eec521d11489c47",
+  "sha256": "286802f7e15180206d52f3418a725671e2873f92dba193a39fe0b996c98df187"
+}

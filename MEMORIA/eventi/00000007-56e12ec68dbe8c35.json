@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "numero": 7,
+  "data_utc": "2026-10-09T21:02:27.860997+00:00",
+  "tipo": "risultato_dichiarato",
+  "autore": "codex",
+  "dati": {
+    "certezza": "dichiarazione_agente",
+    "fonte": {
+      "riferimento": "Controlli Codex 2026-10-09, output dei test e sonde SSH/rclone",
+      "tipo": "attivita_agente"
+    },
+    "prove": [
+      {
+        "file": "tests/test_continuita_progetto.py",
+        "sha256": "a12c17cb7b56fdb7e83bdd4bb6a0d2c24bf0658c7df766cfa4b5054b0587405e"
+      },
+      {
+        "file": "tests/test_analisi_profonda.py",
+        "sha256": "56cb737497cb87f24540bd634b9c7bc33bf6ee7b48adb986d09ad0fe8324cb83"
+      },
+      {
+        "file": "continuita_progetto.py",
+        "sha256": "4928931a3885d34b352ec3849265c7da94ae1e5a07745138618271a430e3a3be"
+      },
+      {
+        "file": "continuita.config.json",
+        "sha256": "9183228e7a3067e2a86f4957aa2bd3b9fbe9d6059aa1a446fc7a739f172cfc34"
+      }
+    ],
+    "riepilogo": "36 test passati (18 continuit?, 18 analizzatore). Inventario in sola lettura: 2900 file nelle radici Hetzner configurate e 30 oggetti R2 entro la profondit? impostata. Impronta della storia originale e del database locale invariata; configurazioni hook e report verificati. Gli hook non sono ancora stati osservati nelle sessioni reali dei client: attivazione e fiducia da confermare nelle rispettive interfacce. Compatibilit? dei pacchetti con il consumer non collaudata.",
+    "titolo": "Verifica finale della continuit?"
+  },
+  "chiave": "373f46f833ab34cf1bfdb84a3bce4851d10872c35209de3437c56c509cb98602",
+  "precedente_sha256": "b84186b91d09802a05915f87858c6dbcbf75fc1c55fb05471b0882cdc54afc61",
+  "sha256": "56e12ec68dbe8c35568e78d4c4a64b52f022be3a15faa5b5f0060a7ae270c353"
+}

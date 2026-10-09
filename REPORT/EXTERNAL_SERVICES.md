@@ -1,6 +1,6 @@
 # Endpoint osservati nel sorgente Python
 
-Scansione `c68e5bf3741dde1f` · 2026-10-09T20:29:39.639501+00:00 · script 4.1
+Scansione `86301f0b241d616c` · 2026-10-09T21:02:27.962995+00:00 · script 4.2
 
 Documento generato: fatti osservati e limiti dichiarati. Non certifica l’esecuzione dell’app.
 
@@ -9,6 +9,7 @@ Credenziali URL, query e frammenti omessi. Parole come redis o Martin non sono p
 
 | Endpoint | Ambito | Origine | Prova |
 |---|---|---|---|
+| [URL non interpretabile] | remoto | stringa; non prova connessione | continuita_progetto.py:48 |
 | https://download.geonames.org/export/dump/allCountries.zip | remoto | stringa; non prova connessione | installa_geonames.py:20 |
 | https://download.geonames.org/export/dump/alternateNamesV2.zip | remoto | stringa; non prova connessione | installa_geonames.py:25 |
 | https://creativecommons.org/licenses/by/4.0/ | remoto | stringa; non prova connessione | installa_geonames.py:322 |
@@ -33,3 +34,4 @@ Credenziali URL, query e frammenti omessi. Parole come redis o Martin non sono p
 | http://www.topografix.com/GPX/1/1 | remoto | stringa; non prova connessione | service/stats_service.py:118 |
 | https://example.org/maps | remoto | stringa; non prova connessione | tests/test_analisi_profonda.py:107 |
 | https://example.org/maps | remoto | stringa; non prova connessione | tests/test_analisi_profonda.py:108 |
+| https://host/file | remoto | stringa; non prova connessione | tests/test_continuita_progetto.py:169 |
